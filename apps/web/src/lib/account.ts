@@ -74,6 +74,37 @@ export const logout = createServerFn({ method: 'POST' }).handler(async () => {
   return { ok: true as const }
 })
 
+/** メールアドレスとパスワードでログイン（mode: 'login'）または新規登録（mode: 'register'）。 */
+export const emailAuth = createServerFn({ method: 'POST' })
+  .validator(
+    (input: { mode: 'login' | 'register'; email: string; password: string }) =>
+      input,
+  )
+  .handler(async ({ data }) => {
+    const {
+      data: session,
+      error,
+      response,
+    } = await getAuthApiClient().fetch.POST(
+      data.mode === 'register'
+        ? '/api/auth/email/register'
+        : '/api/auth/email/login',
+      { body: { email: data.email, password: data.password } },
+    )
+    if (!session)
+      return toFailure(
+        error,
+        response.status,
+        data.mode === 'register'
+          ? '登録に失敗しました。'
+          : 'ログインに失敗しました。',
+      )
+
+    storeSessionToken(session.token, session.expiresAt)
+
+    return { ok: true as const, needsHandle: session.needsHandle }
+  })
+
 /**
  * 開発用ログイン（Google の設定なしで動作確認するため）。
  * API 側が APP_ENV=dev かつ DEV_LOGIN_ENABLED=1 のときしか通らない。

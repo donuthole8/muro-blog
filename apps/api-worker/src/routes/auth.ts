@@ -6,11 +6,13 @@ import type { AppEnv, Bindings } from '../env'
 import { accountStatusError, bearerToken, issueSession, revokeSession } from '../lib/auth'
 import { ApiError, newId, notFound, now, privateCache } from '../lib/http'
 import { Input } from '../lib/input'
+import { burnPasswordCheck, hashPassword, verifyPassword } from '../lib/password'
 import { normalizeHandle } from '../lib/policy'
+import { consumeRateLimit } from '../lib/rateLimit'
 import type { Schemas } from '../services/mapper'
 
 /**
- * ログイン（Google OAuth の認可コードフロー）。
+ * ログイン。Google OAuth の認可コードフローと、メールアドレス + パスワードの2通り。
  *
  * ブラウザは API に直接来ない（web の Worker が中継する）ので、state の保存と照合は
  * web の Worker が Cookie で行う。ここは同意画面の URL を作るのと、認可コードを
@@ -121,6 +123,76 @@ auth.post('/google/callback', async (c) => {
   }
 
   return c.json(await issue(c.var.db, user), 200, privateCache)
+})
+
+// ---------- メールアドレス + パスワード ----------
+//
+// 確認メールや 2 段階認証は持たない（メール送信の仕組みがないため）。
+// そのためアドレスの所有確認はしておらず、パスワードを忘れたら管理者に頼むしかない。
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PASSWORD_MIN = 8
+const PASSWORD_MAX = 128
+
+function readCredentials(input: Input) {
+  const rawEmail = input.string('email', { required: true, max: 254, requiredMessage: 'メールアドレスを入力してください。' })
+  const password = input.string('password', { required: true, max: PASSWORD_MAX, requiredMessage: 'パスワードを入力してください。' })
+  const email = rawEmail.trim().toLowerCase()
+  if (email !== '' && !EMAIL_PATTERN.test(email)) {
+    input.fail('email', 'メールアドレスの形式が正しくありません。')
+  }
+  return { email, password }
+}
+
+auth.post('/email/register', async (c) => {
+  const db = c.var.db
+  const input = await Input.from(c)
+  const { email, password } = readCredentials(input)
+  if (password !== '' && [...password].length < PASSWORD_MIN) {
+    input.fail('password', `パスワードは ${PASSWORD_MIN} 文字以上にしてください。`)
+  }
+  input.assertValid()
+
+  if (await db.select({ id: users.id }).from(users).where(eq(users.email, email)).get()) {
+    throw new ApiError(422, '入力内容に誤りがあります。', {
+      email: 'このメールアドレスは既に登録されています。',
+    })
+  }
+
+  const user = await db
+    .insert(users)
+    .values({
+      id: newId(),
+      email,
+      passwordHash: await hashPassword(password),
+      // 表示名は handle 決定画面で変えられる。とりあえずアドレスの @ より前を使う
+      displayName: [...email.split('@')[0]].slice(0, 50).join(''),
+      createdAt: now(),
+    })
+    .returning()
+    .get()
+
+  return c.json(await issue(db, user), 200, privateCache)
+})
+
+auth.post('/email/login', async (c) => {
+  const db = c.var.db
+  const input = await Input.from(c)
+  const { email, password } = readCredentials(input)
+  input.assertValid()
+
+  await consumeRateLimit(db, 'login', email)
+
+  const user = await db.select().from(users).where(eq(users.email, email)).get()
+  const ok = user?.passwordHash
+    ? await verifyPassword(password, user.passwordHash)
+    : (await burnPasswordCheck(password), false)
+  // どちらが違うのかは教えない（登録済みのアドレスを探られないように）
+  if (!user || !ok) {
+    throw new ApiError(401, 'メールアドレスかパスワードが正しくありません。')
+  }
+
+  return c.json(await issue(db, user), 200, privateCache)
 })
 
 auth.delete('/session', async (c) => {

@@ -14,6 +14,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as DevLoginRouteImport } from './routes/dev-login'
 import { Route as FollowingRouteImport } from './routes/following'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as RssDotxmlRouteImport } from './routes/rss[.]xml'
@@ -59,6 +60,11 @@ const DevLoginRoute = DevLoginRouteImport.update({
 const FollowingRoute = FollowingRouteImport.update({
   id: '/following',
   path: '/following',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/dev-login': typeof DevLoginRoute
   '/following': typeof FollowingRoute
+  '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/dev-login': typeof DevLoginRoute
   '/following': typeof FollowingRoute
+  '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
@@ -232,6 +240,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/dev-login': typeof DevLoginRoute
   '/following': typeof FollowingRoute
+  '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
@@ -262,6 +271,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dev-login'
     | '/following'
+    | '/login'
     | '/notifications'
     | '/robots.txt'
     | '/rss.xml'
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/dev-login'
     | '/following'
+    | '/login'
     | '/notifications'
     | '/robots.txt'
     | '/rss.xml'
@@ -317,6 +328,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dev-login'
     | '/following'
+    | '/login'
     | '/notifications'
     | '/robots.txt'
     | '/rss.xml'
@@ -346,6 +358,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   DevLoginRoute: typeof DevLoginRoute
   FollowingRoute: typeof FollowingRoute
+  LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   RssDotxmlRoute: typeof RssDotxmlRoute
@@ -400,6 +413,13 @@ declare module '@tanstack/react-router' {
       path: '/following'
       fullPath: '/following'
       preLoaderRoute: typeof FollowingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -574,6 +594,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   DevLoginRoute: DevLoginRoute,
   FollowingRoute: FollowingRoute,
+  LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   RssDotxmlRoute: RssDotxmlRoute,

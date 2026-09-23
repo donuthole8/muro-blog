@@ -18,8 +18,13 @@ export const site = {
   ogImage: '/og-image.png',
 } as const
 
-/** ログイン画面（Google の同意画面）へ。ログイン後は returnTo に戻る。 */
+/** ログイン画面（メールアドレス / Google を選ぶ）へ。ログイン後は returnTo に戻る。 */
 export function loginUrl(returnTo?: string) {
+  return returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'
+}
+
+/** Google の同意画面へ。ログイン後は returnTo に戻る。 */
+export function googleLoginUrl(returnTo?: string) {
   return returnTo
     ? `/auth/google?returnTo=${encodeURIComponent(returnTo)}`
     : '/auth/google'
@@ -28,4 +33,17 @@ export function loginUrl(returnTo?: string) {
 /** 部屋のチャンネル名。Slack の times に合わせて `times_{handle}` と呼ぶ（URL は /@handle のまま）。 */
 export function roomName(handle: string) {
   return `times_${handle}`
+}
+
+/** 外部サイトへのオープンリダイレクトにならないよう、サイト内のパスだけを許す。 */
+export function safeReturnTo(value: string | null | undefined): string {
+  if (
+    !value ||
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    value.startsWith('/\\')
+  ) {
+    return '/'
+  }
+  return value
 }

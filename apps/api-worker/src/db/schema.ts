@@ -233,7 +233,7 @@ export const reports = sqliteTable(
  * Symfony では cache_items に RateLimiter の状態を入れていたが、D1 では窓ごとの回数だけ数える。
  */
 export const rateLimits = sqliteTable('rate_limits', {
-  /** `<action>:<userId>:<窓の開始 unix 秒>` */
+  /** `<action>:<userId またはメールアドレス>:<窓の開始 unix 秒>` */
   key: text('key').primaryKey(),
   count: integer('count').notNull().default(0),
   expiresAt: integer('expires_at').notNull(),

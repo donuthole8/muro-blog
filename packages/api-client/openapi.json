@@ -663,6 +663,118 @@
                 }
             }
         },
+        "/api/auth/email/register": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "\u30e1\u30fc\u30eb\u30a2\u30c9\u30ec\u30b9\u3068\u30d1\u30b9\u30ef\u30fc\u30c9\u3067\u65b0\u898f\u767b\u9332\u3057\u3001\u305d\u306e\u307e\u307e\u30ed\u30b0\u30a4\u30f3\u3059\u308b\u3002\u78ba\u8a8d\u30e1\u30fc\u30eb\u306f\u9001\u3089\u306a\u3044\u3002",
+                "operationId": "post_api_auth_email_register",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EmailCredentialsInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "\u30ed\u30b0\u30a4\u30f3\u6210\u529f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SessionIssued"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "\u5165\u529b\u304c\u4e0d\u6b63\u3001\u307e\u305f\u306f\u30a2\u30c9\u30ec\u30b9\u304c\u767b\u9332\u6e08\u307f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/email/login": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "\u30e1\u30fc\u30eb\u30a2\u30c9\u30ec\u30b9\u3068\u30d1\u30b9\u30ef\u30fc\u30c9\u3067\u30ed\u30b0\u30a4\u30f3\u3059\u308b\u3002",
+                "operationId": "post_api_auth_email_login",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EmailCredentialsInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "\u30ed\u30b0\u30a4\u30f3\u6210\u529f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SessionIssued"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "\u30e1\u30fc\u30eb\u30a2\u30c9\u30ec\u30b9\u304b\u30d1\u30b9\u30ef\u30fc\u30c9\u304c\u9055\u3046",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "\u30a2\u30ab\u30a6\u30f3\u30c8\u304c\u505c\u6b62\u30fb\u9000\u4f1a\u6e08\u307f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "\u5165\u529b\u304c\u4e0d\u6b63",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "\u8a66\u884c\u56de\u6570\u306e\u4e0a\u9650",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth/session": {
             "delete": {
                 "tags": [
@@ -1960,6 +2072,23 @@
                         "type": "string",
                         "default": "",
                         "maxLength": 2048
+                    }
+                },
+                "type": "object"
+            },
+            "EmailCredentialsInput": {
+                "required": [
+                    "email",
+                    "password"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "maxLength": 254
+                    },
+                    "password": {
+                        "type": "string",
+                        "maxLength": 128
                     }
                 },
                 "type": "object"

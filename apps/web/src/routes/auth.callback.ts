@@ -5,9 +5,9 @@ import {
   RETURN_TO_COOKIE,
   SESSION_COOKIE,
   readCookieFrom,
-  safeReturnTo,
   serializeCookie,
 } from '../lib/session'
+import { safeReturnTo } from '../lib/site'
 
 /**
  * Google からの戻り先。state を照合してから認可コードを API に渡し、

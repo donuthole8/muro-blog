@@ -3,9 +3,9 @@ import { getAuthApiClient } from '../lib/api'
 import {
   OAUTH_STATE_COOKIE,
   RETURN_TO_COOKIE,
-  safeReturnTo,
   serializeCookie,
 } from '../lib/session'
+import { safeReturnTo } from '../lib/site'
 
 /**
  * ログインの入口。Google の同意画面へ送る。

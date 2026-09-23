@@ -244,6 +244,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/email/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** メールアドレスとパスワードで新規登録し、そのままログインする。確認メールは送らない。 */
+        post: operations["post_api_auth_email_register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/email/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** メールアドレスとパスワードでログインする。 */
+        post: operations["post_api_auth_email_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/session": {
         parameters: {
             query?: never;
@@ -673,6 +707,10 @@ export interface components {
         OAuthCallbackInput: {
             /** @default  */
             code: string;
+        };
+        EmailCredentialsInput: {
+            email: string;
+            password: string;
         };
         DevLoginInput: {
             /**
@@ -1493,6 +1531,99 @@ export interface operations {
             };
             /** @description アカウントが停止されている */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    post_api_auth_email_register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailCredentialsInput"];
+            };
+        };
+        responses: {
+            /** @description ログイン成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionIssued"];
+                };
+            };
+            /** @description 入力が不正、またはアドレスが登録済み */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    post_api_auth_email_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailCredentialsInput"];
+            };
+        };
+        responses: {
+            /** @description ログイン成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionIssued"];
+                };
+            };
+            /** @description メールアドレスかパスワードが違う */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description アカウントが停止・退会済み */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 入力が不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 試行回数の上限 */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

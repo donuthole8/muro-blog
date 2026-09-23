@@ -71,16 +71,3 @@ export function readCookieFrom(request: Request, name: string) {
   }
   return undefined
 }
-
-/** 外部サイトへのオープンリダイレクトにならないよう、サイト内のパスだけを許す。 */
-export function safeReturnTo(value: string | null | undefined): string {
-  if (
-    !value ||
-    !value.startsWith('/') ||
-    value.startsWith('//') ||
-    value.startsWith('/\\')
-  ) {
-    return '/'
-  }
-  return value
-}
