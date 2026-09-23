@@ -45,9 +45,12 @@ pnpm dev
 
 Ctrl+C で全て停止する（DB コンテナだけは残る）。
 
-初回のみ、DB のスキーマ適用とサンプルデータ投入が必要:
+初回のみ、環境変数ファイルの用意と DB のスキーマ適用・サンプルデータ投入が必要:
 
 ```sh
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+
 cd apps/api
 php bin/console doctrine:migrations:migrate --no-interaction
 php bin/console app:seed          # 任意

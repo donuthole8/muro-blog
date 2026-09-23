@@ -3,11 +3,13 @@ dist/
 .DS_Store
 
 # Symfony
-# .env はコミットする（開発用の既定値のみ）。実際の秘密情報は .env.local に置く。
+# .env* は ADMIN_TOKEN / APP_SECRET / DB 接続情報を含むためコミットしない。
+# 雛形は apps/api/.env.example を参照。
 apps/api/var/
 apps/api/vendor/
-apps/api/.env.local
-apps/api/.env.*.local
+apps/api/.env
+apps/api/.env.*
+!apps/api/.env.example
 
 # フロントエンド（ADMIN_TOKEN を持つので絶対にコミットしない）
 apps/web/.env
