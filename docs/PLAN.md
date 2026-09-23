@@ -123,16 +123,26 @@ ArchivedPost ← 既存 Post をリネームして移す（読み取り専用）
 - `GET /api/tags/{slug}/posts?cursor=`
 - `GET /api/rooms/popular`
 - `GET /api/orgs/{slug}/users`
+- `GET /api/search?q=&cursor=`（本文・handle・表示名。空白区切りは AND。当面は LIKE、重くなったら pg_trgm）
+- `GET /api/og/rooms/{handle}.png` / `GET /api/og/threads/{id}.png`（共有カード。エッジで1日キャッシュ）
 
 ログインが必要な API
 - `GET /api/me` / `PUT /api/me`
 - `POST /api/posts` / `PUT /api/posts/{id}` / `DELETE /api/posts/{id}`（`parent_id` を付ければ返信）
 - `PUT /api/posts/{id}/reactions/{emoji}` / `DELETE` 同
 - `PUT /api/follows/{handle}` / `DELETE` 同 / `GET /api/following`
-- `GET /api/notifications` / `POST /api/notifications/read`
+- `GET /api/notifications` / `POST /api/notifications/read`（種類は reply / mention / reaction / follow）
 - `GET /api/me/viewer-state?postIds=`（自分がリアクション済みかどうかなど、人ごとの情報）
 
 ページングはオフセットではなくカーソル方式にする（ULID の降順）。
+
+### OGP 画像を Cloud Run で描く理由
+
+Worker の無料枠（CPU 10ms / バンドル 3MB）では、日本語フォント込みの PNG 生成
+（Satori + resvg）が収まらない。そのため Symfony が GD と Noto Sans JP で描き、
+web の `/og/rooms/:handle`・`/og/threads/:id` がエッジで1日キャッシュして返す。
+スレッドは編集すると og:image の `?v=` が変わるので、古い画像は出続けない。
+フォントは `apps/api/bin/fetch-fonts.sh` で取得する（Docker ビルドでも実行する）。
 
 ## 9. 実装フェーズ
 

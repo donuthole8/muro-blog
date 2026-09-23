@@ -34,9 +34,10 @@ class Notification
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private User $actor;
 
+    /** 通知の対象の投稿。フォロー通知のように投稿を伴わないものは null。 */
     #[ORM\ManyToOne(targetEntity: Post::class)]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    private Post $post;
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    private ?Post $post;
 
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $readAt = null;
@@ -44,7 +45,7 @@ class Notification
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
-    public function __construct(User $user, NotificationType $type, User $actor, Post $post)
+    public function __construct(User $user, NotificationType $type, User $actor, ?Post $post)
     {
         $this->id = new Ulid();
         $this->user = $user;
@@ -74,7 +75,7 @@ class Notification
         return $this->actor;
     }
 
-    public function getPost(): Post
+    public function getPost(): ?Post
     {
         return $this->post;
     }

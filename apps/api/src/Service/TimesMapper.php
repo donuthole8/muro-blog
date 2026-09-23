@@ -145,16 +145,20 @@ final readonly class TimesMapper
     public function toNotification(Notification $notification): NotificationItem
     {
         $post = $notification->getPost();
-        $thread = $post->getParent() ?? $post;
+        $thread = $post?->getParent() ?? $post;
 
         return new NotificationItem(
             id: (string) $notification->getId(),
             type: $notification->getType()->value,
             actor: $this->toUserSummary($notification->getActor()),
-            postId: (string) $post->getId(),
-            threadId: (string) $thread->getId(),
-            threadHandle: $thread->getAuthor()->getHandle(),
-            excerpt: $post->isVisible() ? self::excerpt($post->getBodyHtml()) : '（表示できない投稿です）',
+            postId: null !== $post ? (string) $post->getId() : null,
+            threadId: null !== $thread ? (string) $thread->getId() : null,
+            threadHandle: $thread?->getAuthor()->getHandle(),
+            excerpt: match (true) {
+                null === $post => '',
+                $post->isVisible() => self::excerpt($post->getBodyHtml()),
+                default => '（表示できない投稿です）',
+            },
             readAt: self::date($notification->getReadAt()),
             createdAt: (string) self::date($notification->getCreatedAt()),
         );

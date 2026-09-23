@@ -125,3 +125,18 @@ export const fetchOrg = createServerFn({ method: 'GET' })
 
     return org
   })
+
+export const fetchSearch = createServerFn({ method: 'GET' })
+  .validator((input: { q: string; cursor?: string }) => input)
+  .handler(async ({ data }) => {
+    const {
+      data: result,
+      error,
+      response,
+    } = await getApiClient().fetch.GET('/api/search', {
+      params: { query: { q: data.q, cursor: data.cursor } },
+    })
+    if (!result) throwRead(error, response.status, '検索に失敗しました。')
+
+    return result
+  })

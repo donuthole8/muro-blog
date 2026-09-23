@@ -8,7 +8,7 @@ import { ReactionBar } from './ReactionBar'
 import { Button } from '../Button'
 import { TagChip } from '../TagChip'
 import { fetchPostSource } from '../../lib/account'
-import { formatFullTime, formatPostTime } from '../../lib/format'
+import { formatFullTime, formatTimeOfDay } from '../../lib/format'
 import { imageUrl } from '../../lib/image'
 import { isPendingId, useMe } from '../../lib/queries'
 import { usePostActions } from '../../lib/usePostActions'
@@ -42,13 +42,17 @@ export function PostItem({
 
   if (post.state !== 'visible') {
     return (
-      <article className="border-b border-border px-1 py-4 text-sm text-text-muted italic">
-        {post.state === 'deleted'
-          ? 'この投稿は削除されました'
-          : 'この投稿は表示できません'}
-        {variant === 'list' && post.replyCount > 0 && handle && (
-          <ThreadLink handle={handle} threadId={threadId} post={post} />
-        )}
+      <article className="flex gap-2 border-b border-border px-1 py-3 text-sm text-text-muted italic sm:gap-3">
+        {/* 時刻カラムぶんの幅を空け、ログの縦の並びを崩さない */}
+        <span aria-hidden className="w-10 shrink-0" />
+        <span>
+          {post.state === 'deleted'
+            ? 'この投稿は削除されました'
+            : 'この投稿は表示できません'}
+          {variant === 'list' && post.replyCount > 0 && handle && (
+            <ThreadLink handle={handle} threadId={threadId} post={post} />
+          )}
+        </span>
       </article>
     )
   }
@@ -57,16 +61,19 @@ export function PostItem({
     return (
       <article
         id={variant === 'reply' ? `reply-${post.id}` : undefined}
-        className="border-b border-border px-1 py-3 text-xs text-text-muted"
+        className="flex gap-2 border-b border-border px-1 py-3 text-xs text-text-muted sm:gap-3"
       >
-        ブロック中のユーザーの投稿です。{' '}
-        <button
-          type="button"
-          onClick={() => setRevealed(true)}
-          className="underline hover:text-accent"
-        >
-          表示する
-        </button>
+        <span aria-hidden className="w-10 shrink-0" />
+        <span>
+          ブロック中のユーザーの投稿です。{' '}
+          <button
+            type="button"
+            onClick={() => setRevealed(true)}
+            className="underline hover:text-accent"
+          >
+            表示する
+          </button>
+        </span>
       </article>
     )
   }
@@ -74,14 +81,20 @@ export function PostItem({
   return (
     <article
       id={variant === 'reply' ? `reply-${post.id}` : undefined}
-      className={`flex gap-3 border-b border-border px-1 py-4 ${pending ? 'opacity-60' : ''}`}
+      className={`flex gap-2 border-b border-border px-1 py-2.5 sm:gap-3 ${pending ? 'opacity-60' : ''}`}
     >
+      {/*
+        分報は作業ログなので、時刻を左端の等幅カラムに固定して縦に揃える。
+        日付は PostList が挟む日付区切りが持つため、ここは時刻だけを出す。
+      */}
+      <TimeColumn post={post} handle={handle} />
+
       {handle ? (
         <Link to="/@{$handle}" params={{ handle }} className="shrink-0">
-          <Avatar user={post.author} />
+          <Avatar user={post.author} size="xs" />
         </Link>
       ) : (
-        <Avatar user={null} />
+        <Avatar user={null} size="xs" />
       )}
 
       <div className="min-w-0 flex-1">
@@ -97,28 +110,10 @@ export function PostItem({
           ) : (
             <span className="font-bold text-text-muted">退会したユーザー</span>
           )}
-          {handle && <span className="text-xs text-text-muted">@{handle}</span>}
-          {pending ? (
-            <span className="text-xs text-text-muted">送信中…</span>
-          ) : post.parentId || !handle ? (
-            // 返信はスレッド画面の中にしか出ないので、その場のアンカーにする
-            <a
-              href={`#reply-${post.id}`}
-              className="text-xs text-text-muted hover:underline"
-              title={formatFullTime(post.createdAt)}
-            >
-              <PostTime iso={post.createdAt} />
-            </a>
-          ) : (
-            <Link
-              to="/@{$handle}/$postId"
-              params={{ handle, postId: post.id }}
-              className="text-xs text-text-muted hover:underline"
-              title={formatFullTime(post.createdAt)}
-            >
-              <PostTime iso={post.createdAt} />
-            </Link>
+          {handle && (
+            <span className="font-mono text-xs text-text-muted">@{handle}</span>
           )}
+          {pending && <span className="text-xs text-text-muted">送信中…</span>}
           {post.editedAt && (
             <span
               className="text-xs text-text-muted"
@@ -177,11 +172,47 @@ export function PostItem({
   )
 }
 
-function PostTime({ iso }: { iso: string }) {
-  return (
-    <time dateTime={iso} suppressHydrationWarning>
-      {formatPostTime(iso)}
+/**
+ * ログ行の左端に置く時刻。投稿へのリンクも兼ねる。
+ * 幅を固定して等幅で出すことで、行が変わっても数字の桁が縦に揃う。
+ */
+function TimeColumn({ post, handle }: { post: TimesPost; handle?: string }) {
+  const base =
+    'w-10 shrink-0 pt-0.5 text-right font-mono text-xs tabular-nums text-text-muted'
+
+  if (isPendingId(post.id)) {
+    return <span className={base}>··:··</span>
+  }
+
+  const label = (
+    <time dateTime={post.createdAt} suppressHydrationWarning>
+      {formatTimeOfDay(post.createdAt)}
     </time>
+  )
+  const title = formatFullTime(post.createdAt)
+
+  // 返信はスレッド画面の中にしか出ないので、その場のアンカーにする
+  if (post.parentId != null || handle == null) {
+    return (
+      <a
+        href={`#reply-${post.id}`}
+        title={title}
+        className={`${base} transition-colors hover:text-accent`}
+      >
+        {label}
+      </a>
+    )
+  }
+
+  return (
+    <Link
+      to="/@{$handle}/$postId"
+      params={{ handle, postId: post.id }}
+      title={title}
+      className={`${base} transition-colors hover:text-accent`}
+    >
+      {label}
+    </Link>
   )
 }
 

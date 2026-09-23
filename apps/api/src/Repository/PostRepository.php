@@ -251,6 +251,31 @@ class PostRepository extends ServiceEntityRepository
         return array_column($rows, 'latest', 'author_id');
     }
 
+    /**
+     * 本文の検索。表示中の親投稿のうち、すべての語を含むもの（大文字小文字は区別しない）。
+     * 件数が少ないうちは LIKE の全件走査で足りる。重くなったら pg_trgm の GIN インデックスを足す。
+     *
+     * @param list<string> $terms
+     *
+     * @return array{items: list<Post>, nextCursor: ?string}
+     */
+    public function findSearchPage(array $terms, ?Ulid $cursor, int $limit): array
+    {
+        $qb = $this->visibleParents();
+        foreach ($terms as $i => $term) {
+            $qb->andWhere(sprintf('LOWER(p.bodyMarkdown) LIKE :term%d', $i))
+                ->setParameter('term'.$i, self::likePattern($term));
+        }
+
+        return $this->page($qb, $cursor, $limit);
+    }
+
+    /** LIKE の部分一致パターン。% と _ は文字として扱う。 */
+    public static function likePattern(string $term): string
+    {
+        return '%'.addcslashes(mb_strtolower($term), '%_\\').'%';
+    }
+
     /** 表示中の親投稿（ロビー・タグ用）。停止・退会したユーザーの投稿は出さない。 */
     private function visibleParents(): QueryBuilder
     {

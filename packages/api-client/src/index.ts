@@ -9,6 +9,7 @@ export type TimesPost = Schemas["TimesPost"];
 export type PostPage = Schemas["PostPage"];
 export type Thread = Schemas["Thread"];
 export type TagPostPage = Schemas["TagPostPage"];
+export type SearchResult = Schemas["SearchResult"];
 export type UserSummary = Schemas["UserSummary"];
 export type UserProfile = Schemas["UserProfile"];
 export type RoomSummary = Schemas["RoomSummary"];

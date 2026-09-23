@@ -1,4 +1,4 @@
-# times
+# teatimes
 
 誰でも自分の times（分報）を持てるサービス。個人ブログから作り替えた。
 計画は [docs/PLAN.md](docs/PLAN.md)、元の設計は [docs/DESIGN.md](docs/DESIGN.md) を参照。
@@ -56,6 +56,7 @@ cd apps/api
 php bin/console doctrine:migrations:migrate --no-interaction
 php bin/console app:seed            # 任意。alice / bob / carol と投稿を作る
 php bin/console app:user:role alice # 任意。alice を管理者にする
+bin/fetch-fonts.sh                  # 任意。OGP 画像（共有カード）用の日本語フォントを取る
 ```
 
 ### ログイン

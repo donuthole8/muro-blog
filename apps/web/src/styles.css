@@ -14,8 +14,21 @@
   --border: oklch(91% 0.005 250);
   --text: oklch(25% 0.015 250);
   --text-muted: oklch(52% 0.015 250);
-  --accent: oklch(55% 0.16 250);
-  --accent-soft: oklch(95% 0.03 250);
+  /*
+   * アクセントは色相だけを --accent-h に分けてある。
+   * 部屋ごとに色を変えるとき（lib/roomColor.ts）は --accent-h だけを差し替える。
+   * 明度と彩度はテーマ側に残るので、どの色相でも読みやすさが崩れない。
+   *
+   * 既定はスカイブルー（237）。Tailwind の sky 系に寄せてある。
+   * 他サイトとの差は色ではなく、ログ行のレイアウトと
+   * 部屋ごとに色が変わる仕組み（roomColor.ts）で出す。
+   *
+   * 明度は白背景でのコントラスト比 4.5:1 を満たす範囲に留めること。
+   * sky-500 相当まで明るくすると本文リンクで基準を割る。
+   */
+  --accent-h: 237;
+  --accent: oklch(55% 0.15 var(--accent-h));
+  --accent-soft: oklch(95% 0.045 var(--accent-h));
   --code-bg: oklch(96% 0.005 250);
   /* 危険な操作（削除・退会・停止）とエラー文。他の色と同じ経路に乗せる */
   --danger: oklch(55% 0.19 25);
@@ -31,8 +44,8 @@
     --border: oklch(32% 0.015 250);
     --text: oklch(92% 0.008 250);
     --text-muted: oklch(68% 0.015 250);
-    --accent: oklch(75% 0.13 250);
-    --accent-soft: oklch(28% 0.04 250);
+    --accent: oklch(80% 0.14 var(--accent-h));
+    --accent-soft: oklch(30% 0.055 var(--accent-h));
     --code-bg: oklch(26% 0.012 250);
     --danger: oklch(72% 0.16 25);
     --danger-soft: oklch(28% 0.05 25);
@@ -47,8 +60,8 @@
   --border: oklch(32% 0.015 250);
   --text: oklch(92% 0.008 250);
   --text-muted: oklch(68% 0.015 250);
-  --accent: oklch(75% 0.13 250);
-  --accent-soft: oklch(28% 0.04 250);
+  --accent: oklch(80% 0.14 var(--accent-h));
+  --accent-soft: oklch(30% 0.055 var(--accent-h));
   --code-bg: oklch(26% 0.012 250);
   --danger: oklch(72% 0.16 25);
   --danger-soft: oklch(28% 0.05 25);
@@ -73,9 +86,16 @@
    * Noto Color Emoji を明示して、どの端末でも Android 寄りの字形に揃える。
    * 手前のフォントは絵文字の字形を持たないので、ここに置けば絵文字にだけ効く。
    */
+  /*
+   * 本文の日本語フォントは system-ui 任せにしない。
+   * 任せると Mac は Hiragino、Windows は Yu Gothic UI になり、
+   * 字面の太さも字間も変わって「別のサイト」に見えるため、
+   * 各 OS で狙った面を先に指名しておく。
+   */
   --font-sans:
-    system-ui, -apple-system, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans',
-    Meiryo, 'Noto Color Emoji', sans-serif;
+    'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'BIZ UDPGothic',
+    'Yu Gothic UI', 'Yu Gothic', Meiryo, system-ui, -apple-system,
+    'Noto Color Emoji', sans-serif;
   --font-mono:
     ui-monospace, SFMono-Regular, Menlo, Consolas, 'Noto Sans Mono CJK JP',
     'Noto Color Emoji', monospace;

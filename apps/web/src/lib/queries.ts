@@ -10,6 +10,7 @@ import {
   fetchPopularRooms,
   fetchProfile,
   fetchRoomPosts,
+  fetchSearch,
   fetchTagPosts,
   fetchTags,
   fetchThread,
@@ -83,6 +84,15 @@ export const threadQuery = (id: string) =>
   queryOptions({
     queryKey: ['thread', id],
     queryFn: () => fetchThread({ data: { id } }),
+  })
+
+export const searchQuery = (q: string) =>
+  infiniteQueryOptions({
+    queryKey: ['search', q],
+    queryFn: ({ pageParam }) => fetchSearch({ data: { q, cursor: pageParam } }),
+    initialPageParam: undefined as Cursor,
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    enabled: q !== '',
   })
 
 export const tagsQuery = queryOptions({

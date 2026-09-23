@@ -32,7 +32,7 @@ final class HandlePolicy
         'notifications', 'null', 'official', 'og', 'org', 'orgs', 'owner', 'posts', 'privacy',
         'report', 'reports', 'rooms', 'root', 'rss', 'search', 'security', 'settings', 'signin',
         'signup', 'staff', 'static', 'status', 'support', 'system', 'tags', 'team', 'terms',
-        'times', 'undefined', 'uploads', 'user', 'users', 'welcome', 'www',
+        'teatimes', 'times', 'undefined', 'uploads', 'user', 'users', 'welcome', 'www',
     ];
 
     /** @return string|null エラーメッセージ（問題なければ null） */

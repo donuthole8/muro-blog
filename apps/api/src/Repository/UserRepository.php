@@ -103,6 +103,30 @@ class UserRepository extends ServiceEntityRepository
     }
 
     /**
+     * 部屋の検索。handle か表示名がすべての語を含む、公開中の部屋の持ち主。
+     *
+     * @param list<string> $terms
+     *
+     * @return list<User>
+     */
+    public function searchRoomOwners(array $terms, int $limit): array
+    {
+        $qb = $this->createQueryBuilder('u')
+            ->andWhere('u.handle IS NOT NULL')
+            ->andWhere('u.suspendedAt IS NULL')
+            ->andWhere('u.deletedAt IS NULL')
+            ->orderBy('u.id', 'DESC')
+            ->setMaxResults($limit);
+
+        foreach ($terms as $i => $term) {
+            $qb->andWhere(sprintf('(LOWER(u.handle) LIKE :term%1$d OR LOWER(u.displayName) LIKE :term%1$d)', $i))
+                ->setParameter('term'.$i, PostRepository::likePattern(ltrim($term, '@')));
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
      * 管理画面のユーザー検索。handle か表示名の部分一致。
      *
      * @return list<User>

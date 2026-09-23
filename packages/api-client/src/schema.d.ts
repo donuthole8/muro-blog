@@ -572,6 +572,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tags": {
         parameters: {
             query?: never;
@@ -968,15 +984,15 @@ export interface components {
         NotificationItem: {
             id: string;
             /** @enum {string} */
-            type: "reply" | "mention" | "reaction";
+            type: "reply" | "mention" | "reaction" | "follow";
             actor?: components["schemas"]["UserSummary"] | null;
-            /** @description 通知の対象になった投稿 */
-            postId: string;
-            /** @description リンク先のスレッド（親投稿）の ID */
-            threadId: string;
+            /** @description 通知の対象になった投稿（follow では null） */
+            postId?: string | null;
+            /** @description リンク先のスレッド（親投稿）の ID（follow では null） */
+            threadId?: string | null;
             /** @description スレッドの持ち主の handle。/@{handle}/{threadId} に飛ばす */
             threadHandle?: string | null;
-            /** @description 投稿の冒頭（プレーンテキスト） */
+            /** @description 投稿の冒頭（プレーンテキスト）。follow では空文字 */
             excerpt: string;
             /** Format: date-time */
             readAt?: string | null;
@@ -1002,6 +1018,13 @@ export interface components {
         PostSource: {
             /** @description Markdown 原文 */
             bodyMarkdown: string;
+        };
+        SearchResult: {
+            /** @description handle か表示名が一致した部屋（最大10件。2ページ目以降は空） */
+            users: components["schemas"]["UserSummary"][];
+            /** @description 本文が一致した親投稿（新しい順） */
+            items: components["schemas"]["TimesPost"][];
+            nextCursor?: string | null;
         };
         TagPostPage: {
             tag: components["schemas"]["TagSummary"];
@@ -1592,12 +1615,21 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description フォローした（既にしていても 204） */
+            /** @description フォローした（既にしていても 204）。初回だけ相手にフォロー通知が飛ぶ */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description ブロックの関係にある */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
             };
             /** @description 部屋が存在しない */
             404: {
@@ -2236,6 +2268,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_search: {
+        parameters: {
+            query: {
+                /** @description 検索語。空白で区切るとすべてを含むものに絞る */
+                q: string | null;
+                /** @description 前のページの nextCursor */
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 検索結果 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResult"];
                 };
             };
         };

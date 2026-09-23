@@ -39,6 +39,10 @@ ENV APP_ENV=prod \
 COPY --from=vendor /app/vendor ./vendor
 COPY . .
 
+# OGP 画像の描画（OgImageRenderer）に GD と日本語フォントが要る
+RUN install-php-extensions gd \
+ && bin/fetch-fonts.sh
+
 # 本番向けの opcache 設定
 RUN printf '%s\n' \
       'opcache.enable=1' \

@@ -28,6 +28,7 @@ export function SiteHeader() {
         <nav className="order-last flex w-full gap-4 text-sm whitespace-nowrap sm:order-none sm:w-auto sm:flex-1">
           <NavLink to="/">ロビー</NavLink>
           <NavLink to="/tags">タグ</NavLink>
+          <NavLink to="/search">検索</NavLink>
           {me?.handle && <NavLink to="/following">フォロー中</NavLink>}
         </nav>
 
@@ -66,7 +67,7 @@ function NavLink({
   to,
   children,
 }: {
-  to: '/' | '/tags' | '/following'
+  to: '/' | '/tags' | '/search' | '/following'
   children: React.ReactNode
 }) {
   return (

@@ -1,8 +1,8 @@
 nelmio_api_doc:
     documentation:
         info:
-            title: times API
-            description: times（分報）サービスの API。openapi-typescript / openapi-fetch がこの spec を消費する。
+            title: teatimes API
+            description: teatimes（times / 分報）サービスの API。openapi-typescript / openapi-fetch がこの spec を消費する。
             version: 1.0.0
         servers:
             - url: http://127.0.0.1:8000

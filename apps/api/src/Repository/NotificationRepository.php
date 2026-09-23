@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Notification;
 use App\Entity\User;
+use App\Enum\NotificationType;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bridge\Doctrine\Types\UlidType;
@@ -29,8 +30,8 @@ class NotificationRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('n')
             ->addSelect('actor', 'post', 'parent', 'postAuthor', 'parentAuthor')
             ->innerJoin('n.actor', 'actor')
-            ->innerJoin('n.post', 'post')
-            ->innerJoin('post.author', 'postAuthor')
+            ->leftJoin('n.post', 'post')
+            ->leftJoin('post.author', 'postAuthor')
             ->leftJoin('post.parent', 'parent')
             ->leftJoin('parent.author', 'parentAuthor')
             ->andWhere('n.user = :user')
@@ -83,6 +84,8 @@ class NotificationRepository extends ServiceEntityRepository
      */
     public function hasUnreadDuplicate(Notification $candidate): bool
     {
+        $post = $candidate->getPost() ?? throw new \LogicException('投稿を伴う通知だけを比べる');
+
         return null !== $this->createQueryBuilder('n')
             ->select('n.id')
             ->andWhere('n.user = :user')
@@ -92,8 +95,27 @@ class NotificationRepository extends ServiceEntityRepository
             ->andWhere('n.readAt IS NULL')
             ->setParameter('user', $candidate->getUser()->getId(), UlidType::NAME)
             ->setParameter('actor', $candidate->getActor()->getId(), UlidType::NAME)
-            ->setParameter('post', $candidate->getPost()->getId(), UlidType::NAME)
+            ->setParameter('post', $post->getId(), UlidType::NAME)
             ->setParameter('type', $candidate->getType())
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
+     * $actor から $user へのフォロー通知が（既読・未読を問わず）一度でも出ているか。
+     * フォローの付け外しを繰り返しても、通知は最初の1回だけにする。
+     */
+    public function hasFollowNotification(User $user, User $actor): bool
+    {
+        return null !== $this->createQueryBuilder('n')
+            ->select('n.id')
+            ->andWhere('n.user = :user')
+            ->andWhere('n.actor = :actor')
+            ->andWhere('n.type = :type')
+            ->setParameter('user', $user->getId(), UlidType::NAME)
+            ->setParameter('actor', $actor->getId(), UlidType::NAME)
+            ->setParameter('type', NotificationType::Follow)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

@@ -9,7 +9,7 @@ import { clearSessionToken, readSessionToken } from './session'
  * ブラウザから Symfony を直接叩かせないことで、CORS 設定と
  * API のオリジン露出を避けている。
  */
-function apiBaseUrl() {
+export function apiBaseUrl() {
   // wrangler.jsonc の vars 前提だと型上は常に string になるが、
   // .env 未設定のまま実行された場合への保険として残す
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

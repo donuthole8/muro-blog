@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query'
 import { EmptyState } from '../components/EmptyState'
 import { RoomHeaderSkeleton } from '../components/Skeleton'
+import { ActivityStrip } from '../components/times/ActivityStrip'
 import { Avatar } from '../components/times/Avatar'
 import { BottomComposer } from '../components/times/ComposeModal'
 import { FollowButton } from '../components/times/FollowButton'
@@ -19,6 +20,7 @@ import {
   useMe,
   useViewerState,
 } from '../lib/queries'
+import { roomAccentStyle } from '../lib/roomColor'
 import { site } from '../lib/site'
 
 export const Route = createFileRoute('/@{$handle}/')({
@@ -57,13 +59,31 @@ export const Route = createFileRoute('/@{$handle}/')({
         { property: 'og:type', content: 'profile' },
         { property: 'og:description', content: description },
         { property: 'og:url', content: url },
-        ...(profile.avatarUrl
-          ? [{ property: 'og:image', content: profile.avatarUrl }]
-          : []),
-        { name: 'twitter:card', content: 'summary' },
+        ...(profile.suspended
+          ? []
+          : [
+              {
+                property: 'og:image',
+                content: `${site.url}/og/rooms/${profile.handle}`,
+              },
+              { property: 'og:image:width', content: '1200' },
+              { property: 'og:image:height', content: '630' },
+            ]),
+        {
+          name: 'twitter:card',
+          content: profile.suspended ? 'summary' : 'summary_large_image',
+        },
         ...(profile.suspended ? [{ name: 'robots', content: 'noindex' }] : []),
       ],
-      links: [{ rel: 'canonical', href: url }],
+      links: [
+        { rel: 'canonical', href: url },
+        {
+          rel: 'alternate',
+          type: 'application/rss+xml',
+          title: `${profile.displayName} の times（RSS）`,
+          href: `${url}/rss.xml`,
+        },
+      ],
     }
   },
   component: Room,
@@ -95,7 +115,9 @@ function Room() {
   if (!profile) return <RoomHeaderSkeleton />
 
   return (
-    <div>
+    // 部屋ごとに色相を変える。配下の accent 系（枠・文字・活動グラフ）がまとめて変わり、
+    // 「いま誰の部屋にいるか」が色で分かるようにする
+    <div style={roomAccentStyle(handle)}>
       <header className="flex items-start gap-4 border-b border-border pb-6">
         <Avatar user={profile} size="lg" />
         <div className="min-w-0 flex-1">
@@ -141,7 +163,15 @@ function Room() {
               </span>
             )}
             <span>フォロワー {profile.followerCount}</span>
+            <a
+              href={`/@${profile.handle}/rss.xml`}
+              className="hover:text-accent"
+              title="この部屋の新着を RSS リーダーで購読する"
+            >
+              RSS
+            </a>
           </p>
+          <ActivityStrip posts={posts} />
         </div>
       </header>
 

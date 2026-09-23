@@ -14,6 +14,7 @@ import {
 } from '../../lib/postCache'
 import { tagsQuery, useMe } from '../../lib/queries'
 import { loginUrl } from '../../lib/site'
+import { draftKey, useDraft } from '../../lib/useDraft'
 
 const MAX_LENGTH = 2000
 const MAX_TAGS = 3
@@ -44,6 +45,8 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
   )
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // 送信中は下書きを書き換えない（成功を確かめてから消す）
+  const [sending, setSending] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const tags = useQuery({ ...tagsQuery, enabled: !isReply && me != null })
@@ -69,6 +72,21 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
     setError(message)
   }
 
+  const saved = useDraft(
+    me?.handle ? draftKey(me.handle, parentId) : null,
+    { body, tagSlugs, imageKey: image?.key ?? null },
+    (draft) => {
+      setBody(draft.body)
+      setTagSlugs(draft.tagSlugs)
+      setImage(
+        draft.imageKey
+          ? { key: draft.imageKey, preview: imageUrl(draft.imageKey) }
+          : null,
+      )
+    },
+    { paused: sending },
+  )
+
   // 送信後すぐに入力欄を空にするので、送る内容と戻す内容は変数として持ち回す
   const submit = useMutation({
     mutationFn: ({ draft }: { pending: TimesPost; draft: Draft }) =>
@@ -81,6 +99,7 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
         },
       }),
     onMutate: ({ pending }) => {
+      setSending(true)
       if (parentId !== undefined) {
         appendReply(queryClient, parentId, pending)
       } else if (me?.handle) {
@@ -90,11 +109,14 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
       setTagSlugs([])
       setImage(null)
       setError(null)
+      saved.dismissRestored()
       onSubmitted?.()
     },
     onSuccess: (result, { pending, draft }) => {
       if (result.ok) {
         replacePost(queryClient, pending.id, result.post)
+        // 保存できたと確かめてから下書きを消す（途中でタブを閉じても書きかけが残る）
+        saved.clear()
         return
       }
       rollback(
@@ -103,6 +125,7 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
         Object.values(result.errors)[0] ?? result.message,
       )
     },
+    onSettled: () => setSending(false),
     onError: (_error, { pending, draft }) =>
       rollback(
         pending,
@@ -284,6 +307,23 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
         </button>
 
         {error && <span className="text-xs text-danger">{error}</span>}
+        {!error && saved.restored && (
+          <span className="text-xs text-text-muted">
+            下書きを復元しました{' '}
+            <button
+              type="button"
+              onClick={() => {
+                saved.clear()
+                setBody('')
+                setTagSlugs([])
+                setImage(null)
+              }}
+              className="underline hover:text-accent"
+            >
+              破棄
+            </button>
+          </span>
+        )}
 
         <span
           className={`ml-auto font-mono text-xs ${tooLong ? 'text-danger' : 'text-text-muted'}`}

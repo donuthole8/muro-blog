@@ -18,11 +18,13 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as RssDotxmlRouteImport } from './routes/rss[.]xml'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as AtChar123handleChar125IndexRouteImport } from './routes/@{$handle}.index'
 import { Route as AtChar123handleChar125PostIdRouteImport } from './routes/@{$handle}.$postId'
+import { Route as AtChar123handleChar125RssDotxmlRouteImport } from './routes/@{$handle}.rss[.]xml'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminTagsRouteImport } from './routes/admin.tags'
@@ -35,6 +37,8 @@ import { Route as PostsSlugRouteImport } from './routes/posts.$slug'
 import { Route as TagsIndexRouteImport } from './routes/tags.index'
 import { Route as TagsSlugRouteImport } from './routes/tags.$slug'
 import { Route as UploadsKeyRouteImport } from './routes/uploads.$key'
+import { Route as OgRoomsHandleRouteImport } from './routes/og.rooms.$handle'
+import { Route as OgThreadsPostIdRouteImport } from './routes/og.threads.$postId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -81,6 +85,11 @@ const RssDotxmlRoute = RssDotxmlRouteImport.update({
   path: '/rss.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -106,6 +115,12 @@ const AtChar123handleChar125PostIdRoute =
   AtChar123handleChar125PostIdRouteImport.update({
     id: '/@{$handle}/$postId',
     path: '/@{$handle}/$postId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AtChar123handleChar125RssDotxmlRoute =
+  AtChar123handleChar125RssDotxmlRouteImport.update({
+    id: '/@{$handle}/rss.xml',
+    path: '/@{$handle}/rss.xml',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -168,6 +183,16 @@ const UploadsKeyRoute = UploadsKeyRouteImport.update({
   path: '/uploads/$key',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OgRoomsHandleRoute = OgRoomsHandleRouteImport.update({
+  id: '/og/rooms/$handle',
+  path: '/og/rooms/$handle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OgThreadsPostIdRoute = OgThreadsPostIdRouteImport.update({
+  id: '/og/threads/$postId',
+  path: '/og/threads/$postId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -179,10 +204,12 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
   '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
+  '/@{$handle}/rss.xml': typeof AtChar123handleChar125RssDotxmlRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tags': typeof AdminTagsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -196,6 +223,8 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/posts/': typeof PostsIndexRoute
   '/tags/': typeof TagsIndexRoute
+  '/og/rooms/$handle': typeof OgRoomsHandleRoute
+  '/og/threads/$postId': typeof OgThreadsPostIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -206,10 +235,12 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
   '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
+  '/@{$handle}/rss.xml': typeof AtChar123handleChar125RssDotxmlRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tags': typeof AdminTagsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -223,6 +254,8 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/posts': typeof PostsIndexRoute
   '/tags': typeof TagsIndexRoute
+  '/og/rooms/$handle': typeof OgRoomsHandleRoute
+  '/og/threads/$postId': typeof OgThreadsPostIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -235,10 +268,12 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
   '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
+  '/@{$handle}/rss.xml': typeof AtChar123handleChar125RssDotxmlRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tags': typeof AdminTagsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -252,6 +287,8 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/posts/': typeof PostsIndexRoute
   '/tags/': typeof TagsIndexRoute
+  '/og/rooms/$handle': typeof OgRoomsHandleRoute
+  '/og/threads/$postId': typeof OgThreadsPostIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -265,10 +302,12 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/robots.txt'
     | '/rss.xml'
+    | '/search'
     | '/settings'
     | '/terms'
     | '/welcome'
     | '/@{$handle}/$postId'
+    | '/@{$handle}/rss.xml'
     | '/admin/reports'
     | '/admin/tags'
     | '/admin/users'
@@ -282,6 +321,8 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/posts/'
     | '/tags/'
+    | '/og/rooms/$handle'
+    | '/og/threads/$postId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -292,10 +333,12 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/robots.txt'
     | '/rss.xml'
+    | '/search'
     | '/settings'
     | '/terms'
     | '/welcome'
     | '/@{$handle}/$postId'
+    | '/@{$handle}/rss.xml'
     | '/admin/reports'
     | '/admin/tags'
     | '/admin/users'
@@ -309,6 +352,8 @@ export interface FileRouteTypes {
     | '/admin'
     | '/posts'
     | '/tags'
+    | '/og/rooms/$handle'
+    | '/og/threads/$postId'
   id:
     | '__root__'
     | '/'
@@ -320,10 +365,12 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/robots.txt'
     | '/rss.xml'
+    | '/search'
     | '/settings'
     | '/terms'
     | '/welcome'
     | '/@{$handle}/$postId'
+    | '/@{$handle}/rss.xml'
     | '/admin/reports'
     | '/admin/tags'
     | '/admin/users'
@@ -337,6 +384,8 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/posts/'
     | '/tags/'
+    | '/og/rooms/$handle'
+    | '/og/threads/$postId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -349,10 +398,12 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   RssDotxmlRoute: typeof RssDotxmlRoute
+  SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   TermsRoute: typeof TermsRoute
   WelcomeRoute: typeof WelcomeRoute
   AtChar123handleChar125PostIdRoute: typeof AtChar123handleChar125PostIdRoute
+  AtChar123handleChar125RssDotxmlRoute: typeof AtChar123handleChar125RssDotxmlRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthGoogleRoute: typeof AuthGoogleRoute
   OrgCompanySlugRoute: typeof OrgCompanySlugRoute
@@ -362,6 +413,8 @@ export interface RootRouteChildren {
   AtChar123handleChar125IndexRoute: typeof AtChar123handleChar125IndexRoute
   PostsIndexRoute: typeof PostsIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
+  OgRoomsHandleRoute: typeof OgRoomsHandleRoute
+  OgThreadsPostIdRoute: typeof OgThreadsPostIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -429,6 +482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RssDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -462,6 +522,13 @@ declare module '@tanstack/react-router' {
       path: '/@{$handle}/$postId'
       fullPath: '/@{$handle}/$postId'
       preLoaderRoute: typeof AtChar123handleChar125PostIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@{$handle}/rss.xml': {
+      id: '/@{$handle}/rss.xml'
+      path: '/@{$handle}/rss.xml'
+      fullPath: '/@{$handle}/rss.xml'
+      preLoaderRoute: typeof AtChar123handleChar125RssDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -548,6 +615,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UploadsKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/og/rooms/$handle': {
+      id: '/og/rooms/$handle'
+      path: '/og/rooms/$handle'
+      fullPath: '/og/rooms/$handle'
+      preLoaderRoute: typeof OgRoomsHandleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/og/threads/$postId': {
+      id: '/og/threads/$postId'
+      path: '/og/threads/$postId'
+      fullPath: '/og/threads/$postId'
+      preLoaderRoute: typeof OgThreadsPostIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -577,10 +658,12 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   RssDotxmlRoute: RssDotxmlRoute,
+  SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   TermsRoute: TermsRoute,
   WelcomeRoute: WelcomeRoute,
   AtChar123handleChar125PostIdRoute: AtChar123handleChar125PostIdRoute,
+  AtChar123handleChar125RssDotxmlRoute: AtChar123handleChar125RssDotxmlRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthGoogleRoute: AuthGoogleRoute,
   OrgCompanySlugRoute: OrgCompanySlugRoute,
@@ -590,6 +673,8 @@ const rootRouteChildren: RootRouteChildren = {
   AtChar123handleChar125IndexRoute: AtChar123handleChar125IndexRoute,
   PostsIndexRoute: PostsIndexRoute,
   TagsIndexRoute: TagsIndexRoute,
+  OgRoomsHandleRoute: OgRoomsHandleRoute,
+  OgThreadsPostIdRoute: OgThreadsPostIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -32,6 +32,7 @@ const labels: Record<NotificationItem['type'], string> = {
   reply: 'があなたの投稿に返信しました',
   mention: 'があなたをメンションしました',
   reaction: 'があなたの投稿にリアクションしました',
+  follow: 'があなたの部屋をフォローしました',
 }
 
 function Notifications() {
@@ -56,7 +57,7 @@ function Notifications() {
         <EmptyState
           icon="🔔"
           title="通知はまだありません"
-          description="返信・メンション・リアクションがあると、ここに出ます。"
+          description="返信・メンション・リアクション・フォローがあると、ここに出ます。"
         />
       ) : (
         <ul className="divide-y divide-border">
@@ -100,9 +101,11 @@ function NotificationRow({ item }: { item: NotificationItem }) {
           </span>
           {labels[item.type]}
         </p>
-        <p className="mt-0.5 truncate text-xs text-text-muted">
-          {item.excerpt}
-        </p>
+        {item.excerpt !== '' && (
+          <p className="mt-0.5 truncate text-xs text-text-muted">
+            {item.excerpt}
+          </p>
+        )}
         <time
           className="text-[0.7rem] text-text-muted"
           suppressHydrationWarning
@@ -113,13 +116,32 @@ function NotificationRow({ item }: { item: NotificationItem }) {
     </div>
   )
 
-  if (!item.threadHandle) return body
+  // フォロー通知は投稿を伴わないので、フォローしてくれた人の部屋に飛ばす
+  if (item.type === 'follow') {
+    if (!item.actor) return body
+
+    return (
+      <Link
+        to="/@{$handle}"
+        params={{ handle: item.actor.handle }}
+        className="block transition-colors hover:bg-surface"
+      >
+        {body}
+      </Link>
+    )
+  }
+
+  if (!item.threadHandle || !item.threadId) return body
 
   return (
     <Link
       to="/@{$handle}/$postId"
       params={{ handle: item.threadHandle, postId: item.threadId }}
-      hash={item.postId !== item.threadId ? `reply-${item.postId}` : undefined}
+      hash={
+        item.postId && item.postId !== item.threadId
+          ? `reply-${item.postId}`
+          : undefined
+      }
       className="block transition-colors hover:bg-surface"
     >
       {body}

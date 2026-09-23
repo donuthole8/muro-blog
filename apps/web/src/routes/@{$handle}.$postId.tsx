@@ -6,6 +6,7 @@ import { BottomComposer } from '../components/times/ComposeModal'
 import { PostItem } from '../components/times/PostItem'
 import { htmlExcerpt } from '../lib/format'
 import { threadQuery, useViewerState } from '../lib/queries'
+import { roomAccentStyle } from '../lib/roomColor'
 import { site } from '../lib/site'
 
 export const Route = createFileRoute('/@{$handle}/$postId')({
@@ -36,10 +37,13 @@ export const Route = createFileRoute('/@{$handle}/$postId')({
       ? `${author.displayName}: ${excerpt.slice(0, 40) || 'スレッド'} | ${site.title}`
       : `スレッド | ${site.title}`
     const url = `${site.url}/@${params.handle}/${post.id}`
-    // 画像付きの投稿はその画像を、なければ投稿者のアイコンを共有カードに出す
-    const image = post.imageKey
-      ? `${site.url}/uploads/${post.imageKey}`
-      : author?.avatarUrl
+    // 画像付きの投稿はその画像を、なければ本文を描いた共有カードを出す。
+    // カードはエッジで1日キャッシュされるので、編集したら ?v= を変えて取り直させる
+    const card =
+      post.state === 'visible' && author
+        ? `${site.url}/og/threads/${post.id}?v=${encodeURIComponent(post.editedAt ?? post.createdAt)}`
+        : undefined
+    const image = post.imageKey ? `${site.url}/uploads/${post.imageKey}` : card
 
     return {
       meta: [
@@ -52,7 +56,7 @@ export const Route = createFileRoute('/@{$handle}/$postId')({
         ...(image ? [{ property: 'og:image', content: image }] : []),
         {
           name: 'twitter:card',
-          content: post.imageKey ? 'summary_large_image' : 'summary',
+          content: image ? 'summary_large_image' : 'summary',
         },
         { property: 'article:published_time', content: post.createdAt },
       ],
@@ -81,7 +85,9 @@ function ThreadPage() {
   const owner = thread.post.author?.handle
 
   return (
-    <div>
+    // スレッドは部屋の中にあるので、その部屋の色をそのまま引き継ぐ。
+    // 持ち主がいない（退会済み）スレッドだけ既定色のままにする
+    <div style={owner ? roomAccentStyle(owner) : undefined}>
       {owner ? (
         <Link
           to="/@{$handle}"

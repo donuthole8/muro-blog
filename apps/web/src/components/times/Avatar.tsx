@@ -1,9 +1,11 @@
 type Props = {
   user: { displayName: string; avatarUrl?: string | null } | null | undefined
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
 }
 
 const sizes = {
+  /* ログ行用。時刻カラムが主役なので、アイコンは従属的な大きさにする */
+  xs: 'h-6 w-6 text-[0.6rem]',
   sm: 'h-8 w-8 text-xs',
   md: 'h-10 w-10 text-sm',
   lg: 'h-16 w-16 text-xl',

@@ -69,6 +69,20 @@ final readonly class Notifier
         $this->em->persist($notification);
     }
 
+    /**
+     * 部屋がフォローされたとき。付け外しを繰り返しても通知は1回だけ。
+     * ブロック中の相手はそもそもフォローできない（BlockController がフォローを外し、
+     * FollowController が弾く）ので、ここでは見ない。
+     */
+    public function onFollowed(User $followee, User $follower): void
+    {
+        if (!$followee->isActive() || $this->notifications->hasFollowNotification($followee, $follower)) {
+            return;
+        }
+
+        $this->em->persist(new Notification($followee, NotificationType::Follow, $follower, null));
+    }
+
     /** @param array<string, true> $notified 通知済みのユーザー ID（重複防止） */
     private function push(User $to, NotificationType $type, User $actor, Post $post, array &$notified): void
     {

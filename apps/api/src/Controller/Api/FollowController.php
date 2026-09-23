@@ -9,13 +9,16 @@ use App\Dto\ValidationError;
 use App\Entity\Follow;
 use App\Http\CacheHeaders;
 use App\Repository\FollowRepository;
+use App\Repository\BlockRepository;
 use App\Repository\UserRepository;
+use App\Service\Notifier;
 use App\Service\TimesMapper;
 use Doctrine\ORM\EntityManagerInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use Nelmio\ApiDocBundle\Attribute\Security;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -33,12 +36,15 @@ final class FollowController extends ApiController
         private readonly UserRepository $users,
         private readonly FollowRepository $follows,
         private readonly TimesMapper $mapper,
+        private readonly BlockRepository $blocks,
+        private readonly Notifier $notifier,
         private readonly EntityManagerInterface $em,
     ) {
     }
 
     #[Route('/api/follows/{handle}', name: 'api_follows_put', requirements: ['handle' => '[A-Za-z0-9_]{1,32}'], methods: ['PUT'])]
-    #[OA\Response(response: 204, description: 'フォローした（既にしていても 204）')]
+    #[OA\Response(response: 204, description: 'フォローした（既にしていても 204）。初回だけ相手にフォロー通知が飛ぶ')]
+    #[OA\Response(response: 403, description: 'ブロックの関係にある', content: new OA\JsonContent(ref: new Model(type: ValidationError::class)))]
     #[OA\Response(response: 404, description: '部屋が存在しない', content: new OA\JsonContent(ref: new Model(type: ValidationError::class)))]
     public function follow(string $handle): JsonResponse
     {
@@ -47,9 +53,14 @@ final class FollowController extends ApiController
         if (null === $owner || $owner->getId()->equals($me->getId())) {
             return $this->notFound('部屋が見つかりません。');
         }
+        // どちらかがブロックしていればフォローできない（ブロックした時点でお互いのフォローも外している）
+        if ($this->blocks->isBlocking($owner, $me) || $this->blocks->isBlocking($me, $owner)) {
+            throw new AccessDeniedHttpException('この部屋はフォローできません。');
+        }
 
         if (null === $this->follows->findPair($me, $owner)) {
             $this->em->persist(new Follow($me, $owner));
+            $this->notifier->onFollowed($owner, $me);
             $this->em->flush();
         }
 

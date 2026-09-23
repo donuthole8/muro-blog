@@ -12,4 +12,6 @@ enum NotificationType: string
     case Mention = 'mention';
     /** 自分の投稿にリアクションが付いた */
     case Reaction = 'reaction';
+    /** 誰かが自分の部屋をフォローした（投稿を伴わない） */
+    case Follow = 'follow';
 }
