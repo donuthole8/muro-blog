@@ -21,7 +21,7 @@ import {
   useViewerState,
 } from '../lib/queries'
 import { roomAccentStyle } from '../lib/roomColor'
-import { site } from '../lib/site'
+import { site, roomName } from '../lib/site'
 
 export const Route = createFileRoute('/@{$handle}/')({
   beforeLoad: ({ params }) => {
@@ -46,7 +46,7 @@ export const Route = createFileRoute('/@{$handle}/')({
   head: ({ loaderData: profile }) => {
     if (!profile) return { meta: [] }
 
-    const title = `${profile.displayName}（@${profile.handle}）の times | ${site.title}`
+    const title = `#${roomName(profile.handle)}（${profile.displayName}） | ${site.title}`
     const description =
       profile.bio ?? `${profile.displayName} さんの times（分報）です。`
     const url = `${site.url}/@${profile.handle}`
@@ -59,16 +59,10 @@ export const Route = createFileRoute('/@{$handle}/')({
         { property: 'og:type', content: 'profile' },
         { property: 'og:description', content: description },
         { property: 'og:url', content: url },
-        ...(profile.suspended
-          ? []
-          : [
-              {
-                property: 'og:image',
-                content: `${site.url}/og/rooms/${profile.handle}`,
-              },
-              { property: 'og:image:width', content: '1200' },
-              { property: 'og:image:height', content: '630' },
-            ]),
+        // 部屋ごとの共有カードは描かない（Worker の無料枠では日本語フォント込みの画像生成が収まらない）
+        { property: 'og:image', content: `${site.url}${site.ogImage}` },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
         {
           name: 'twitter:card',
           content: profile.suspended ? 'summary' : 'summary_large_image',
@@ -122,8 +116,13 @@ function Room() {
         <Avatar user={profile} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="text-xl font-bold">{profile.displayName}</h1>
-            <span className="text-sm text-text-muted">@{profile.handle}</span>
+            <h1 className="font-mono text-xl font-bold">
+              <span className="text-text-muted">#</span>
+              {roomName(profile.handle)}
+            </h1>
+            <span className="text-sm text-text-muted">
+              {profile.displayName}
+            </span>
             {me?.handle &&
               !isMine &&
               viewer?.isFollowing != null &&
@@ -191,7 +190,7 @@ function Room() {
           */}
           <div className="sticky top-[3.25rem] z-30 -mx-5 border-b border-border bg-bg/95 px-5 py-2 backdrop-blur sm:top-[3.75rem]">
             <h2 className="truncate text-xs font-bold tracking-wider text-text-muted">
-              @{profile.handle} の times
+              # {roomName(profile.handle)}
             </h2>
           </div>
 

@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 export type ComposerDraft = {
   body: string
   tagSlugs: Array<string>
-  /** R2 に上げ済みの画像のキー（プレビューはキーから作り直せる） */
+  /** まだ無いタグの名前（投稿時に作られる） */
+  newTags: Array<string>
+  /** アップロード済みの画像のキー（プレビューはキーから作り直せる） */
   imageKey: string | null
 }
 
@@ -38,17 +40,17 @@ export function useDraft(
     // restore は毎回作り直される関数なので依存に入れない（初回だけ呼べばよい）
   }, [key])
 
-  const { body, tagSlugs, imageKey } = current
+  const { body, tagSlugs, newTags, imageKey } = current
   useEffect(() => {
     // 送信中は書かない。送信に失敗したら入力が戻るので、そのとき改めて保存される
     if (!key || !loaded.current || paused) return
 
     const timer = setTimeout(() => {
-      write(key, { body, tagSlugs, imageKey })
+      write(key, { body, tagSlugs, newTags, imageKey })
     }, SAVE_DELAY_MS)
 
     return () => clearTimeout(timer)
-  }, [key, body, tagSlugs, imageKey, paused])
+  }, [key, body, tagSlugs, newTags, imageKey, paused])
 
   return {
     /** 前回の書きかけを戻したか（「下書きを復元しました」の表示用） */
@@ -69,6 +71,7 @@ function isEmpty(draft: ComposerDraft) {
   return (
     draft.body.trim() === '' &&
     draft.tagSlugs.length === 0 &&
+    draft.newTags.length === 0 &&
     draft.imageKey === null
   )
 }
@@ -82,6 +85,9 @@ function read(key: string): ComposerDraft | null {
       body: typeof value.body === 'string' ? value.body : '',
       tagSlugs: Array.isArray(value.tagSlugs)
         ? value.tagSlugs.filter((s): s is string => typeof s === 'string')
+        : [],
+      newTags: Array.isArray(value.newTags)
+        ? value.newTags.filter((s): s is string => typeof s === 'string')
         : [],
       imageKey: typeof value.imageKey === 'string' ? value.imageKey : null,
     }

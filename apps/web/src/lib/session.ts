@@ -7,7 +7,7 @@ import {
 /**
  * ログインセッションの Cookie（サーバー側専用）。
  *
- * 中身は Symfony が発行したセッショントークン。HttpOnly なのでブラウザの JS からは読めず、
+ * 中身は API が発行したセッショントークン。HttpOnly なのでブラウザの JS からは読めず、
  * Worker が API を呼ぶときに Authorization: Bearer に載せ替える。
  * このモジュールはサーバー関数・サーバールートからのみ呼ぶこと。
  */

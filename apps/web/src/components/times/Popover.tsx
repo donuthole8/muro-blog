@@ -34,6 +34,7 @@ export function Popover({ trigger, children, align = 'left' }: Props) {
       {trigger({ open, toggle: () => setOpen((v) => !v) })}
       {open && (
         <div
+          data-popover
           className={`absolute z-30 mt-1 ${align === 'right' ? 'right-0' : 'left-0'}`}
         >
           {children(() => setOpen(false))}

@@ -7,15 +7,18 @@
 
 | ディレクトリ | 中身 |
 |---|---|
-| `apps/api` | Symfony 7.4 + NelmioApiDocBundle + Doctrine（PostgreSQL） |
-| `packages/api-client` | OpenAPI spec → TypeScript 型 → 型付きクライアント |
+| `apps/api-worker` | Hono + Drizzle ORM + Cloudflare D1（Workers で動く API） |
+| `packages/api-client` | OpenAPI spec（`openapi.json`）→ TypeScript 型 → 型付きクライアント |
 | `apps/web` | TanStack Start + TanStack Query（公開ページ + 管理画面） |
+| `apps/api` | 旧 API（Symfony 7.4 + PostgreSQL）。`apps/api-worker` に置き換え済み。移行が落ち着いたら削除する |
+
+すべて Cloudflare（Workers・D1・KV）の無料プランで動く。デプロイは [docs/DEPLOY.md](docs/DEPLOY.md)。
 
 ## 前提ツール
 
-- PHP 8.3 / Composer
-- Docker（開発用 Postgres）
 - Node 22（nvm 側）
+
+PHP・Docker は不要（D1 はローカルでは SQLite ファイルとして動く）。
 
 ### pnpm について
 
@@ -32,7 +35,7 @@ alias pnpm='/Users/murohisashimasakado/.nvm/versions/node/v22.23.2/bin/corepack 
 
 ## 開発の始め方
 
-**リポジトリのルートで1コマンド。** DB・API・フロントエンドがまとめて立ち上がる。
+**リポジトリのルートで1コマンド。** API・フロントエンドがまとめて立ち上がる（ローカルの D1 へのマイグレーションも適用する）。
 
 ```sh
 pnpm dev
@@ -41,48 +44,48 @@ pnpm dev
 ```
   times     http://localhost:3100
   ログイン  http://localhost:3100/dev-login （Google 未設定時の開発用）
-  API ドキュメント  http://127.0.0.1:8000/api/doc
+  API       http://127.0.0.1:8000/api/lobby
 ```
 
-Ctrl+C で全て停止する（DB コンテナだけは残る）。
+Ctrl+C で全て停止する。
 
-初回のみ、環境変数ファイルの用意と DB のスキーマ適用・サンプルデータ投入が必要:
+初回のみ、環境変数ファイルの用意が必要。サンプルデータは起動後に入れる:
 
 ```sh
-cp apps/api/.env.example apps/api/.env
+cp apps/api-worker/.dev.vars.example apps/api-worker/.dev.vars
 cp apps/web/.env.example apps/web/.env
 
-cd apps/api
-php bin/console doctrine:migrations:migrate --no-interaction
-php bin/console app:seed            # 任意。alice / bob / carol と投稿を作る
-php bin/console app:user:role alice # 任意。alice を管理者にする
-bin/fetch-fonts.sh                  # 任意。OGP 画像（共有カード）用の日本語フォントを取る
+# 起動後に（任意）
+curl -X POST http://127.0.0.1:8000/api/dev/seed   # alice / bob / carol と投稿を作る
+cd apps/api-worker && pnpm exec wrangler d1 execute blog --local \
+  --command "UPDATE users SET role = 'admin' WHERE handle = 'alice'"   # alice を管理者にする
 ```
+
+旧ブログの記事をローカルの D1 に入れたいときは `apps/api-worker/scripts/export-archive.sh` を使う（docs/DEPLOY.md 参照）。
 
 ### ログイン
 
 本番は Google ログインのみ。ローカルで Google OAuth を設定していない場合
-（`apps/api/.env` の `GOOGLE_CLIENT_ID` が空）は、「ログイン」を押すと
+（`apps/api-worker/.dev.vars` の `GOOGLE_CLIENT_ID` が空）は、「ログイン」を押すと
 開発用ログイン画面（`/dev-login`）に回され、handle を入れるだけでその人としてログインできる。
 これは API が `APP_ENV=dev` かつ `DEV_LOGIN_ENABLED=1` のときだけ動く。
 
 Google ログインをローカルで試すときは、Google Cloud Console で OAuth クライアント ID を作り、
 承認済みのリダイレクト URI に `http://localhost:3100/auth/callback` を登録して、
-`apps/api/.env` の `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` を埋める。
+`apps/api-worker/.dev.vars` の `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` を埋める。
 
 ### 個別に起動したい場合
 
 ```sh
-cd apps/api && docker compose up -d                      # DB
-php -S 127.0.0.1:8000 -t public public/index.php         # API
-cd apps/web && pnpm dev                                   # フロント (:3100)
+cd apps/api-worker && pnpm db:migrate:local && pnpm dev   # API (:8000)
+cd apps/web && pnpm dev                                    # フロント (:3100)
 ```
 
 ## つまずいたら
 
 ### ページが 500 になる / "Network connection lost" と出る
 
-**Symfony API（8000番）が起動していない。** フロントエンドは投稿を API から
+**API（8000番）が起動していない。** フロントエンドは投稿を API から
 取得するため、API が落ちているとページを描画できない。
 `pnpm dev` で両方まとめて起動すればこの状態にならない。
 
@@ -117,7 +120,7 @@ pnpm build
 静的化（プリレンダリング）するのは旧ブログのアーカイブ記事（`/posts/:slug`）と
 `rss.xml`・`robots.txt` だけ。times の画面はすべて SSR で、公開 API の応答を
 Cloudflare のエッジでキャッシュする（`apps/web/src/lib/edgeCache.ts`）。
-**ビルド中は Symfony API が起動している必要がある**（アーカイブ記事の一覧を取るため）。
+**ビルド中は API が起動している必要がある**（アーカイブ記事の一覧を取るため）。
 
 環境変数は `apps/web/.env.example` を参照。
 
@@ -129,22 +132,24 @@ Cloudflare のエッジでキャッシュする（`apps/web/src/lib/edgeCache.ts
 - ユーザーの停止・停止の解除（停止すると全端末からログアウトし、投稿は一覧から消える）
 - トピックタグの作成
 
-管理者は `php bin/console app:user:role <handle>` で任命する（`--revoke` で外す）。
-権限は API 側（`/api/admin` は `ROLE_ADMIN` のみ）で判定している。
+管理者は D1 の `users.role` を `admin` にして任命する（docs/DEPLOY.md「最初の管理者を任命する」）。
+権限は API 側（`/api/admin` は `role=admin` のみ）で判定している。
 
 ## OpenAPI から型を再生成する
 
-API のエンドポイントや DTO を変えたら必ず実行する。
+`packages/api-client/openapi.json` が API の形の正（Symfony から書き出したものを引き継いだ）。
+API のエンドポイントやレスポンスを変えるときは、先に `openapi.json` を直してから型を作り直す。
+`apps/api-worker` は生成された型（`schema.d.ts`）でレスポンスを縛っているので、形がずれると型検査で落ちる。
 
 ```sh
 cd packages/api-client
-pnpm run sync     # spec ダンプ + 型生成
-pnpm exec tsc --noEmit
+pnpm run sync     # openapi.json → schema.d.ts
+pnpm -r exec tsc --noEmit
 ```
 
 ## 疎通確認
 
-API のみ（Symfony を起動し、`DEV_LOGIN_ENABLED=1` の状態で）:
+API のみ（API を起動し、`.dev.vars` が `APP_ENV=dev`・`DEV_LOGIN_ENABLED=1` の状態で）:
 
 ```sh
 cd packages/api-client && pnpm exec tsx scripts/smoke.ts
@@ -155,7 +160,7 @@ cd packages/api-client && pnpm exec tsx scripts/smoke.ts
 
 ## エンドポイント
 
-全体は `http://127.0.0.1:8000/api/doc`（Swagger UI）を参照。
+全体は `packages/api-client/openapi.json` を参照。
 
 ### 公開（認証不要・エッジでキャッシュされる）
 

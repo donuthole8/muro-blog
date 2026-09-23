@@ -1,0 +1,8 @@
+# ローカル開発用。.dev.vars にコピーして使う（gitignore 対象）。
+APP_ENV=dev
+SITE_HOST=localhost
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=http://localhost:3100/auth/callback
+# 開発用ログイン（Google なしで任意の handle としてログインする）。APP_ENV=dev でしか効かない。
+DEV_LOGIN_ENABLED=1

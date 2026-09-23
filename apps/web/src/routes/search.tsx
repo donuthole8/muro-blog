@@ -110,6 +110,7 @@ function SearchPage() {
               投稿
             </h2>
             <PostList
+              order="feed"
               posts={posts}
               hasNextPage={query.hasNextPage}
               isFetchingNextPage={query.isFetchingNextPage}

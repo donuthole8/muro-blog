@@ -31,7 +31,6 @@ function Welcome() {
   const queryClient = useQueryClient()
   const [handle, setHandle] = useState('')
   const [displayName, setDisplayName] = useState(me.displayName)
-  const [agreed, setAgreed] = useState(false)
 
   const save = useMutation({
     mutationFn: () =>
@@ -108,42 +107,11 @@ function Welcome() {
           )}
         </label>
 
-        <label className="flex items-start gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-1"
-          />
-          <span>
-            <a
-              href="/terms"
-              target="_blank"
-              className="text-accent hover:underline"
-            >
-              利用規約
-            </a>
-            と
-            <a
-              href="/privacy"
-              target="_blank"
-              className="text-accent hover:underline"
-            >
-              プライバシーポリシー
-            </a>
-            に同意します
-          </span>
-        </label>
-
         {failure && Object.keys(failure.errors).length === 0 && (
           <p className="text-sm text-danger">{failure.message}</p>
         )}
 
-        <Button
-          type="submit"
-          disabled={!agreed || save.isPending}
-          className="w-full"
-        >
+        <Button type="submit" disabled={save.isPending} className="w-full">
           {save.isPending ? '作成中…' : '部屋をつくる'}
         </Button>
       </form>

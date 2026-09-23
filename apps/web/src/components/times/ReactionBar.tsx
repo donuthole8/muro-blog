@@ -1,5 +1,6 @@
 import type { TimesPost } from '@blog/api-client'
 import { EmojiPalette } from './EmojiPalette'
+import { Icon } from '../Icon'
 import { Popover } from './Popover'
 import { isPendingId, useMe } from '../../lib/queries'
 import { loginUrl } from '../../lib/site'
@@ -55,7 +56,7 @@ export function ReactionBar({ post, mine }: Props) {
               aria-label="リアクションを付ける"
               className="inline-flex min-h-8 items-center rounded-full border border-dashed border-border px-2.5 text-xs text-text-muted transition-colors hover:border-accent hover:text-accent"
             >
-              ☺︎＋
+              <Icon name="smilePlus" />
             </button>
           )}
         >
@@ -75,10 +76,11 @@ export function ReactionBar({ post, mine }: Props) {
         post.reactions.length === 0 && (
           <a
             href={loginUrl()}
+            aria-label="ログインしてリアクションを付ける"
             className="inline-flex min-h-8 items-center rounded-full px-1 text-xs text-text-muted transition-colors hover:text-accent"
             title="ログインするとリアクションできます"
           >
-            ☺︎＋
+            <Icon name="smilePlus" />
           </a>
         )
       )}

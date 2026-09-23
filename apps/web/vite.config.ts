@@ -15,8 +15,8 @@ const apiBaseUrl = process.env.API_BASE_URL ?? 'http://127.0.0.1:8000'
  * 静的化するのは旧ブログのアーカイブ記事（/posts/:slug）だけ。
  *
  * times の画面（ロビー・部屋・スレッドなど）は数秒単位で中身が変わるので SSR にし、
- * 公開 API の応答をエッジでキャッシュすることで Cloud Run のコールドスタートと
- * Neon の起動を抑える（lib/edgeCache.ts 参照）。
+ * 公開 API の応答をエッジでキャッシュすることで、API の Worker と D1 の無料枠を節約する
+ * （lib/edgeCache.ts 参照）。
  *
  * アーカイブは更新されないので、ビルド時に API から記事の一覧を取って
  * ページを列挙する（ビルド中は API が起動している必要がある）。
@@ -32,7 +32,7 @@ async function archivePages() {
     )
     if (!res.ok) {
       throw new Error(
-        `アーカイブ記事の一覧を取得できませんでした（${res.status}）。Symfony API は起動していますか？`,
+        `アーカイブ記事の一覧を取得できませんでした（${res.status}）。API は起動していますか？`,
       )
     }
     /*

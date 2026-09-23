@@ -34,7 +34,11 @@ export function usePostActions() {
       updatePost({
         data: {
           id: input.post.id,
-          post: { bodyMarkdown: input.bodyMarkdown, tagSlugs: input.tagSlugs },
+          post: {
+            bodyMarkdown: input.bodyMarkdown,
+            tagSlugs: input.tagSlugs,
+            newTags: [],
+          },
         },
       }),
     onSuccess: (result) => {

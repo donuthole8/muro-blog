@@ -3,6 +3,7 @@ import type { RoomSummary } from '@blog/api-client'
 import { Avatar } from './Avatar'
 import { formatPostTime } from '../../lib/format'
 import { roomAccentStyle } from '../../lib/roomColor'
+import { roomName } from '../../lib/site'
 
 type Props = {
   room: RoomSummary
@@ -26,7 +27,7 @@ export function RoomCard({ room, countLabel }: Props) {
         <p className="truncate text-sm font-bold">
           {room.user.displayName}
           <span className="ml-1.5 text-xs font-normal text-text-muted">
-            @{room.user.handle}
+            #{roomName(room.user.handle)}
           </span>
         </p>
         <p className="truncate text-xs text-text-muted">

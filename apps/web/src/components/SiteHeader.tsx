@@ -1,13 +1,14 @@
 import { Link, useRouter } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button, buttonClass } from './Button'
+import { Icon } from './Icon'
 import { ThemeToggle } from './ThemeToggle'
 import { Avatar } from './times/Avatar'
 import { useOpenCompose } from './times/ComposeModal'
 import { Popover } from './times/Popover'
 import { logout } from '../lib/account'
 import { meQuery, useMe } from '../lib/queries'
-import { loginUrl, site } from '../lib/site'
+import { loginUrl, roomName, site } from '../lib/site'
 
 export function SiteHeader() {
   const me = useMe()
@@ -16,17 +17,18 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-bg/95 backdrop-blur">
       {/* 狭い画面ではナビが2段目に回るぶん、上下の余白を詰めて高さを抑える */}
-      <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2 sm:py-3">
+      <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2 sm:py-3 lg:group-data-[sidebar]/layout:max-w-none">
         <Link
           to="/"
-          className="font-mono text-lg font-bold text-text transition-colors hover:text-accent"
+          className="flex items-center gap-1.5 font-mono text-lg font-bold text-text transition-colors hover:text-accent"
         >
+          <Icon name="cup" className="h-5 w-5 text-accent" />
           {site.title}
         </Link>
 
         {/* 狭い画面ではナビを2段目に回し、右側のボタン群と取り合わないようにする */}
         <nav className="order-last flex w-full gap-4 text-sm whitespace-nowrap sm:order-none sm:w-auto sm:flex-1">
-          <NavLink to="/">ロビー</NavLink>
+          <NavLink to="/">チャンネル</NavLink>
           <NavLink to="/tags">タグ</NavLink>
           <NavLink to="/search">検索</NavLink>
           {me?.handle && <NavLink to="/following">フォロー中</NavLink>}
@@ -36,14 +38,14 @@ export function SiteHeader() {
           {me?.handle && (
             <>
               <Button size="sm" onClick={openCompose}>
-                書く
+                投稿
               </Button>
               <Link
                 to="/notifications"
                 aria-label={`通知${me.unreadNotificationCount > 0 ? `（未読 ${me.unreadNotificationCount} 件）` : ''}`}
-                className="relative flex h-9 w-9 items-center justify-center rounded-md text-lg text-text-muted transition-colors hover:text-accent"
+                className="relative flex h-9 w-9 items-center justify-center rounded-md text-text-muted transition-colors hover:text-accent"
               >
-                🔔
+                <Icon name="bell" className="h-5 w-5" />
                 {me.unreadNotificationCount > 0 && (
                   <span className="absolute top-0 right-0 min-w-4 rounded-full bg-danger px-1 text-center text-[0.6rem] leading-4 font-bold text-bg">
                     {me.unreadNotificationCount > 99
@@ -137,7 +139,7 @@ function AccountMenu() {
               params={{ handle: me.handle }}
               className={itemClass}
             >
-              自分の部屋
+              #{roomName(me.handle)}
             </Link>
           ) : (
             <Link to="/welcome" className={itemClass}>

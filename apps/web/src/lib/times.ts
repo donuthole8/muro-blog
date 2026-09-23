@@ -18,7 +18,8 @@ export const fetchLobby = createServerFn({ method: 'GET' })
     } = await getApiClient().fetch.GET('/api/lobby', {
       params: { query: { cursor: data.cursor } },
     })
-    if (!page) throwRead(error, response.status, 'ロビーの取得に失敗しました。')
+    if (!page)
+      throwRead(error, response.status, 'チャンネルの取得に失敗しました。')
 
     return page
   })

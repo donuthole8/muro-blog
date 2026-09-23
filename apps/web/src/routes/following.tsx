@@ -44,7 +44,7 @@ function Following() {
           description="気になる部屋をフォローすると、新しい投稿の数がここに出ます。"
           action={
             <Link to="/" className={buttonClass({ size: 'sm' })}>
-              ロビーで部屋を探す
+              チャンネルで部屋を探す
             </Link>
           }
         />

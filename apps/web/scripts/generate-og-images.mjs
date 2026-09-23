@@ -2,11 +2,11 @@
 /**
  * アーカイブ記事ごとの OGP 画像をビルド時に静的生成する。
  *
- * Cloud Run はコールドスタートするため、読者アクセス時にオンデマンド生成する
- * 設計にはせず、`pnpm build` の一部として一度だけ作って `public/og/` に置く。
+ * Worker の無料枠（CPU 10ms・バンドル 3MB）では日本語フォント込みの画像生成が収まらないため、
+ * 読者アクセス時には生成せず、`pnpm build` の一部として一度だけ作って `public/og/` に置く。
  * public/ の中身はそのまま dist/client/ にコピーされる（vite の既定挙動）。
  *
- * 実行には Symfony API が起動している必要がある
+ * 実行には API が起動している必要がある
  * （prerender 自体がすでにその前提を置いている。README 参照）。
  */
 import {
@@ -66,7 +66,7 @@ async function fetchAllPublishedPosts() {
     )
     if (!res.ok) {
       throw new Error(
-        `記事一覧の取得に失敗しました（${res.status}）。Symfony API は起動していますか？`,
+        `記事一覧の取得に失敗しました（${res.status}）。API は起動していますか？`,
       )
     }
 

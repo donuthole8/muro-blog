@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getSessionApiClient } from './api'
 import { toFailure, throwRead, unauthenticated } from './result'
-import { getUploadsBucket } from './uploads'
+import { deleteImages } from './uploads'
 
 /**
  * 管理画面（投稿の非表示・削除、ユーザーの停止、タグの作成）。
@@ -64,9 +64,7 @@ export const deletePostAsAdmin = createServerFn({ method: 'POST' })
       return toFailure(error, response.status, '削除に失敗しました。')
 
     if (deleted.imageKey) {
-      await getUploadsBucket()
-        .delete(deleted.imageKey)
-        .catch(() => undefined)
+      await deleteImages([deleted.imageKey])
     }
 
     return { ok: true as const }

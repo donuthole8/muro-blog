@@ -1,138 +1,108 @@
 # デプロイ手順
 
 構成は [PLAN.md](PLAN.md)（times サービス化）と [DESIGN.md](DESIGN.md) を参照。
+**すべて Cloudflare の無料プランに収まり、カード登録は要らない。**
+公開 URL は https://teatimes.muronaga.workers.dev （アカウントの workers.dev サブドメインは `muronaga`）。
 
 ```
-[閲覧]       → Cloudflare Workers（SSR）─ 公開 API の応答はエッジでキャッシュ ─┐
-[ログイン中] → Cloudflare Workers ─ Cookie を Bearer に載せ替え ──────────┴→ Cloud Run (Symfony) → Neon
-[旧ブログ]   → Cloudflare Workers（/posts/:slug はビルド時に静的化）
+[閲覧]       → web Worker（SSR）─ 公開 API の応答はエッジでキャッシュ ─┐
+[ログイン中] → web Worker ─ Cookie を Bearer に載せ替え ─────────────┴→ (Service Binding) → api Worker (Hono) → D1
+[旧ブログ]   → web Worker（/posts/:slug はビルド時に静的化）
+[画像]       → web Worker → Workers KV
 ```
+
+| Worker | ディレクトリ | 中身 |
+|---|---|---|
+| `teatimes-api` | `apps/api-worker` | Hono + Drizzle ORM。D1（SQLite）を読み書きする |
+| `teatimes` | `apps/web` | TanStack Start。API は Service Binding（`env.API`）で呼ぶ |
 
 ## 0. 事前に必要なもの
 
 | | 用途 | 備考 |
 |---|---|---|
-| Neon アカウント | PostgreSQL | 無料。カード不要 |
-| Google Cloud アカウント | Cloud Run | **カード登録が必須**（無料枠内なら課金されない） |
-| Cloudflare アカウント | Workers・R2 | 無料。カード不要。**独自ドメインが必要**（後述） |
-| Google Cloud の OAuth クライアント | Google ログイン | Cloud Run と同じプロジェクトで作ればよい |
-| `gcloud` CLI | デプロイ | 未インストール |
-| `wrangler` | デプロイ | `apps/web` の devDependencies に含まれる |
+| Cloudflare アカウント | Workers・D1・KV | 無料。カード不要（R2 は有効化にカード登録が要るので使わない） |
+| Google Cloud の OAuth クライアント | Google ログイン | OAuth クライアントの作成だけなら**課金設定は不要** |
+| `wrangler` | デプロイ | 両アプリの devDependencies に含まれる |
 
-`gcloud` の導入とログインは対話が必要なので、Claude Code のプロンプトで
-`!` を先頭に付けて実行してください（例: `!gcloud auth login`）。
+ログインは対話が必要なので、Claude Code のプロンプトで `!` を先頭に付けて実行してください。
 
 ```sh
-brew install --cask google-cloud-sdk
+!pnpm --filter @blog/api-worker exec wrangler login
 ```
 
-## 1. Neon（データベース）
+独自ドメインは**必須ではない**（`*.workers.dev` のままで公開できる）。ただし公開 API のエッジキャッシュ
+（`apps/web/src/lib/edgeCache.ts`）は Cache API を使うため独自ドメインでしか効かず、
+workers.dev のままだと閲覧のたびに API の Worker と D1 まで届く。無料枠（後述）には十分収まるが、
+アクセスが増えてきたら独自ドメインを割り当てる。
 
-1. https://neon.com/ でプロジェクトを作成（リージョンは **Asia Pacific (Tokyo)**）
-2. 接続文字列をコピーする。次の形をしている:
-   `postgresql://user:password@ep-xxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require`
-
-Doctrine 用に `&serverVersion=16&charset=utf8` を末尾に足す。
-
-### マイグレーションを適用する
-
-本番 DB へのスキーマ適用はローカルから行う（Cloud Run 側では実行しない）。
+## 1. D1（データベース）
 
 ```sh
-cd apps/api
-DATABASE_URL="postgresql://…?sslmode=require&serverVersion=16&charset=utf8" \
-  php bin/console doctrine:migrations:migrate --no-interaction
+cd apps/api-worker
+pnpm exec wrangler d1 create blog
 ```
 
-## 2. Cloud Run（Symfony API）
+出力された `database_id` を `apps/api-worker/wrangler.jsonc` の `d1_databases[0].database_id` に貼る。
 
 ```sh
-# 初回のみ
-!gcloud auth login
-!gcloud config set project <PROJECT_ID>
-!gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
-
-# デプロイ
-cd apps/api
-gcloud run deploy blog-api \
-  --source . \
-  --region asia-northeast1 \
-  --allow-unauthenticated \
-  --port 8080 \
-  --memory 512Mi \
-  --cpu 1 \
-  --min-instances 0 \
-  --max-instances 3 \
-  --set-env-vars "APP_ENV=prod,APP_DEBUG=0" \
-  --set-env-vars "DATABASE_URL=postgresql://…?sslmode=require&serverVersion=16&charset=utf8" \
-  --set-env-vars "APP_SECRET=$(openssl rand -hex 32)" \
-  --set-env-vars "GOOGLE_CLIENT_ID=…,GOOGLE_CLIENT_SECRET=…" \
-  --set-env-vars "GOOGLE_REDIRECT_URI=https://<サイトのドメイン>/auth/callback" \
-  --set-env-vars "SITE_HOST=<サイトのドメイン>"
+# スキーマを適用する（migrations/ の SQL）
+pnpm db:migrate:remote
 ```
 
-`DEV_LOGIN_ENABLED` は**本番では設定しない**（開発用ログインは APP_ENV=dev でしか動かないが、念のため）。
+### 旧ブログの記事を移す
 
-**`--max-instances 3` は必ず付ける。** 上限がないと、想定外のアクセスや
-無限ループで無料枠を突き抜けて課金される。
+Symfony 時代の Postgres（ローカルの Docker）から、タグと記事を SQL に書き出して流し込む。
+
+```sh
+DATABASE_URL="postgresql://blog:blog@127.0.0.1:5433/blog" ./scripts/export-archive.sh > archive.sql
+pnpm exec wrangler d1 execute blog --remote --file archive.sql
+```
+
+## 2. API の Worker
+
+`apps/api-worker/wrangler.jsonc` の `vars` を本番の値にする。
+
+| 変数 | 値 |
+|---|---|
+| `SITE_HOST` | サイトのホスト名（本文のリンクのうち、別タブで開かないもの） |
+| `GOOGLE_CLIENT_ID` | OAuth クライアント ID |
+| `GOOGLE_REDIRECT_URI` | `https://teatimes.muronaga.workers.dev/auth/callback` |
+
+秘密情報はシークレットに入れる（`wrangler.jsonc` には書かない）。
+
+```sh
+pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET
+pnpm run deploy
+```
+
+`APP_ENV` は `prod` のままにする（`dev` にすると開発用ログインとサンプルデータ投入の口が開く）。
+
+デプロイが終わると `https://teatimes-api.muronaga.workers.dev` が払い出される。動作確認:
+
+```sh
+curl https://teatimes-api.muronaga.workers.dev/api/lobby
+```
 
 ### Google OAuth クライアント
 
 1. Google Cloud コンソール →「API とサービス」→「認証情報」→「OAuth クライアント ID を作成」
 2. 種類は「ウェブ アプリケーション」
-3. 承認済みのリダイレクト URI に `https://<サイトのドメイン>/auth/callback` を登録
+3. 承認済みのリダイレクト URI に `https://teatimes.muronaga.workers.dev/auth/callback` を登録
    （ローカル用に `http://localhost:3100/auth/callback` も足してよい）
 4. 同意画面のスコープは `openid` と `profile` だけ（メールアドレスは取らない）
 
-デプロイが終わると `https://blog-api-xxxxx.asia-northeast1.run.app` のような
-URL が払い出される。動作確認:
-
-```sh
-curl https://blog-api-xxxxx.asia-northeast1.run.app/api/lobby
-```
-
-### 秘密情報について
-
-上の手順では簡単のため環境変数に直接書いている。
-値は Cloud Run のサービス設定に平文で保存され、プロジェクトの閲覧権限が
-あれば見える（個人プロジェクトなら自分だけ）。
-より厳密にするなら Secret Manager を使う（無料枠: アクティブなシークレット6個まで）。
-
-## 3. 予算アラート（必ず設定する）
-
-Cloud Run の無料枠は東京リージョンでも使えるが、**下り帯域の無料枠は
-北米リージョンからのみ**。東京からの通信は約 $0.12/GB の課金対象になる。
-このブログの想定消費は月100MB未満（月1円未満）だが、監視は入れておく。
-
-1. Google Cloud コンソール → 「お支払い」→「予算とアラート」
-2. 予算額を ¥100 程度に設定
-3. 50% / 90% / 100% でメール通知
-
-Artifact Registry のストレージ無料枠は 0.5GB。イメージがこれを超えると
-月数円かかる（現在のイメージサイズは後述）。
-
-## 4. Cloudflare Workers（フロントエンド）
+## 3. web の Worker
 
 ### 環境変数のスコープに注意
 
-**ビルドコマンドの前に環境変数を付けても Worker には届かない。**
-このプロジェクトには環境変数の読み取り経路が2つある。
-
 | 読む場所 | 供給元 | 該当するもの |
 |---|---|---|
-| Worker の中 | `apps/web/.env`（ビルド時に `.dev.vars` へ変換される） | `src/lib/api.ts` の `API_BASE_URL`、`src/lib/site.ts` の `SITE_URL` |
-| Node のビルドプロセス | シェルの環境変数 | `vite.config.ts` のサイトマップ `host` |
-| デプロイ後の Worker | `wrangler.jsonc` の `vars` と `wrangler secret` | 実行時の全て |
+| ビルド中（プリレンダリング・OGP 画像の生成） | `apps/web/.env` | `API_BASE_URL`、`SITE_URL` |
+| デプロイ後の Worker | `wrangler.jsonc` の `vars` と `services` | `SITE_URL`、API の呼び出し（`env.API`） |
 
-プリレンダリング（旧ブログの `/posts/:slug` のみ）は**ビルド中にローカルで Worker を動かして**行われるため、
-本番の記事を取りに行かせるには `apps/web/.env` を本番向けに書き換える必要がある。
-
-### 独自ドメインが必要な理由
-
-公開 API の応答を Workers の Cache API に置いて Neon を眠らせる設計だが、
-**Cache API は `*.workers.dev` では何もしない**（独自ドメインのゾーンでだけ効く）。
-workers.dev のまま公開すると、閲覧のたびに Cloud Run と Neon まで届いて無料枠を消費する。
-Cloudflare にドメインを追加し、Worker にカスタムドメインを割り当ててから公開すること。
+デプロイ後の Worker は `API_BASE_URL` を使わず、Service Binding で API を呼ぶ。
+workers.dev 上の Worker から同じアカウントの別の Worker を URL で fetch すると弾かれる（エラー 1042）ため。
+ビルドは手元で動くので、`.env` の `API_BASE_URL` に workers.dev の URL を入れて本番の記事を読ませる。
 
 セッション Cookie の `Secure` は `SITE_URL` が `https://` で始まるときだけ付く。
 
@@ -143,73 +113,49 @@ cd apps/web
 
 # 1. ビルド（プリレンダリング）用の値を .env に設定する
 cat > .env <<'EOF'
-API_BASE_URL=https://blog-api-xxxxx.asia-northeast1.run.app
-SITE_URL=https://times.example.com
+API_BASE_URL=https://teatimes-api.muronaga.workers.dev
+SITE_URL=https://teatimes.muronaga.workers.dev
 EOF
 
-# 2. デプロイ後の Worker が使う値を wrangler.jsonc に書く
-#    vars.API_BASE_URL と vars.SITE_URL を上と同じ値に
+# 2. デプロイ後の Worker が使う値を wrangler.jsonc の vars.SITE_URL に書く
 
-# 3. 投稿画像の置き場（初回のみ）
-pnpm exec wrangler r2 bucket create blog-images
+# 3. 投稿画像の置き場（初回のみ。作成済み: id は wrangler.jsonc の kv_namespaces）
+pnpm exec wrangler kv namespace create blog-images
 
-# 4. ビルドしてデプロイ
-#    ビルド時にアーカイブ記事のプリレンダリングが走るため、Cloud Run が起動している必要がある
+# 4. ビルドしてデプロイ（API の Worker を先にデプロイしておくこと）
 pnpm run deploy
 ```
 
-Worker は秘密情報を持たない（ログインの検証は API 側で行う）。
+独自ドメインを使う場合は、Cloudflare にドメインを追加してから、Worker の設定画面で
+カスタムドメインを割り当てる。
 
-### ローカルで本番同等の確認をする
-
-Cloud Run に上げる前に、手元のコンテナで通しの確認ができる。
-
-```sh
-# 本番と同じイメージをビルドして起動
-cd apps/api
-docker build -t blog-api:local .
-docker run -d --name blog-api-prod --network api_default -p 8090:8080 \
-  -e APP_SECRET=$(openssl rand -hex 32) \
-  -e DATABASE_URL="postgresql://blog:blog@database:5432/blog?serverVersion=16&charset=utf8" \
-  blog-api:local
-
-# .env の API_BASE_URL を http://127.0.0.1:8090 にしてビルド
-cd ../web && pnpm run build
-```
-
-イメージサイズは約 685MB、コールドスタートは手元で約2.5秒。
-Cloud Run ではこれにイメージ取得が加わる。
-読者はプリレンダリング済み HTML を見るのでこの遅延には当たらない。
-
-## 5. 最初の管理者を任命する
+## 4. 最初の管理者を任命する
 
 管理画面（`/admin`）は `role=admin` のユーザーだけが開ける。最初の1人は画面から作れないので、
 本人が Google でログインして handle を決めたあと、本番 DB に対して実行する。
 
 ```sh
-cd apps/api
-DATABASE_URL="postgresql://…?sslmode=require&serverVersion=16&charset=utf8" \
-  php bin/console app:user:role <handle>
+cd apps/api-worker
+pnpm exec wrangler d1 execute blog --remote \
+  --command "UPDATE users SET role = 'admin' WHERE handle = '<handle>'"
 ```
 
-## 6. Neon が眠っていることを確かめる
+## 5. 無料枠の目安
 
-無料枠（100 CU-hours）を守る要は、閲覧が Neon まで届かないこと。公開後に次を確認する。
+| | 無料枠 | このサービスでの使い方 |
+|---|---|---|
+| Workers | 10 万リクエスト/日、CPU 10ms/リクエスト | 閲覧1回で web と API の両方が動く。公開 API はエッジでキャッシュされると API まで届かない |
+| D1 | 読み取り 500 万行/日、書き込み 10 万行/日、5GB | 読み取りは「走査した行数」で数える。検索の `LIKE` は全件走査 |
+| Workers KV | 保存 1GB、書き込み 1,000 回/日、読み取り 10 万回/日 | 投稿画像。ブラウザで 1 枚 500KB 程度まで縮めてから送る（`apps/web/src/lib/image.ts`） |
 
-1. Neon コンソールの Monitoring で、アクセスがない時間帯に Compute が **Idle（suspended）** になっているか
-2. 同じページを続けて開き、Cloud Run のログに同じ公開 API（`/api/lobby` など）が
-   15 秒に1回程度しか出ていないか（毎回出ていればエッジキャッシュが効いていない → 独自ドメインを確認）
-3. 公開 API のレスポンスヘッダーに `Cache-Control: public, max-age=0, s-maxage=15` が付いているか
+Cloudflare のダッシュボード（Workers & Pages → 各 Worker / D1 → Metrics）で使用量を確認できる。
+上限を超えても課金はされず、その日の残りはエラーになる。
 
-```sh
-curl -sI https://blog-api-xxxxx.asia-northeast1.run.app/api/lobby | grep -i cache-control
-```
+- 検索が重くなったら FTS5 の仮想テーブルを足す
+- Markdown の変換は投稿時に1回だけ行って `body_html` に保存している（CPU 10ms を守るため）
+- リンクカードの取得（外部への通信）は `ctx.waitUntil` でレスポンスの後に行う
 
-ログイン中の人の画面は、ヘッダーの未読数（`/api/me`）と自分のリアクション状態
-（`/api/me/viewer-state`）を取るたびに DB に届く。常時ポーリングはしていないので、
-届くのは画面を開いたとき・タブに戻ったときだけ。
-
-## 7. 旧ブログの記事を直したとき
+## 6. 旧ブログの記事を直したとき
 
 アーカイブ（`/posts/:slug`）はビルド時に静的化しているので、再デプロイで反映される。
 
@@ -219,14 +165,14 @@ cd apps/web && pnpm run deploy
 
 ## チェックリスト
 
-- [ ] Neon プロジェクト作成（東京）
-- [ ] マイグレーション適用
-- [ ] Cloud Run デプロイ（`--max-instances 3` 付き）
-- [ ] 予算アラート設定
+- [ ] `wrangler login`
+- [ ] D1 作成、`database_id` を `apps/api-worker/wrangler.jsonc` に反映
+- [ ] マイグレーション適用（`pnpm db:migrate:remote`）
+- [ ] 旧ブログの記事を移す（`scripts/export-archive.sh`）
 - [ ] Google OAuth クライアント作成（リダイレクト URI を登録）
-- [ ] `wrangler.jsonc` の vars 更新
-- [ ] R2 バケット作成
-- [ ] Cloudflare Workers デプロイ（**独自ドメインで**）
+- [ ] API の `vars` を本番の値に、`GOOGLE_CLIENT_SECRET` をシークレットに
+- [ ] API の Worker をデプロイ
+- [ ] KV namespace 作成
+- [ ] web の `.env`（ビルド用）と `wrangler.jsonc` の `vars.SITE_URL` を更新
+- [ ] web の Worker をデプロイ
 - [ ] 最初の管理者を任命
-- [ ] 利用規約・プライバシーポリシーの制定日・連絡先を記入
-- [ ] Neon が眠ることを確認

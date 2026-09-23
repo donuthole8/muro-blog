@@ -1,24 +1,26 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "blog",
+  "name": "teatimes",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
 
   // 公開しても問題ない値だけをここに書く（秘密情報は持たない。
   // ログインのセッションは Cookie に入り、検証は API 側で行う）。
+  // API_BASE_URL はここには書かない（本番は下の Service Binding で API を呼ぶ。
+  // ローカル開発とビルドは .env の API_BASE_URL を使う。src/lib/api.ts 参照）。
   "vars": {
-    // Cloud Run にデプロイしたあと、払い出された URL に差し替える
-    "API_BASE_URL": "https://REPLACE-ME.a.run.app",
-    "SITE_URL": "https://blog.example.com",
+    "SITE_URL": "https://teatimes.muronaga.workers.dev",
   },
 
-  // 投稿に添える画像の置き場。ローカル開発は @cloudflare/vite-plugin が
-  // ローカルエミュレーション（.wrangler/state 配下）するため、実際の
-  // Cloudflare アカウントなしでそのまま動く。
-  // 本番用バケットは `wrangler r2 bucket create blog-images` で作成すること
-  // （README 参照）。
-  "r2_buckets": [{ "binding": "BLOG_IMAGES", "bucket_name": "blog-images" }],
+  // API（apps/api-worker）。先に API の Worker をデプロイしておくこと
+  "services": [{ "binding": "API", "service": "teatimes-api" }],
+
+  // 投稿に添える画像の置き場（Workers KV）。R2 は有効化にカード登録が要るので KV にしている
+  // （無料枠: 保存 1GB・書き込み 1,000 回/日）。画像はブラウザで 500KB 程度まで縮めてから送る。
+  // ローカル開発は @cloudflare/vite-plugin がローカルエミュレーション（.wrangler/state 配下）する。
+  // 本番用は `wrangler kv namespace create blog-images` で作成済み。
+  "kv_namespaces": [{ "binding": "BLOG_IMAGES", "id": "3b29e243562a43d4b121ab94acfdbb85" }],
 
   "observability": {
     "enabled": true,

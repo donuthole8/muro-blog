@@ -1,0 +1,36 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "teatimes-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-02",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // 本番の web Worker からは Service Binding で呼ばれる。workers.dev の URL は、web のビルド
+  // （旧ブログ記事のプリレンダリング）が手元から API を読むために開けておく。
+  // 公開 API とログイン必須の API しかなく、Symfony 時代の Cloud Run と同じく公開して問題ない。
+  "workers_dev": true,
+
+  // 公開しても問題ない値だけを書く。秘密情報（GOOGLE_CLIENT_SECRET）は `wrangler secret put` で入れる。
+  // ローカルは .dev.vars（.dev.vars.example を参照）。
+  "vars": {
+    "APP_ENV": "prod",
+    "SITE_HOST": "teatimes.muronaga.workers.dev",
+    "GOOGLE_CLIENT_ID": "494080186555-s3i7hj71uq572q8j2svorgd5c6h83ec9.apps.googleusercontent.com",
+    "GOOGLE_REDIRECT_URI": "https://teatimes.muronaga.workers.dev/auth/callback",
+  },
+
+  // 本番の DB（`wrangler d1 create blog --location apac` で作成済み）。
+  // ローカル開発は .wrangler/state 配下の SQLite がそのまま使われる。
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "blog",
+      "database_id": "717e00cb-bbd7-4cbc-89c2-5a43faf6dbd4",
+      "migrations_dir": "migrations",
+    },
+  ],
+
+  "observability": {
+    "enabled": true,
+  },
+}

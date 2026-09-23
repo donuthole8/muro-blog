@@ -27,7 +27,7 @@ function Lobby() {
   return (
     <div className="space-y-8">
       {/* 見出しの並びを正しく保つための、画面には出さないページ名 */}
-      <h1 className="sr-only">ロビー</h1>
+      <h1 className="sr-only">チャンネル</h1>
 
       {!me && (
         <section className="rounded-xl border border-border bg-surface p-5">
@@ -58,6 +58,7 @@ function Lobby() {
           isFetchingNextPage={lobby.isFetchingNextPage}
           onLoadMore={() => void lobby.fetchNextPage()}
           isLoading={lobby.isPending}
+          scrollToLatest={me != null}
           empty={
             <EmptyState
               icon="🌱"

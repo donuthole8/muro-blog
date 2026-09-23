@@ -7,7 +7,7 @@ import { PostItem } from '../components/times/PostItem'
 import { htmlExcerpt } from '../lib/format'
 import { threadQuery, useViewerState } from '../lib/queries'
 import { roomAccentStyle } from '../lib/roomColor'
-import { site } from '../lib/site'
+import { roomName, site } from '../lib/site'
 
 export const Route = createFileRoute('/@{$handle}/$postId')({
   loader: async ({ context, params }) => {
@@ -37,13 +37,14 @@ export const Route = createFileRoute('/@{$handle}/$postId')({
       ? `${author.displayName}: ${excerpt.slice(0, 40) || 'スレッド'} | ${site.title}`
       : `スレッド | ${site.title}`
     const url = `${site.url}/@${params.handle}/${post.id}`
-    // 画像付きの投稿はその画像を、なければ本文を描いた共有カードを出す。
-    // カードはエッジで1日キャッシュされるので、編集したら ?v= を変えて取り直させる
-    const card =
+    // 画像付きの投稿はその画像を、なければサイト共通の画像を出す
+    // （スレッドごとの共有カードは、Worker の無料枠では日本語フォント込みの画像生成が収まらないので描かない）
+    const image =
       post.state === 'visible' && author
-        ? `${site.url}/og/threads/${post.id}?v=${encodeURIComponent(post.editedAt ?? post.createdAt)}`
+        ? post.imageKey
+          ? `${site.url}/uploads/${post.imageKey}`
+          : `${site.url}${site.ogImage}`
         : undefined
-    const image = post.imageKey ? `${site.url}/uploads/${post.imageKey}` : card
 
     return {
       meta: [
@@ -94,22 +95,22 @@ function ThreadPage() {
           params={{ handle: owner }}
           className="inline-flex min-h-9 items-center rounded-md text-xs text-text-muted transition-colors hover:text-accent"
         >
-          ← @{owner} の部屋
+          ← #{roomName(owner)}
         </Link>
       ) : (
         <Link
           to="/"
           className="inline-flex min-h-9 items-center rounded-md text-xs text-text-muted transition-colors hover:text-accent"
         >
-          ← 新着へ
+          ← チャンネルへ
         </Link>
       )}
 
-      <div className="mt-2">
+      <div className="mt-2 mb-2">
         <PostItem
           post={thread.post}
           myReactions={mine.get(thread.post.id)}
-          variant="thread"
+          variant="detail"
           blocked={isBlocked(thread.post)}
         />
       </div>

@@ -2035,6 +2035,19 @@
                         ],
                         "default": [],
                         "maxItems": 3
+                    },
+                    "newTags": {
+                        "description": "\u65b0\u3057\u304f\u4f5c\u308b\u30bf\u30b0\u306e\u540d\u524d\uff08\u65e2\u306b\u3042\u308c\u3070\u305d\u306e\u30bf\u30b0\u3092\u4f7f\u3046\uff09\u3002tagSlugs \u3068\u5408\u308f\u305b\u3066 3 \u500b\u307e\u3067",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 32
+                        },
+                        "example": [
+                            "\u671d\u6d3b"
+                        ],
+                        "default": [],
+                        "maxItems": 3
                     }
                 },
                 "type": "object"
@@ -2052,6 +2065,19 @@
                         "items": {
                             "type": "string"
                         },
+                        "default": [],
+                        "maxItems": 3
+                    },
+                    "newTags": {
+                        "description": "\u65b0\u3057\u304f\u4f5c\u308b\u30bf\u30b0\u306e\u540d\u524d\uff08\u65e2\u306b\u3042\u308c\u3070\u305d\u306e\u30bf\u30b0\u3092\u4f7f\u3046\uff09\u3002tagSlugs \u3068\u5408\u308f\u305b\u3066 3 \u500b\u307e\u3067",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 32
+                        },
+                        "example": [
+                            "\u671d\u6d3b"
+                        ],
                         "default": [],
                         "maxItems": 3
                     }

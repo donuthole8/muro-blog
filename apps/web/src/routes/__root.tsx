@@ -10,10 +10,11 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import { buttonClass } from '../components/Button'
+import { Sidebar } from '../components/Sidebar'
 import { SiteHeader } from '../components/SiteHeader'
 import { SiteFooter } from '../components/SiteFooter'
 import { ComposeProvider } from '../components/times/ComposeModal'
-import { meQuery } from '../lib/queries'
+import { meQuery, useMe } from '../lib/queries'
 import { site } from '../lib/site'
 
 import appCss from '../styles.css?url'
@@ -41,13 +42,7 @@ const themeScript = `
 `
 
 /** handle 未決定でも開けるページ（それ以外は handle 決定画面へ送る） */
-const OPEN_WITHOUT_HANDLE = [
-  '/welcome',
-  '/dev-login',
-  '/terms',
-  '/privacy',
-  '/about',
-]
+const OPEN_WITHOUT_HANDLE = ['/welcome', '/dev-login', '/about']
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   /**
@@ -115,13 +110,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ComposeProvider>
-          <div className="flex min-h-screen flex-col">
-            <SiteHeader />
-            <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-8">
-              {children}
-            </main>
-            <SiteFooter />
-          </div>
+          <Layout>{children}</Layout>
         </ComposeProvider>
 
         {import.meta.env.DEV && (
@@ -139,6 +128,30 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <Scripts />
       </body>
     </html>
+  )
+}
+
+function Layout({ children }: { children: React.ReactNode }) {
+  const me = useMe()
+
+  return (
+    // data-sidebar は画面下に固定する入力欄がサイドバーを避けるのに使う（ComposeModal.tsx）
+    <div
+      // 画面下に固定した入力欄の高さ（BottomComposer が測って入れる）ぶん、フッターの後ろを空ける
+      className="group/layout flex min-h-screen flex-col pb-[var(--bottom-bar-h,0px)]"
+      data-sidebar={me?.handle ? '' : undefined}
+    >
+      <SiteHeader />
+      <div className="flex flex-1">
+        <Sidebar />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-8">
+            {children}
+          </main>
+          <SiteFooter />
+        </div>
+      </div>
+    </div>
   )
 }
 

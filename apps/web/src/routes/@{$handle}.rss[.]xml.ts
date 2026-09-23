@@ -8,7 +8,7 @@ import { site } from '../lib/site'
  * 部屋ごとの RSS（/@:handle/rss.xml）。最新の親投稿（1ページ分）を並べる。
  *
  * 公開 API の応答はエッジでキャッシュされ、この XML 自体もブラウザ・リーダー側で
- * 10 分持たせるので、RSS リーダーの定期取得が Neon を起こし続けることはない。
+ * 10 分持たせるので、RSS リーダーの定期取得が API と D1 の無料枠を削り続けることはない。
  */
 export const Route = createFileRoute('/@{$handle}/rss.xml')({
   server: {

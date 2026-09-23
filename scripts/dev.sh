@@ -2,7 +2,7 @@
 #
 # 開発環境をまとめて起動する。
 #
-#   DB (Docker) → Symfony API (:8000) → フロントエンド (:3100)
+#   API Worker (:8000, D1 はローカルの SQLite) → フロントエンド (:3100)
 #
 # API を起動し忘れるとフロントは "Network connection lost" で 500 になるため、
 # 常にこのスクリプト経由で起動する。Ctrl+C で全部まとめて止まる。
@@ -29,7 +29,7 @@ cleanup() {
     [ -n "$pid" ] && kill "$pid" 2>/dev/null || true
   done
   wait 2>/dev/null || true
-  echo "停止しました（DB コンテナは起動したままです。止めるには apps/api で docker compose down）"
+  echo "停止しました"
 }
 trap cleanup EXIT INT TERM
 
@@ -44,26 +44,18 @@ for port in "$API_PORT" "$WEB_PORT" $((WEB_PORT + 1)) $((WEB_PORT + 2)); do
 done
 sleep 1
 
-echo "[1/3] PostgreSQL を起動…"
-(cd "$ROOT/apps/api" && docker compose up -d >/dev/null)
-for _ in $(seq 1 30); do
-  if (cd "$ROOT/apps/api" && docker compose exec -T database pg_isready -U blog -d blog >/dev/null 2>&1); then
-    break
-  fi
-  sleep 1
-done
-echo "      → 起動しました (localhost:5433)"
-
-echo "[2/3] Symfony API を起動…"
-(cd "$ROOT/apps/api" && php -S 127.0.0.1:"$API_PORT" -t public public/index.php) >/dev/null 2>&1 &
+echo "[1/2] API（Cloudflare Workers + D1）を起動…"
+# マイグレーションは適用済みなら何もしない
+(cd "$ROOT/apps/api-worker" && $PNPM exec wrangler d1 migrations apply blog --local >/dev/null)
+(cd "$ROOT/apps/api-worker" && $PNPM exec wrangler dev --port "$API_PORT") >/dev/null 2>&1 &
 pids+=("$!")
-for _ in $(seq 1 30); do
+for _ in $(seq 1 60); do
   curl -sf -o /dev/null "http://127.0.0.1:$API_PORT/api/lobby" && break
   sleep 1
 done
-echo "      → http://127.0.0.1:$API_PORT  （API ドキュメント: /api/doc）"
+echo "      → http://127.0.0.1:$API_PORT"
 
-echo "[3/3] フロントエンドを起動…"
+echo "[2/2] フロントエンドを起動…"
 (cd "$ROOT/apps/web" && $PNPM dev) &
 pids+=("$!")
 
@@ -71,7 +63,7 @@ echo ""
 echo "──────────────────────────────────────────"
 echo "  times     http://localhost:$WEB_PORT"
 echo "  ログイン  http://localhost:$WEB_PORT/dev-login （Google 未設定時の開発用）"
-echo "  API ドキュメント  http://127.0.0.1:$API_PORT/api/doc"
+echo "  API       http://127.0.0.1:$API_PORT/api/lobby"
 echo "──────────────────────────────────────────"
 echo "  Ctrl+C で全て停止します"
 echo ""

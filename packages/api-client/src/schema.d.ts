@@ -718,6 +718,14 @@ export interface components {
              *     ]
              */
             tagSlugs: string[];
+            /**
+             * @description 新しく作るタグの名前（既にあればそのタグを使う）。tagSlugs と合わせて 3 個まで
+             * @default []
+             * @example [
+             *       "朝活"
+             *     ]
+             */
+            newTags: string[];
         };
         PostUpdateInput: {
             /**
@@ -727,6 +735,14 @@ export interface components {
             bodyMarkdown: string;
             /** @default [] */
             tagSlugs: string[];
+            /**
+             * @description 新しく作るタグの名前（既にあればそのタグを使う）。tagSlugs と合わせて 3 個まで
+             * @default []
+             * @example [
+             *       "朝活"
+             *     ]
+             */
+            newTags: string[];
         };
         /** @enum {string} */
         ReportReason: "spam" | "harassment" | "privacy" | "illegal" | "other";

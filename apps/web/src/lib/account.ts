@@ -7,7 +7,7 @@ import {
   readSessionToken,
   storeSessionToken,
 } from './session'
-import { getUploadsBucket } from './uploads'
+import { deleteImages, putImage } from './uploads'
 
 type PostInput = components['schemas']['PostInput']
 type PostUpdateInput = components['schemas']['PostUpdateInput']
@@ -47,7 +47,7 @@ export const updateMe = createServerFn({ method: 'POST' })
     return { ok: true as const, me }
   })
 
-/** 退会。投稿の画像は API から触れないので、ここで R2 からも消す。 */
+/** 退会。投稿の画像は API から触れないので、ここで KV からも消す。 */
 export const deleteAccount = createServerFn({ method: 'POST' }).handler(
   async () => {
     const api = getSessionApiClient()
@@ -340,7 +340,7 @@ export type UploadImageResult =
   { ok: true; key: string } | { ok: false; message: string }
 
 /**
- * 投稿に添える画像を R2 に保存し、キーを返す。
+ * 投稿に添える画像を KV に保存し、キーを返す。
  *
  * キーの先頭に投稿者の ID を埋め込み、API 側は投稿時に
  * 「自分がアップロードした画像か」をこれで照合する。
@@ -362,7 +362,7 @@ export const uploadPostImage = createServerFn({ method: 'POST' })
       return { ok: false, message: '画像が大きすぎます（2MB まで）。' }
     }
 
-    // API がレート制限を数え、通ったときだけ R2 に置く（連続アップロードで無料枠を削らせない）
+    // API がレート制限を数え、通ったときだけ KV に置く（連続アップロードで無料枠を削らせない）
     const {
       data: ticket,
       error,
@@ -378,18 +378,7 @@ export const uploadPostImage = createServerFn({ method: 'POST' })
     }
 
     const key = `u_${ticket.userId}_${crypto.randomUUID()}.${ext}`
-    await getUploadsBucket().put(key, data.bytes, {
-      httpMetadata: { contentType: data.contentType },
-    })
+    await putImage(key, data.bytes, data.contentType)
 
     return { ok: true, key }
   })
-
-async function deleteImages(keys: Array<string>) {
-  if (keys.length === 0) return
-  try {
-    await getUploadsBucket().delete(keys)
-  } catch {
-    // 画像が消せなくても投稿の削除自体は成立させる（孤児は後で掃除できる）
-  }
-}

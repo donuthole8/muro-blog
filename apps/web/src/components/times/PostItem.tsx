@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import type { TimesPost } from '@blog/api-client'
 import { Avatar } from './Avatar'
 import { PostMenu } from './PostMenu'
 import { ReactionBar } from './ReactionBar'
 import { Button } from '../Button'
+import { Icon } from '../Icon'
 import { TagChip } from '../TagChip'
 import { fetchPostSource } from '../../lib/account'
 import { formatFullTime, formatTimeOfDay } from '../../lib/format'
@@ -18,10 +19,10 @@ type Props = {
   /** 自分が付けた絵文字（viewer-state から） */
   myReactions?: Array<string>
   /**
-   * list: 部屋・ロビーの一覧（スレッドへのリンクと返信数を出す）
-   * thread: スレッドの親投稿 / reply: スレッドの返信
+   * list: 部屋・チャンネルの一覧（スレッドへのリンクと返信数を出す）
+   * detail: 投稿の詳細画面の主役 / reply: スレッドの返信
    */
-  variant?: 'list' | 'thread' | 'reply'
+  variant?: 'list' | 'detail' | 'reply'
   /** 自分がブロックしている人の投稿（折りたたんで出す） */
   blocked?: boolean
 }
@@ -33,6 +34,7 @@ export function PostItem({
   blocked = false,
 }: Props) {
   const me = useMe()
+  const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const pending = isPendingId(post.id)
@@ -78,10 +80,43 @@ export function PostItem({
     )
   }
 
+  if (variant === 'detail') {
+    return (
+      <PostDetail
+        post={post}
+        myReactions={myReactions}
+        editing={editing}
+        onEdit={() => setEditing(true)}
+        onEditDone={() => setEditing(false)}
+      />
+    )
+  }
+
+  // 一覧では行のどこを押しても詳細画面へ行ける。リンク・ボタン・メニュー・文字選択は邪魔しない
+  const openDetail =
+    variant === 'list' && handle && !pending && !editing
+      ? (e: React.MouseEvent<HTMLElement>) => {
+          const target = e.target as HTMLElement
+          if (
+            target.closest(
+              'a, button, input, textarea, select, label, [data-popover]',
+            ) ||
+            (window.getSelection()?.toString() ?? '') !== ''
+          ) {
+            return
+          }
+          void navigate({
+            to: '/@{$handle}/$postId',
+            params: { handle, postId: post.id },
+          })
+        }
+      : undefined
+
   return (
     <article
       id={variant === 'reply' ? `reply-${post.id}` : undefined}
-      className={`flex gap-2 border-b border-border px-1 py-2.5 sm:gap-3 ${pending ? 'opacity-60' : ''}`}
+      onClick={openDetail}
+      className={`flex gap-2 border-b border-border px-1 py-2.5 sm:gap-3 ${pending ? 'opacity-60' : ''} ${openDetail ? 'cursor-pointer transition-colors hover:bg-accent-soft/40' : ''}`}
     >
       {/*
         分報は作業ログなので、時刻を左端の等幅カラムに固定して縦に揃える。
@@ -134,7 +169,7 @@ export function PostItem({
         ) : (
           <>
             {post.bodyHtml !== '' && (
-              // bodyHtml は Symfony 側で生 HTML を落として変換済み（PostBodyRenderer）
+              // bodyHtml は API 側で生 HTML をエスケープして変換済み（api-worker の lib/markdown.ts）
               <div
                 className="prose prose-blog prose-times mt-1 max-w-none text-[0.95rem]"
                 dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
@@ -156,7 +191,7 @@ export function PostItem({
         {post.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {post.tags.map((tag) => (
-              <TagChip key={tag.slug} name={tag.name} slug={tag.slug} />
+              <TagChip key={tag.slug} name={tag.name} slug={tag.slug} compact />
             ))}
           </div>
         )}
@@ -229,9 +264,10 @@ function ThreadLink({
     <Link
       to="/@{$handle}/$postId"
       params={{ handle, postId: threadId }}
-      className="inline-flex min-h-8 items-center rounded-md text-xs text-text-muted transition-colors hover:text-accent"
+      className="inline-flex min-h-8 items-center gap-1 rounded-md text-xs text-text-muted transition-colors hover:text-accent"
     >
-      💬 {post.replyCount > 0 ? `${post.replyCount}件の返信` : '返信する'}
+      <Icon name="message" className="h-3.5 w-3.5" />
+      {post.replyCount > 0 ? `${post.replyCount}件の返信` : '返信する'}
     </Link>
   )
 }
@@ -244,8 +280,9 @@ function OwnerMenu({ post, onEdit }: { post: TimesPost; onEdit: () => void }) {
       <button
         type="button"
         onClick={onEdit}
-        className="inline-flex min-h-8 items-center rounded-md px-1.5 text-text-muted transition-colors hover:text-accent"
+        className="inline-flex min-h-8 items-center gap-1 rounded-md px-1.5 text-text-muted transition-colors hover:text-accent"
       >
+        <Icon name="pencil" className="h-3.5 w-3.5" />
         編集
       </button>
       <button
@@ -256,11 +293,138 @@ function OwnerMenu({ post, onEdit }: { post: TimesPost; onEdit: () => void }) {
             remove.mutate(post)
           }
         }}
-        className="inline-flex min-h-8 items-center rounded-md px-1.5 text-text-muted transition-colors hover:text-danger disabled:opacity-40"
+        className="inline-flex min-h-8 items-center gap-1 rounded-md px-1.5 text-text-muted transition-colors hover:text-danger disabled:opacity-40"
       >
+        <Icon name="trash" className="h-3.5 w-3.5" />
         削除
       </button>
     </span>
+  )
+}
+
+/**
+ * 投稿の詳細画面の主役。一覧のログ行より大きく、日時を省略せずに出す。
+ */
+function PostDetail({
+  post,
+  myReactions,
+  editing,
+  onEdit,
+  onEditDone,
+}: {
+  post: TimesPost
+  myReactions: Array<string>
+  editing: boolean
+  onEdit: () => void
+  onEditDone: () => void
+}) {
+  const me = useMe()
+  const handle = post.author?.handle
+  const isMine = me?.handle != null && handle === me.handle
+
+  return (
+    <article className="rounded-xl border border-border bg-surface p-4 sm:p-5">
+      <header className="flex items-center gap-3">
+        {handle ? (
+          <Link to="/@{$handle}" params={{ handle }} className="shrink-0">
+            <Avatar user={post.author} size="md" />
+          </Link>
+        ) : (
+          <Avatar user={null} size="md" />
+        )}
+        <div className="min-w-0">
+          {handle ? (
+            <Link
+              to="/@{$handle}"
+              params={{ handle }}
+              className="block truncate font-bold hover:text-accent"
+            >
+              {post.author?.displayName}
+            </Link>
+          ) : (
+            <span className="font-bold text-text-muted">退会したユーザー</span>
+          )}
+          {handle && (
+            <span className="block font-mono text-xs text-text-muted">
+              @{handle}
+            </span>
+          )}
+        </div>
+        {isMine && !editing && <OwnerMenu post={post} onEdit={onEdit} />}
+        {!isMine && me?.handle != null && handle && (
+          <span className="ml-auto">
+            <PostMenu post={post} />
+          </span>
+        )}
+      </header>
+
+      {editing ? (
+        <EditForm post={post} onDone={onEditDone} />
+      ) : (
+        <>
+          {post.bodyHtml !== '' && (
+            // bodyHtml は API 側で生 HTML をエスケープして変換済み（api-worker の lib/markdown.ts）
+            <div
+              className="prose prose-blog prose-times mt-4 max-w-none text-base"
+              dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
+            />
+          )}
+          {post.imageKey && (
+            <a href={imageUrl(post.imageKey)} target="_blank" rel="noopener">
+              <img
+                src={imageUrl(post.imageKey)}
+                alt=""
+                className="mt-4 max-h-[36rem] w-full rounded-lg border border-border object-contain"
+              />
+            </a>
+          )}
+        </>
+      )}
+
+      {post.tags.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {post.tags.map((tag) => (
+            <TagChip key={tag.slug} name={tag.name} slug={tag.slug} compact />
+          ))}
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-3 text-xs text-text-muted">
+        <time dateTime={post.createdAt} suppressHydrationWarning>
+          {formatFullTime(post.createdAt)}
+        </time>
+        {post.editedAt && (
+          <span suppressHydrationWarning>
+            {formatFullTime(post.editedAt)} に編集
+          </span>
+        )}
+        <CopyLinkButton />
+      </div>
+
+      <div className="mt-3">
+        <ReactionBar post={post} mine={myReactions} />
+      </div>
+    </article>
+  )
+}
+
+function CopyLinkButton() {
+  const [copied, setCopied] = useState(false)
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigator.clipboard.writeText(window.location.href).then(() => {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+        })
+      }}
+      className="ml-auto inline-flex min-h-8 items-center gap-1 rounded-md px-1.5 transition-colors hover:text-accent"
+    >
+      <Icon name="link" className="h-3.5 w-3.5" />
+      {copied ? 'コピーしました' : 'リンクをコピー'}
+    </button>
   )
 }
 

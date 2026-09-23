@@ -1,11 +1,12 @@
 /**
  * 生成した型付きクライアントで実際の API を叩く疎通確認。
- * Symfony が 127.0.0.1:8000 で動いていて、apps/api/.env で
- * DEV_LOGIN_ENABLED=1 になっている状態で実行する。
+ * API（apps/api-worker）が 127.0.0.1:8000 で動いていて、.dev.vars で
+ * APP_ENV=dev・DEV_LOGIN_ENABLED=1 になっている状態で実行する。
+ * 別のポートなら API_BASE_URL で指定する。
  */
 import { createApiClient } from "../src/index.js";
 
-const baseUrl = "http://127.0.0.1:8000";
+const baseUrl = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 const anonymous = createApiClient({ baseUrl });
 
 const { data: lobby, error: lobbyError } = await anonymous.fetch.GET("/api/lobby");

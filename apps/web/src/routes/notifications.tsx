@@ -4,6 +4,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import type { Me, NotificationItem } from '@blog/api-client'
 import { Button } from '../components/Button'
 import { EmptyState } from '../components/EmptyState'
+import { Icon } from '../components/Icon'
 import { PageHeader } from '../components/PageHeader'
 import { Avatar } from '../components/times/Avatar'
 import { markNotificationsRead } from '../lib/account'
@@ -55,7 +56,7 @@ function Notifications() {
 
       {items.length === 0 ? (
         <EmptyState
-          icon="🔔"
+          icon={<Icon name="bell" className="h-8 w-8" />}
           title="通知はまだありません"
           description="返信・メンション・リアクション・フォローがあると、ここに出ます。"
         />

@@ -24,3 +24,8 @@ export function loginUrl(returnTo?: string) {
     ? `/auth/google?returnTo=${encodeURIComponent(returnTo)}`
     : '/auth/google'
 }
+
+/** 部屋のチャンネル名。Slack の times に合わせて `times_{handle}` と呼ぶ（URL は /@handle のまま）。 */
+export function roomName(handle: string) {
+  return `times_${handle}`
+}

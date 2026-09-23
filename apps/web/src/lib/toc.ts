@@ -7,7 +7,7 @@ export type TocItem = {
 const HEADING_RE = /<h([2-4])\b[^>]*\bid="([^"]+)"[^>]*>([\s\S]*?)<\/h\1>/g
 
 /**
- * bodyHtml（Symfony 側で見出しに id を振り済み）から目次を作る。
+ * bodyHtml（旧ブログの変換時に見出しへ id を振り済み）から目次を作る。
  * h1 は記事タイトルと重複しうるので対象外、h2〜h4 のみを拾う。
  */
 export function extractToc(html: string): Array<TocItem> {

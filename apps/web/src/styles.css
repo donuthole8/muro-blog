@@ -129,7 +129,7 @@ body {
   --tw-prose-links: var(--accent);
   --tw-prose-bold: var(--text);
   --tw-prose-counters: var(--text-muted);
-  --tw-prose-bullets: var(--border);
+  --tw-prose-bullets: var(--text-muted);
   --tw-prose-hr: var(--border);
   --tw-prose-quotes: var(--text-muted);
   --tw-prose-quote-borders: var(--border);

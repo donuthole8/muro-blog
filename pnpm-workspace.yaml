@@ -1,5 +1,6 @@
 packages:
   - "apps/web"
+  - "apps/api-worker"
   - "packages/*"
 
 # ネイティブバイナリを持つ依存のビルドスクリプトを許可する

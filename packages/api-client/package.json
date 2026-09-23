@@ -8,9 +8,8 @@
     "./schema": "./src/schema.d.ts"
   },
   "scripts": {
-    "spec": "php ../../apps/api/bin/console nelmio:apidoc:dump --format=json > openapi.json",
     "generate": "openapi-typescript openapi.json -o src/schema.d.ts",
-    "sync": "pnpm run spec && pnpm run generate"
+    "sync": "pnpm run generate"
   },
   "dependencies": {
     "openapi-fetch": "^0.17.0",

@@ -1,0 +1,244 @@
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, lt } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/sqlite-core'
+import { Hono, type Context } from 'hono'
+import type { Db } from '../db/client'
+import { posts, reports, tags, users } from '../db/schema'
+import type { AppEnv } from '../env'
+import { requireAdmin, revokeAllSessions } from '../lib/auth'
+import { ApiError, isUlid, iso, notFound, now, parseCursor, privateCache, toPage } from '../lib/http'
+import { Input, SLUG_PATTERN } from '../lib/input'
+import {
+  postState,
+  toAdminPost,
+  toAdminUser,
+  type PostWithAuthor,
+  type Schemas,
+} from '../services/mapper'
+import { findForModeration, findPostById } from '../services/posts'
+import { findUserByHandle, findUserById, searchUsersForAdmin } from '../services/users'
+import { deletePost } from '../services/writer'
+
+/** 管理画面（/admin）の API。role=admin のユーザーだけが使える。 */
+export const admin = new Hono<AppEnv>()
+
+admin.use(requireAdmin)
+
+const ADMIN_PAGE_SIZE = 50
+
+function idParam(c: Context<AppEnv>): string {
+  const id = c.req.param('id') ?? ''
+  if (!isUlid(id)) throw notFound()
+  return id
+}
+
+/** 通報を「対応済み（措置した）」にする。非表示・削除したとき。 */
+function resolveReportsFor(db: Db, postId: string) {
+  return db
+    .update(reports)
+    .set({ resolution: 'actioned', resolvedAt: now() })
+    .where(and(eq(reports.postId, postId), isNull(reports.resolvedAt)))
+}
+
+// ---------- 投稿 ----------
+
+admin.get('/posts', async (c) => {
+  const db = c.var.db
+  const handle = c.req.query('handle')
+  let authorId: string | null = null
+  if (handle) {
+    const author = await findUserByHandle(db, handle)
+    if (!author) {
+      return c.json({ items: [], nextCursor: null } satisfies Schemas['AdminPostPage'], 200, privateCache)
+    }
+    authorId = author.id
+  }
+
+  const page = await findForModeration(db, parseCursor(c.req.query('cursor')), ADMIN_PAGE_SIZE, authorId)
+  return c.json(
+    { items: page.items.map(toAdminPost), nextCursor: page.nextCursor } satisfies Schemas['AdminPostPage'],
+    200,
+    privateCache,
+  )
+})
+
+async function toggleHidden(c: Context<AppEnv>, hidden: boolean) {
+  const db = c.var.db
+  const row = await findPostById(db, idParam(c))
+  if (!row || row.post.deletedAt) throw notFound('投稿が見つかりません。')
+
+  const hiddenAt = hidden ? (row.post.hiddenAt ?? now()) : null
+  await db.update(posts).set({ hiddenAt }).where(eq(posts.id, row.post.id))
+  if (hidden) await resolveReportsFor(db, row.post.id)
+
+  return c.json(toAdminPost({ ...row, post: { ...row.post, hiddenAt } }), 200, privateCache)
+}
+
+admin.post('/posts/:id/hide', (c) => toggleHidden(c, true))
+admin.post('/posts/:id/unhide', (c) => toggleHidden(c, false))
+
+admin.delete('/posts/:id', async (c) => {
+  const db = c.var.db
+  const row = await findPostById(db, idParam(c))
+  if (!row) throw notFound('投稿が見つかりません。')
+
+  const imageKey = await deletePost(db, row.post)
+  await resolveReportsFor(db, row.post.id)
+  return c.json({ imageKey } satisfies Schemas['PostDeleted'], 200, privateCache)
+})
+
+// ---------- ユーザー ----------
+
+admin.get('/users', async (c) => {
+  const found = await searchUsersForAdmin(c.var.db, c.req.query('q'), ADMIN_PAGE_SIZE)
+  return c.json(found.map(toAdminUser), 200, privateCache)
+})
+
+admin.post('/users/:id/suspend', async (c) => {
+  const db = c.var.db
+  const user = await findUserById(db, idParam(c))
+  if (!user) throw notFound('ユーザーが見つかりません。')
+  if (user.role === 'admin') {
+    throw new ApiError(422, '管理者は停止できません。先に管理者権限を外してください。')
+  }
+
+  const updated = await db
+    .update(users)
+    .set({ suspendedAt: user.suspendedAt ?? now() })
+    .where(eq(users.id, user.id))
+    .returning()
+    .get()
+  await revokeAllSessions(db, user.id)
+  return c.json(toAdminUser(updated), 200, privateCache)
+})
+
+admin.post('/users/:id/unsuspend', async (c) => {
+  const db = c.var.db
+  const user = await findUserById(db, idParam(c))
+  if (!user) throw notFound('ユーザーが見つかりません。')
+
+  const updated = await db
+    .update(users)
+    .set({ suspendedAt: null })
+    .where(eq(users.id, user.id))
+    .returning()
+    .get()
+  return c.json(toAdminUser(updated), 200, privateCache)
+})
+
+// ---------- 通報 ----------
+
+const reporters = alias(users, 'reporter')
+
+async function toAdminReports(db: Db, rows: (typeof reports.$inferSelect)[]) {
+  if (rows.length === 0) return []
+  const postIds = [...new Set(rows.map((r) => r.postId))]
+  const reporterIds = [...new Set(rows.map((r) => r.reporterId))]
+
+  const [postRows, reporterRows] = await Promise.all([
+    db
+      .select({ post: posts, author: users })
+      .from(posts)
+      .innerJoin(users, eq(users.id, posts.authorId))
+      .where(inArray(posts.id, postIds)),
+    db.select().from(reporters).where(inArray(reporters.id, reporterIds)),
+  ])
+  const postsById = new Map<string, PostWithAuthor>(postRows.map((r) => [r.post.id, r]))
+  const reportersById = new Map(reporterRows.map((u) => [u.id, u]))
+
+  return rows.flatMap((report): Schemas['AdminReport'][] => {
+    const post = postsById.get(report.postId)
+    const reporter = reportersById.get(report.reporterId)
+    if (!post || !reporter) return []
+    return [
+      {
+        id: report.id,
+        post: toAdminPost(post),
+        postState: postState(post),
+        reporter: toAdminUser(reporter),
+        reason: report.reason as Schemas['AdminReport']['reason'],
+        detail: report.detail,
+        resolution: report.resolution as Schemas['AdminReport']['resolution'],
+        resolvedAt: iso(report.resolvedAt),
+        createdAt: iso(report.createdAt),
+      },
+    ]
+  })
+}
+
+admin.get('/reports', async (c) => {
+  const db = c.var.db
+  const open = c.req.query('status') !== 'resolved'
+  const cursor = parseCursor(c.req.query('cursor'))
+
+  const [rows, openCount] = await Promise.all([
+    db
+      .select()
+      .from(reports)
+      .where(
+        and(
+          open ? isNull(reports.resolvedAt) : isNotNull(reports.resolvedAt),
+          cursor ? lt(reports.id, cursor) : undefined,
+        ),
+      )
+      .orderBy(desc(reports.id))
+      .limit(ADMIN_PAGE_SIZE + 1),
+    db.select({ n: count() }).from(reports).where(isNull(reports.resolvedAt)).get(),
+  ])
+  const page = toPage(rows, ADMIN_PAGE_SIZE)
+
+  return c.json(
+    {
+      items: await toAdminReports(db, page.items),
+      nextCursor: page.nextCursor,
+      openCount: openCount?.n ?? 0,
+    } satisfies Schemas['AdminReportPage'],
+    200,
+    privateCache,
+  )
+})
+
+admin.post('/reports/:id/dismiss', async (c) => {
+  const db = c.var.db
+  const report = await db
+    .update(reports)
+    .set({ resolution: 'dismissed', resolvedAt: now() })
+    .where(eq(reports.id, idParam(c)))
+    .returning()
+    .get()
+  if (!report) throw notFound('通報が見つかりません。')
+
+  const [item] = await toAdminReports(db, [report])
+  if (!item) throw notFound('通報が見つかりません。')
+  return c.json(item, 200, privateCache)
+})
+
+// ---------- タグ ----------
+
+admin.get('/tags', async (c) => {
+  const rows = await c.var.db.select().from(tags).orderBy(asc(tags.name))
+  return c.json(
+    rows.map(({ name, slug }) => ({ name, slug })) satisfies Schemas['TagSummary'][],
+    200,
+    privateCache,
+  )
+})
+
+admin.post('/tags', async (c) => {
+  const db = c.var.db
+  const input = await Input.from(c)
+  const name = input.string('name', { required: true, requiredMessage: 'タグ名は必須です。', max: 64 })
+  const slug = input.string('slug', { required: true, requiredMessage: 'slug は必須です。', max: 64 })
+  if (slug !== '' && !SLUG_PATTERN.test(slug)) {
+    input.fail('slug', 'slug は英小文字・数字・ハイフンのみ使用できます。')
+  }
+  input.assertValid()
+
+  if (await db.select().from(tags).where(eq(tags.slug, slug)).get()) {
+    throw new ApiError(409, `slug "${slug}" のタグは既にあります。`)
+  }
+  if (await db.select().from(tags).where(eq(tags.name, name)).get()) {
+    throw new ApiError(409, `タグ名 "${name}" は既にあります。`)
+  }
+  const tag = await db.insert(tags).values({ name, slug }).returning().get()
+  return c.json({ name: tag.name, slug: tag.slug } satisfies Schemas['TagSummary'], 201, privateCache)
+})

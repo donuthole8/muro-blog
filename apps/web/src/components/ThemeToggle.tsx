@@ -52,7 +52,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={cycle}
-      className="rounded-md border border-border px-2.5 py-1 text-xs text-text-muted transition-colors hover:border-accent hover:text-accent"
+      className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-md border border-border px-2.5 text-xs text-text-muted transition-colors hover:border-accent hover:text-accent"
       aria-label={`表示テーマ: ${label}。クリックで切り替え`}
       title={`表示テーマ: ${label}`}
     >

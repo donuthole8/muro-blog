@@ -32,7 +32,7 @@ function About() {
 
       <h2>しくみ</h2>
       <ul>
-        <li>バックエンド: Symfony + NelmioApiDocBundle + PostgreSQL（Neon）</li>
+        <li>バックエンド: Hono + Drizzle ORM + Cloudflare D1</li>
         <li>
           フロントエンド: TanStack Start + TanStack Query（Cloudflare Workers）
         </li>

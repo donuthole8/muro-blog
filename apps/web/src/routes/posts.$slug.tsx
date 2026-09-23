@@ -83,7 +83,7 @@ function PostDetailPage() {
       <TableOfContents items={extractToc(post.bodyHtml)} />
 
       {/*
-        bodyHtml は Symfony 側で Markdown から変換済み。
+        bodyHtml は旧ブログの時点で Markdown から変換済み。
         記事を書けるのは管理者本人だけなので、そのまま挿入する。
       */}
       <div
