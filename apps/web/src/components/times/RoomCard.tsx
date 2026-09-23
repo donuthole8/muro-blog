@@ -20,7 +20,7 @@ export function RoomCard({ room, countLabel }: Props) {
       params={{ handle: room.user.handle }}
       // 部屋ごとに色が違うので、並べたときに「扉が並ぶ廊下」として見分けられる
       style={roomAccentStyle(room.user.handle)}
-      className="flex items-center gap-3 rounded-xl border border-l-4 border-border border-l-accent bg-surface px-3 py-2.5 transition-colors hover:border-accent"
+      className="flex min-w-0 items-center gap-3 rounded-xl border border-l-4 border-border border-l-accent bg-surface px-3 py-2.5 transition-colors hover:border-accent"
     >
       <Avatar user={room.user} />
       <div className="min-w-0 flex-1">

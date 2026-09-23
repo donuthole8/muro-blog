@@ -32,7 +32,7 @@ function Org() {
 
   if (!org) {
     return (
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <Skeleton className="h-16" />
         <Skeleton className="h-16" />
       </div>
@@ -54,7 +54,7 @@ function Org() {
           description="所属をプロフィールに書いた人が、ここに並びます。"
         />
       ) : (
-        <div className="mt-6 grid gap-2 sm:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {org.rooms.map((room) => (
             <RoomCard key={room.user.handle} room={room} />
           ))}

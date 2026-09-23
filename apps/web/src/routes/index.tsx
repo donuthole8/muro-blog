@@ -42,7 +42,7 @@ function Lobby() {
       {(popular.data?.length ?? 0) > 0 && (
         <section>
           <SectionHeading>人気の部屋（24時間）</SectionHeading>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {popular.data?.slice(0, 6).map((room) => (
               <RoomCard key={room.user.handle} room={room} />
             ))}
@@ -52,28 +52,34 @@ function Lobby() {
 
       <section>
         <SectionHeading>新着</SectionHeading>
-        <PostList
-          posts={posts}
-          hasNextPage={lobby.hasNextPage}
-          isFetchingNextPage={lobby.isFetchingNextPage}
-          onLoadMore={() => void lobby.fetchNextPage()}
-          isLoading={lobby.isPending}
-          scrollToLatest={me != null}
-          empty={
-            <EmptyState
-              icon="🌱"
-              title="まだ投稿がありません"
-              description="いちばん最初のひとことを書くと、ここに流れます。"
-              action={
-                me?.handle ? undefined : (
-                  <a href={loginUrl()} className={buttonClass({ size: 'sm' })}>
-                    Google で始める
-                  </a>
-                )
-              }
-            />
-          }
-        />
+        {/* 見出しと最初の日付区切りがくっつかないよう、人気の部屋と同じだけ空ける */}
+        <div className="mt-3">
+          <PostList
+            posts={posts}
+            hasNextPage={lobby.hasNextPage}
+            isFetchingNextPage={lobby.isFetchingNextPage}
+            onLoadMore={() => void lobby.fetchNextPage()}
+            isLoading={lobby.isPending}
+            scrollToLatest={me != null}
+            empty={
+              <EmptyState
+                icon="🌱"
+                title="まだ投稿がありません"
+                description="いちばん最初のひとことを書くと、ここに流れます。"
+                action={
+                  me?.handle ? undefined : (
+                    <a
+                      href={loginUrl()}
+                      className={buttonClass({ size: 'sm' })}
+                    >
+                      Google で始める
+                    </a>
+                  )
+                }
+              />
+            }
+          />
+        </div>
       </section>
     </div>
   )
