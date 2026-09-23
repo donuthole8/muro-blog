@@ -1,0 +1,11 @@
+{
+  "name": "blog",
+  "private": true,
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "build": "pnpm --filter @blog/web build",
+    "typecheck": "pnpm -r exec tsc --noEmit",
+    "api:sync": "pnpm --filter @blog/api-client sync"
+  }
+}

@@ -1,0 +1,10 @@
+vendor/
+var/
+.env.local
+.env.*.local
+compose.yaml
+compose.override.yaml
+.git/
+.gitignore
+Dockerfile
+.dockerignore

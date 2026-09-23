@@ -1,0 +1,11 @@
+packages:
+  - "apps/web"
+  - "packages/*"
+
+# ネイティブバイナリを持つ依存のビルドスクリプトを許可する
+onlyBuiltDependencies:
+  - esbuild
+  - lightningcss
+  - sharp
+  - unrs-resolver
+  - workerd

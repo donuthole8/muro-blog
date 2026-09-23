@@ -1,0 +1,24 @@
+{
+  "name": "@blog/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.d.ts"
+  },
+  "scripts": {
+    "spec": "php ../../apps/api/bin/console nelmio:apidoc:dump --format=json > openapi.json",
+    "generate": "openapi-typescript openapi.json -o src/schema.d.ts",
+    "sync": "pnpm run spec && pnpm run generate"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.17.0",
+    "openapi-react-query": "^0.5.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.9.0",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.0"
+  }
+}

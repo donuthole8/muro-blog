@@ -1,0 +1,355 @@
+@import 'tailwindcss';
+@plugin "@tailwindcss/typography";
+
+/*
+ * ダークモードは3状態で扱う。
+ *   1. 明示的な選択 -> <html data-theme="light|dark">
+ *   2. 未選択（既定） -> OS の prefers-color-scheme に従う
+ * トークンは必ずここ（素の :root）で全色を定義し、
+ * 上書き側では同じ変数を再定義するだけにする。
+ */
+:root {
+  --bg: oklch(99% 0.003 250);
+  --surface: oklch(100% 0 0);
+  --border: oklch(91% 0.005 250);
+  --text: oklch(25% 0.015 250);
+  --text-muted: oklch(52% 0.015 250);
+  --accent: oklch(55% 0.16 250);
+  --accent-soft: oklch(95% 0.03 250);
+  --code-bg: oklch(96% 0.005 250);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: oklch(19% 0.015 250);
+    --surface: oklch(23% 0.015 250);
+    --border: oklch(32% 0.015 250);
+    --text: oklch(92% 0.008 250);
+    --text-muted: oklch(68% 0.015 250);
+    --accent: oklch(75% 0.13 250);
+    --accent-soft: oklch(28% 0.04 250);
+    --code-bg: oklch(26% 0.012 250);
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: oklch(19% 0.015 250);
+  --surface: oklch(23% 0.015 250);
+  --border: oklch(32% 0.015 250);
+  --text: oklch(92% 0.008 250);
+  --text-muted: oklch(68% 0.015 250);
+  --accent: oklch(75% 0.13 250);
+  --accent-soft: oklch(28% 0.04 250);
+  --code-bg: oklch(26% 0.012 250);
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-code-bg: var(--code-bg);
+
+  /*
+   * 絵文字は指定しないと OS 標準（macOS/iOS なら Apple Color Emoji）になる。
+   * Noto Color Emoji を明示して、どの端末でも Android 寄りの字形に揃える。
+   * 手前のフォントは絵文字の字形を持たないので、ここに置けば絵文字にだけ効く。
+   */
+  --font-sans:
+    system-ui, -apple-system, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans',
+    Meiryo, 'Noto Color Emoji', sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, 'Noto Sans Mono CJK JP',
+    'Noto Color Emoji', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  /* 日本語の本文は行間を広めに取ると読みやすい */
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 記事本文。@tailwindcss/typography の prose をテーマ色に合わせる */
+.prose-blog {
+  --tw-prose-body: var(--text);
+  --tw-prose-headings: var(--text);
+  --tw-prose-lead: var(--text-muted);
+  --tw-prose-links: var(--accent);
+  --tw-prose-bold: var(--text);
+  --tw-prose-counters: var(--text-muted);
+  --tw-prose-bullets: var(--border);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--text-muted);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--text-muted);
+  --tw-prose-code: var(--text);
+  --tw-prose-pre-code: var(--text);
+  --tw-prose-pre-bg: var(--code-bg);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+}
+
+/*
+ * 見出し。太字＋下の細い罫線で章の切れ目をはっきりさせる。
+ * 日本語は字面が詰まるので、行間と上のアキは prose の既定より広めに取る。
+ * サイズと罫線はエディタ側（MarkdownEditor の .cm-md-h*）と揃えること。
+ */
+.prose-blog :is(h1, h2, h3, h4) {
+  font-weight: 700;
+  line-height: 1.5;
+  /* 目次のリンクからジャンプしたとき、見出しが画面の一番上に張り付かないように */
+  scroll-margin-top: 1rem;
+}
+
+.prose-blog :is(h1, h2) {
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+}
+
+.prose-blog h1 {
+  font-size: 1.75em;
+  margin-top: 2em;
+  margin-bottom: 0.9em;
+}
+
+.prose-blog h2 {
+  font-size: 1.5em;
+  margin-top: 2.2em;
+  margin-bottom: 0.9em;
+}
+
+.prose-blog h3 {
+  font-size: 1.25em;
+  margin-top: 2em;
+  margin-bottom: 0.7em;
+}
+
+.prose-blog h4 {
+  font-size: 1.1em;
+  margin-top: 1.8em;
+  margin-bottom: 0.6em;
+}
+
+/*
+ * 見出しの記法（# ／ ##）を装飾としてそのまま見せる。
+ * Markdown を書いている時の見た目を公開ページにも持ってくる意図。
+ * 読み上げには "##" を渡したくないので、対応ブラウザでは alt を空にする。
+ */
+.prose-blog :is(h1, h2, h3, h4)::before {
+  margin-right: 0.4em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.prose-blog h1::before {
+  content: '#';
+}
+
+.prose-blog h2::before {
+  content: '##';
+}
+
+.prose-blog h3::before {
+  content: '###';
+}
+
+.prose-blog h4::before {
+  content: '####';
+}
+
+@supports (content: '' / '') {
+  .prose-blog h1::before {
+    content: '#' / '';
+  }
+
+  .prose-blog h2::before {
+    content: '##' / '';
+  }
+
+  .prose-blog h3::before {
+    content: '###' / '';
+  }
+
+  .prose-blog h4::before {
+    content: '####' / '';
+  }
+}
+
+/* 書き出しの見出しには上のアキを付けない（prose の既定を保つ） */
+.prose-blog > :first-child {
+  margin-top: 0;
+}
+
+/* インラインコードの前後に付く ` を消す */
+.prose-blog :where(code):not(:where(pre code))::before,
+.prose-blog :where(code):not(:where(pre code))::after {
+  content: none;
+}
+
+.prose-blog :where(code):not(:where(pre code)) {
+  background-color: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  padding: 0.1em 0.35em;
+  font-weight: 400;
+}
+
+.prose-blog table {
+  display: block;
+  overflow-x: auto;
+}
+
+/*
+ * 独立行に貼っただけの URL（Markdown の自動リンク）で、OGP が取れなかった
+ * ものをカード風にする。対象は MarkdownRenderer 側が .bare-link を振った
+ * ものだけに限定する（:only-child は文中の [text](url) も誤って拾うため使わない）。
+ */
+.prose-blog p:has(> a.bare-link) {
+  margin: 1.75em 0;
+}
+
+.prose-blog a.bare-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9em 1.1em;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: 0.9em;
+  line-height: 1.5;
+  word-break: break-all;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.prose-blog a.bare-link:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.prose-blog a.bare-link::after {
+  content: '↗';
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--text-muted);
+}
+
+/*
+ * OGP 情報が取れた裸 URL は .link-card に差し替わる（MarkdownRenderer 側）。
+ * はてなブログの埋め込みカードを意識した、左にテキスト・右にサムネイルのレイアウト。
+ * サムネイルが無い記事もあるので、img が無くても崩れないようにする。
+ */
+.prose-blog a.link-card {
+  display: flex;
+  align-items: stretch;
+  min-height: 6.5rem;
+  margin: 1.75em 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background-color: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.prose-blog a.link-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.prose-blog a.link-card .link-card-body {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4em;
+  padding: 0.9em 1.1em;
+}
+
+.prose-blog a.link-card .link-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.95em;
+  font-weight: 700;
+  line-height: 1.4;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.prose-blog a.link-card .link-card-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.82em;
+  line-height: 1.5;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.prose-blog a.link-card .link-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-top: 0.2em;
+}
+
+.prose-blog a.link-card .link-card-favicon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 0.2em;
+}
+
+.prose-blog a.link-card .link-card-domain {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.75em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prose-blog a.link-card .link-card-thumb {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 180px;
+  height: 100%;
+  object-fit: cover;
+  background-color: var(--code-bg);
+}
+
+@media (max-width: 480px) {
+  .prose-blog a.link-card .link-card-thumb {
+    width: 96px;
+  }
+}

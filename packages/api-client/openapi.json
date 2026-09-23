@@ -1,0 +1,949 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Blog API",
+        "description": "\u500b\u4eba\u30d6\u30ed\u30b0\u306e API\u3002openapi-typescript / openapi-fetch \u304c\u3053\u306e spec \u3092\u6d88\u8cbb\u3059\u308b\u3002",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://127.0.0.1:8000",
+            "description": "\u30ed\u30fc\u30ab\u30eb\u958b\u767a"
+        }
+    ],
+    "paths": {
+        "/api/admin/posts": {
+            "get": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "get_api_admin_posts_index",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "\u72b6\u614b\u3067\u7d5e\u308a\u8fbc\u3080",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true,
+                            "default": null,
+                            "enum": [
+                                "draft",
+                                "published"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u4e0b\u66f8\u304d\u3092\u542b\u3080\u5168\u8a18\u4e8b\u3092\u66f4\u65b0\u306e\u65b0\u3057\u3044\u9806\u3067\u8fd4\u3059",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PostAdminSummary"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "post_api_admin_posts_create",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PostInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "\u4f5c\u6210\u3055\u308c\u305f\u8a18\u4e8b",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PostAdminDetail"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "slug \u304c\u65e2\u306b\u4f7f\u308f\u308c\u3066\u3044\u308b",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "\u5165\u529b\u5024\u304c\u4e0d\u6b63",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ]
+            }
+        },
+        "/api/admin/posts/{id}": {
+            "get": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "get_api_admin_posts_show",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "\u8a18\u4e8b ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "pattern": "\\d+"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u7de8\u96c6\u7528\u306e\u8a18\u4e8b\uff08Markdown \u539f\u6587\u3092\u542b\u3080\uff09",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PostAdminDetail"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "\u8a18\u4e8b\u304c\u5b58\u5728\u3057\u306a\u3044",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "put_api_admin_posts_update",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "\u8a18\u4e8b ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "pattern": "\\d+"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PostInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "\u66f4\u65b0\u5f8c\u306e\u8a18\u4e8b",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PostAdminDetail"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "delete_api_admin_posts_delete",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "\u8a18\u4e8b ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "pattern": "\\d+"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "\u524a\u9664\u5b8c\u4e86"
+                    }
+                },
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ]
+            }
+        },
+        "/api/admin/posts/{id}/publish": {
+            "post": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "post_api_admin_posts_publish",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "\u8a18\u4e8b ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "pattern": "\\d+"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u516c\u958b\u5f8c\u306e\u8a18\u4e8b",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PostAdminDetail"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ]
+            }
+        },
+        "/api/admin/posts/{id}/unpublish": {
+            "post": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "post_api_admin_posts_unpublish",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "\u8a18\u4e8b ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "pattern": "\\d+"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u4e0b\u66f8\u304d\u306b\u623b\u3057\u305f\u8a18\u4e8b",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PostAdminDetail"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ]
+            }
+        },
+        "/api/admin/preview": {
+            "post": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "post_api_admin_preview",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MarkdownPreviewInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "\u4fdd\u5b58\u6642\u3068\u540c\u3058\u5909\u63db\u7d50\u679c",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MarkdownPreview"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ]
+            }
+        },
+        "/api/admin/tags": {
+            "get": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "get_api_admin_tags_index",
+                "responses": {
+                    "200": {
+                        "description": "\u5168\u30bf\u30b0\uff08\u8a18\u4e8b\u304c0\u4ef6\u306e\u3082\u306e\u3082\u542b\u3080\uff09",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TagSummary"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "post_api_admin_tags_create",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TagInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "\u4f5c\u6210\u3055\u308c\u305f\u30bf\u30b0",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagSummary"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "\u540c\u3058\u540d\u524d\u304b slug \u306e\u30bf\u30b0\u304c\u65e2\u306b\u3042\u308b"
+                    }
+                },
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ]
+            }
+        },
+        "/api/posts": {
+            "get": {
+                "tags": [
+                    "posts"
+                ],
+                "operationId": "get_api_posts_index",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "1 \u59cb\u307e\u308a\u306e\u30da\u30fc\u30b8\u756a\u53f7",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "perPage",
+                        "in": "query",
+                        "description": "1\u30da\u30fc\u30b8\u3042\u305f\u308a\u306e\u4ef6\u6570",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "maximum": 50,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "tag",
+                        "in": "query",
+                        "description": "\u30bf\u30b0\u306e slug \u3067\u7d5e\u308a\u8fbc\u3080",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true,
+                            "default": null
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u516c\u958b\u6e08\u307f\u8a18\u4e8b\u306e\u4e00\u89a7\u3092\u65b0\u3057\u3044\u9806\u3067\u8fd4\u3059",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedPosts"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/posts/{slug}": {
+            "get": {
+                "tags": [
+                    "posts"
+                ],
+                "operationId": "get_api_posts_show",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "pattern": "[a-z0-9-]+"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u8a18\u4e8b\u306e\u8a73\u7d30",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PostDetail"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "\u8a18\u4e8b\u304c\u5b58\u5728\u3057\u306a\u3044\u304b\u3001\u307e\u3060\u516c\u958b\u3055\u308c\u3066\u3044\u306a\u3044",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tags": {
+            "get": {
+                "tags": [
+                    "tags"
+                ],
+                "operationId": "get_api_tags_index",
+                "responses": {
+                    "200": {
+                        "description": "\u516c\u958b\u8a18\u4e8b\u3092\u6301\u3064\u30bf\u30b0\u3092\u3001\u8a18\u4e8b\u6570\u306e\u591a\u3044\u9806\u306b\u8fd4\u3059",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TagWithCount"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "PostInput": {
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "example": "\u306f\u3058\u3081\u3066\u306e\u8a18\u4e8b",
+                        "default": "",
+                        "maxLength": 255
+                    },
+                    "slug": {
+                        "type": "string",
+                        "pattern": "[a-z0-9]+(?:-[a-z0-9]+)*",
+                        "example": "hello-world",
+                        "default": "",
+                        "maxLength": 128
+                    },
+                    "emoji": {
+                        "title": "null \u306a\u3089\u65e2\u5b9a\u306e\u7d75\u6587\u5b57\u304c\u5165\u308b\u3002",
+                        "description": "\u8a18\u4e8b\u306e\u30a2\u30a4\u30ad\u30e3\u30c3\u30c1\u7d75\u6587\u5b57",
+                        "type": "string",
+                        "example": "\ud83d\udcdd",
+                        "nullable": true,
+                        "maxLength": 8
+                    },
+                    "bodyMd": {
+                        "description": "Markdown \u539f\u6587",
+                        "type": "string",
+                        "example": "# \u898b\u51fa\u3057\n\n\u672c\u6587\u3002",
+                        "default": ""
+                    },
+                    "excerpt": {
+                        "title": "null \u306a\u3089\u672c\u6587\u304b\u3089\u81ea\u52d5\u751f\u6210\u3059\u308b\u3002",
+                        "description": "\u672a\u6307\u5b9a\u306a\u3089\u672c\u6587\u304b\u3089\u81ea\u52d5\u751f\u6210\u3055\u308c\u308b",
+                        "type": "string",
+                        "nullable": true,
+                        "maxLength": 255
+                    },
+                    "tagSlugs": {
+                        "title": "\u4ed8\u4e0e\u3059\u308b\u30bf\u30b0\u306e slug\u3002\u65e2\u5b58\u306e\u30bf\u30b0\u306e\u307f\u6307\u5b9a\u3067\u304d\u308b\u3002\n\u65b0\u3057\u3044\u30bf\u30b0\u306f POST /api/admin/tags \u3067\u5148\u306b\u4f5c\u6210\u3059\u308b\u3053\u3068\n\uff08\u65e5\u672c\u8a9e\u306e\u30bf\u30b0\u540d\u304b\u3089 slug \u3092\u6a5f\u68b0\u7684\u306b\u5c0e\u51fa\u3067\u304d\u306a\u3044\u305f\u3081\uff09\u3002",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "php",
+                            "symfony"
+                        ],
+                        "default": []
+                    }
+                },
+                "type": "object"
+            },
+            "MarkdownPreviewInput": {
+                "properties": {
+                    "bodyMd": {
+                        "description": "\u30d7\u30ec\u30d3\u30e5\u30fc\u3057\u305f\u3044 Markdown \u539f\u6587",
+                        "type": "string",
+                        "example": "# \u898b\u51fa\u3057\n\n\u672c\u6587\u3002",
+                        "default": "",
+                        "maxLength": 200000
+                    }
+                },
+                "type": "object"
+            },
+            "TagInput": {
+                "properties": {
+                    "name": {
+                        "title": "\u8868\u793a\u540d\u3002\u65e5\u672c\u8a9e\u3082\u4f7f\u3048\u308b\u3002",
+                        "type": "string",
+                        "example": "JavaScript",
+                        "default": "",
+                        "maxLength": 64
+                    },
+                    "slug": {
+                        "title": "URL \u306b\u4f7f\u3046\u8b58\u5225\u5b50\u3002\u65e5\u672c\u8a9e\u540d\u304b\u3089\u6a5f\u68b0\u7684\u306b\u5c0e\u51fa\u3067\u304d\u306a\u3044\u305f\u3081\u660e\u793a\u7684\u306b\u6307\u5b9a\u3059\u308b\u3002",
+                        "type": "string",
+                        "pattern": "[a-z0-9]+(?:-[a-z0-9]+)*",
+                        "example": "javascript",
+                        "default": "",
+                        "maxLength": 64
+                    }
+                },
+                "type": "object"
+            },
+            "TagSummary": {
+                "required": [
+                    "name",
+                    "slug"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "JavaScript"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "javascript"
+                    }
+                },
+                "type": "object"
+            },
+            "PostAdminSummary": {
+                "required": [
+                    "id",
+                    "slug",
+                    "title",
+                    "status",
+                    "updatedAt",
+                    "tags"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "emoji": {
+                        "type": "string",
+                        "example": "\ud83d\udcdd",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "draft",
+                        "enum": [
+                            "draft",
+                            "published"
+                        ]
+                    },
+                    "publishedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TagSummary"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "PostAdminDetail": {
+                "required": [
+                    "id",
+                    "slug",
+                    "title",
+                    "bodyMd",
+                    "status",
+                    "createdAt",
+                    "updatedAt",
+                    "tags"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "emoji": {
+                        "type": "string",
+                        "example": "\ud83d\udcdd",
+                        "nullable": true
+                    },
+                    "bodyMd": {
+                        "description": "Markdown \u539f\u6587",
+                        "type": "string"
+                    },
+                    "excerpt": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "draft",
+                            "published"
+                        ]
+                    },
+                    "publishedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TagSummary"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ValidationError": {
+                "required": [
+                    "message",
+                    "errors"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "\u5165\u529b\u5185\u5bb9\u306b\u8aa4\u308a\u304c\u3042\u308a\u307e\u3059\u3002"
+                    },
+                    "errors": {
+                        "type": "object",
+                        "example": {
+                            "slug": "slug \u306f\u5fc5\u9808\u3067\u3059\u3002"
+                        },
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "MarkdownPreview": {
+                "required": [
+                    "bodyHtml",
+                    "excerpt"
+                ],
+                "properties": {
+                    "bodyHtml": {
+                        "description": "\u5909\u63db\u5f8c\u306e HTML",
+                        "type": "string"
+                    },
+                    "excerpt": {
+                        "description": "\u672c\u6587\u304b\u3089\u81ea\u52d5\u751f\u6210\u3057\u305f\u629c\u7c8b",
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "PostSummary": {
+                "required": [
+                    "id",
+                    "slug",
+                    "title",
+                    "tags"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "hello-world"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "emoji": {
+                        "type": "string",
+                        "example": "\ud83d\udcdd",
+                        "nullable": true
+                    },
+                    "excerpt": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "publishedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-09-06T12:00:00+00:00",
+                        "nullable": true
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TagSummary"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "PaginatedPosts": {
+                "required": [
+                    "items",
+                    "total",
+                    "page",
+                    "perPage",
+                    "totalPages"
+                ],
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PostSummary"
+                        }
+                    },
+                    "total": {
+                        "description": "\u5168\u4ef6\u6570",
+                        "type": "integer",
+                        "example": 42
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "perPage": {
+                        "type": "integer"
+                    },
+                    "totalPages": {
+                        "type": "integer"
+                    }
+                },
+                "type": "object"
+            },
+            "PostDetail": {
+                "required": [
+                    "id",
+                    "slug",
+                    "title",
+                    "bodyHtml",
+                    "updatedAt",
+                    "tags"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "emoji": {
+                        "type": "string",
+                        "example": "\ud83d\udcdd",
+                        "nullable": true
+                    },
+                    "excerpt": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "bodyHtml": {
+                        "description": "Markdown \u304b\u3089\u5909\u63db\u6e08\u307f\u306e HTML",
+                        "type": "string"
+                    },
+                    "publishedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TagSummary"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "TagWithCount": {
+                "required": [
+                    "name",
+                    "slug",
+                    "postCount"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "JavaScript"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "javascript"
+                    },
+                    "postCount": {
+                        "description": "\u516c\u958b\u6e08\u307f\u8a18\u4e8b\u306e\u4ef6\u6570",
+                        "type": "integer",
+                        "example": 12
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "AdminToken": {
+                "type": "apiKey",
+                "description": "\u7ba1\u7406\u30a8\u30f3\u30c9\u30dd\u30a4\u30f3\u30c8\u7528\u306e\u5171\u6709\u30b7\u30fc\u30af\u30ec\u30c3\u30c8",
+                "name": "X-Admin-Token",
+                "in": "header"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "admin"
+        },
+        {
+            "name": "posts"
+        },
+        {
+            "name": "tags"
+        }
+    ]
+}

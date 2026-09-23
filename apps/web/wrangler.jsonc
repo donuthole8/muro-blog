@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "blog",
+  "compatibility_date": "2025-09-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+
+  // 公開しても問題ない値だけをここに書く。
+  // ADMIN_TOKEN は秘密情報なので `wrangler secret put ADMIN_TOKEN` で登録する。
+  "vars": {
+    // Cloud Run にデプロイしたあと、払い出された URL に差し替える
+    "API_BASE_URL": "https://REPLACE-ME.a.run.app",
+    "SITE_URL": "https://blog.example.com",
+  },
+
+  // 記事本文に貼る画像の置き場。ローカル開発は @cloudflare/vite-plugin が
+  // ローカルエミュレーション（.wrangler/state 配下）するため、実際の
+  // Cloudflare アカウントなしでそのまま動く。
+  // 本番用バケットは `wrangler r2 bucket create blog-images` で作成すること
+  // （README 参照）。
+  "r2_buckets": [{ "binding": "BLOG_IMAGES", "bucket_name": "blog-images" }],
+
+  "observability": {
+    "enabled": true,
+  },
+}

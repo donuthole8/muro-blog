@@ -1,0 +1,20 @@
+nelmio_api_doc:
+    documentation:
+        info:
+            title: Blog API
+            description: 個人ブログの API。openapi-typescript / openapi-fetch がこの spec を消費する。
+            version: 1.0.0
+        servers:
+            - url: http://127.0.0.1:8000
+              description: ローカル開発
+        components:
+            securitySchemes:
+                AdminToken:
+                    type: apiKey
+                    in: header
+                    name: X-Admin-Token
+                    description: 管理エンドポイント用の共有シークレット
+    areas:
+        default:
+            path_patterns:
+                - ^/api(?!/doc)
