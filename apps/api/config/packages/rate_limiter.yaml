@@ -1,0 +1,61 @@
+# 書き込み系のレート制限（ActionRateLimiter が使う）。
+#
+# 連投や画像の連続アップロードは R2 と Neon の無料枠を直接削るので、ユーザー単位で絞る。
+# 登録から 24 時間以内のアカウントは「_new」の厳しい方を使う（捨てアカウント対策）。
+#
+# 状態は DB（cache_items テーブル）に置く。Cloud Run のインスタンスが複数になっても
+# 同じ上限を共有でき、書き込みのリクエストはどのみち DB を起こすので Neon の無料枠も変わらない。
+framework:
+    cache:
+        pools:
+            cache.rate_limiter:
+                adapter: cache.adapter.doctrine_dbal
+
+    rate_limiter:
+        post:
+            policy: sliding_window
+            limit: 30
+            interval: '10 minutes'
+            cache_pool: cache.rate_limiter
+        post_new:
+            policy: sliding_window
+            limit: 10
+            interval: '10 minutes'
+            cache_pool: cache.rate_limiter
+        image_upload:
+            policy: sliding_window
+            limit: 30
+            interval: '1 hour'
+            cache_pool: cache.rate_limiter
+        image_upload_new:
+            policy: sliding_window
+            limit: 5
+            interval: '1 hour'
+            cache_pool: cache.rate_limiter
+        reaction:
+            policy: sliding_window
+            limit: 120
+            interval: '10 minutes'
+            cache_pool: cache.rate_limiter
+        reaction_new:
+            policy: sliding_window
+            limit: 40
+            interval: '10 minutes'
+            cache_pool: cache.rate_limiter
+        report:
+            policy: sliding_window
+            limit: 20
+            interval: '1 day'
+            cache_pool: cache.rate_limiter
+        report_new:
+            policy: sliding_window
+            limit: 5
+            interval: '1 day'
+            cache_pool: cache.rate_limiter
+
+when@test:
+    framework:
+        cache:
+            pools:
+                cache.rate_limiter:
+                    adapter: cache.adapter.array

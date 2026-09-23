@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { fetchPost } from '../lib/blog'
+import { fetchArchivedPost } from '../lib/archive'
 import { TagChip } from '../components/TagChip'
 import { TableOfContents } from '../components/TableOfContents'
 import { formatDate, estimateReadingMinutes } from '../lib/format'
@@ -8,7 +8,7 @@ import { extractToc } from '../lib/toc'
 import { site } from '../lib/site'
 
 export const Route = createFileRoute('/posts/$slug')({
-  loader: ({ params }) => fetchPost({ data: { slug: params.slug } }),
+  loader: ({ params }) => fetchArchivedPost({ data: { slug: params.slug } }),
   head: ({ loaderData, params }) => {
     if (!loaderData) return { meta: [] }
 

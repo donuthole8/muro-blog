@@ -13,7 +13,7 @@ final readonly class TagWithCount
         public string $name,
         #[OA\Property(example: 'javascript')]
         public string $slug,
-        #[OA\Property(description: '公開済み記事の件数', example: 12)]
+        #[OA\Property(description: '投稿（アーカイブの場合は記事）の件数', example: 12)]
         public int $postCount,
     ) {
     }

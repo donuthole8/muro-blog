@@ -9,76 +9,97 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 
 /** 本番の公開 URL。サイトマップの絶対 URL に使う。 */
 const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000'
-
-/** 静的化もサイトマップ掲載もしない管理画面のパス */
-const adminPages = ['/admin', '/admin/', '/admin/posts/new'].map((path) => ({
-  path,
-  sitemap: { exclude: true },
-  prerender: { enabled: false },
-}))
+const apiBaseUrl = process.env.API_BASE_URL ?? 'http://127.0.0.1:8000'
 
 /**
- * フィードと robots.txt は静的化するが、サイトマップにページとしては載せない。
- * robots.txt は /rss.xml と違いどこからもリンクされないため、
- * crawlLinks に頼らず明示的に prerender 対象へ加える。
+ * 静的化するのは旧ブログのアーカイブ記事（/posts/:slug）だけ。
+ *
+ * times の画面（ロビー・部屋・スレッドなど）は数秒単位で中身が変わるので SSR にし、
+ * 公開 API の応答をエッジでキャッシュすることで Cloud Run のコールドスタートと
+ * Neon の起動を抑える（lib/edgeCache.ts 参照）。
+ *
+ * アーカイブは更新されないので、ビルド時に API から記事の一覧を取って
+ * ページを列挙する（ビルド中は API が起動している必要がある）。
+ */
+async function archivePages() {
+  const slugs: Array<string> = []
+  let page = 1
+  let totalPages = 1
+
+  do {
+    const res = await fetch(
+      `${apiBaseUrl}/api/archive/posts?page=${page}&perPage=50`,
+    )
+    if (!res.ok) {
+      throw new Error(
+        `アーカイブ記事の一覧を取得できませんでした（${res.status}）。Symfony API は起動していますか？`,
+      )
+    }
+    /*
+     * res.json() は any を返すので、この as を外すと body が unknown になり
+     * tsc が TS18046 で落ちる。lint は「型が変わらない不要な as」と判定するが、
+     * 実際には外せないので、ここだけルールを無効にする。
+     * （これを消すと pnpm format のたびにビルドが壊れる）
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- 外すと TS18046 になる
+    const body = (await res.json()) as {
+      items: Array<{ slug: string }>
+      totalPages: number
+    }
+    slugs.push(...body.items.map((item) => item.slug))
+    totalPages = body.totalPages
+    page += 1
+  } while (page <= totalPages)
+
+  return slugs.map((slug) => ({
+    path: `/posts/${slug}`,
+    prerender: { enabled: true },
+  }))
+}
+
+/**
+ * フィードと robots.txt も静的化するが、サイトマップにページとしては載せない。
  */
 const feedPages = [
-  { path: '/rss.xml', sitemap: { exclude: true } },
-  { path: '/robots.txt', sitemap: { exclude: true } },
+  {
+    path: '/rss.xml',
+    sitemap: { exclude: true },
+    prerender: { enabled: true },
+  },
+  {
+    path: '/robots.txt',
+    sitemap: { exclude: true },
+    prerender: { enabled: true },
+  },
 ]
 
-/*
- * 末尾スラッシュ版を除外して正規 URL を1つに絞る。
- * ルート自動探索は /posts と /posts/ の両方を見つけてしまい、
- * そのままだと同じ内容が2つの URL で配信されて重複コンテンツになる。
- * サイト内リンクはすべてスラッシュなし側を指している。
- */
-const trailingSlashDuplicates = ['/posts/', '/tags/'].map((path) => ({
-  path,
-  sitemap: { exclude: true },
-  prerender: { enabled: false },
-}))
-
-const config = defineConfig({
+export default defineConfig(async ({ command }) => ({
   resolve: { tsconfigPaths: true },
   plugins: [
     devtools(),
     cloudflare({ viteEnvironment: { name: 'ssr' } }),
     tailwindcss(),
     tanstackStart({
-      /*
-       * 公開ページはビルド時に静的化する。
-       *
-       * Symfony API は Cloud Run 上で scale-to-zero のためコールドスタートする。
-       * 読者のリクエストがそこへ届く設計にすると表示が破綻するので、
-       * ビルド時に一度だけ API を叩いて HTML を作り切ってしまう。
-       *
-       * crawlLinks により / から辿れるページ（記事詳細・タグ別一覧を含む）が
-       * 自動的に対象になる。ビルド時は API が起動している必要がある。
-       */
       prerender: {
         enabled: true,
-        crawlLinks: true,
-        autoStaticPathsDiscovery: true,
+        // リンクを辿って静的化すると times の画面まで拾ってしまうので、列挙したページだけにする
+        crawlLinks: false,
+        autoStaticPathsDiscovery: false,
         concurrency: 4,
         // 記事の取得に失敗したまま空の HTML を公開しないよう、失敗はビルドを止める
         failOnError: true,
-        // 管理画面は静的化しない。常にサーバー側で描画し、認証の前段を通す。
-        filter: (page) => !page.path.startsWith('/admin'),
+        filter: (page) =>
+          page.path.startsWith('/posts/') ||
+          feedPages.some((feed) => feed.path === page.path),
       },
       sitemap: {
         enabled: true,
         host: siteUrl,
       },
-      /*
-       * 管理画面は公開サイトの一部ではない。
-       * prerender の filter は静的化を止めるだけでサイトマップには効かないため、
-       * ページ単位で明示的に除外する。
-       */
-      pages: [...adminPages, ...feedPages, ...trailingSlashDuplicates],
+      // 開発サーバーの起動時には API を叩かない（ビルド時だけ列挙する）
+      pages:
+        command === 'build' ? [...(await archivePages()), ...feedPages] : [],
     }),
     viteReact(),
   ],
-})
-
-export default config
+}))

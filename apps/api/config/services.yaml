@@ -21,3 +21,16 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    # limiter 名 => RateLimiterFactory（定義は packages/rate_limiter.yaml）
+    App\Service\ActionRateLimiter:
+        arguments:
+            $limiters: !service_locator
+                post: '@limiter.post'
+                post_new: '@limiter.post_new'
+                image_upload: '@limiter.image_upload'
+                image_upload_new: '@limiter.image_upload_new'
+                reaction: '@limiter.reaction'
+                reaction_new: '@limiter.reaction_new'
+                report: '@limiter.report'
+                report_new: '@limiter.report_new'

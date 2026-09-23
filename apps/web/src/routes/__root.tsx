@@ -3,13 +3,17 @@ import {
   Link,
   Scripts,
   createRootRouteWithContext,
+  redirect,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
+import { buttonClass } from '../components/Button'
 import { SiteHeader } from '../components/SiteHeader'
 import { SiteFooter } from '../components/SiteFooter'
+import { ComposeProvider } from '../components/times/ComposeModal'
+import { meQuery } from '../lib/queries'
 import { site } from '../lib/site'
 
 import appCss from '../styles.css?url'
@@ -36,7 +40,32 @@ const themeScript = `
 })();
 `
 
+/** handle 未決定でも開けるページ（それ以外は handle 決定画面へ送る） */
+const OPEN_WITHOUT_HANDLE = [
+  '/welcome',
+  '/dev-login',
+  '/terms',
+  '/privacy',
+  '/about',
+]
+
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+  /**
+   * ログイン中の本人を1回だけ取り、以後はクエリのキャッシュを使う。
+   * 未ログイン（Cookie なし）なら API は叩かない。プリレンダリング時も同様。
+   */
+  beforeLoad: async ({ context, location }) => {
+    const me = await context.queryClient.ensureQueryData(meQuery)
+
+    if (
+      me &&
+      !me.handle &&
+      !OPEN_WITHOUT_HANDLE.includes(location.pathname) &&
+      !location.pathname.startsWith('/posts')
+    ) {
+      throw redirect({ to: '/welcome' })
+    }
+  },
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -61,7 +90,12 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         rel: 'stylesheet',
         href: 'https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap',
       },
-      { rel: 'alternate', type: 'application/rss+xml', href: '/rss.xml' },
+      {
+        rel: 'alternate',
+        type: 'application/rss+xml',
+        href: '/rss.xml',
+        title: `${site.title}（旧ブログ）`,
+      },
       { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
       { rel: 'icon', type: 'image/png', href: '/favicon-32x32.png' },
       { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
@@ -80,13 +114,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="flex min-h-screen flex-col">
-          <SiteHeader />
-          <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-10">
-            {children}
-          </main>
-          <SiteFooter />
-        </div>
+        <ComposeProvider>
+          <div className="flex min-h-screen flex-col">
+            <SiteHeader />
+            <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-8">
+              {children}
+            </main>
+            <SiteFooter />
+          </div>
+        </ComposeProvider>
 
         {import.meta.env.DEV && (
           <TanStackDevtools
@@ -112,12 +148,9 @@ function NotFound() {
       <p className="font-mono text-5xl text-text-muted">404</p>
       <h1 className="mt-4 text-xl font-bold">ページが見つかりません</h1>
       <p className="mt-2 text-sm text-text-muted">
-        URL が変わったか、記事が下書きに戻された可能性があります。
+        URL が間違っているか、削除された可能性があります。
       </p>
-      <Link
-        to="/"
-        className="mt-6 inline-block text-sm text-accent hover:underline"
-      >
+      <Link to="/" className={buttonClass({ className: 'mt-6' })}>
         トップへ戻る
       </Link>
     </div>

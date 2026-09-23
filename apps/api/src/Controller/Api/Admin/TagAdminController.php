@@ -8,7 +8,7 @@ use App\Dto\TagInput;
 use App\Dto\TagSummary;
 use App\Entity\Tag;
 use App\Repository\TagRepository;
-use App\Service\PostMapper;
+use App\Service\ArchiveMapper;
 use Doctrine\ORM\EntityManagerInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use Nelmio\ApiDocBundle\Attribute\Security;
@@ -19,13 +19,13 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[OA\Tag(name: 'admin')]
-#[Security(name: 'AdminToken')]
+#[Security(name: 'SessionToken')]
 #[Route('/api/admin/tags')]
 final class TagAdminController extends AbstractController
 {
     public function __construct(
         private readonly TagRepository $tags,
-        private readonly PostMapper $mapper,
+        private readonly ArchiveMapper $mapper,
         private readonly EntityManagerInterface $em,
     ) {
     }

@@ -1,16 +1,19 @@
-import { Link, Outlet, createFileRoute } from '@tanstack/react-router'
+import { Link, Outlet, createFileRoute, notFound } from '@tanstack/react-router'
+import { meQuery } from '../lib/queries'
 
 /**
- * 管理画面の共通レイアウト。
- *
- * Phase 1 ではローカルからのみ起動するため認証を持たない。
- * Phase 2 でデプロイする際に Cloudflare Access を前段に置く。
+ * 管理画面の共通レイアウト。role=admin のユーザーにだけ見せる。
+ * 画面を隠すのは見た目の都合で、実際の権限チェックは API（/api/admin）が行う。
+ * 管理者の任命は `php bin/console app:user:role <handle>`。
  */
 export const Route = createFileRoute('/admin')({
+  beforeLoad: async ({ context }) => {
+    const me = await context.queryClient.ensureQueryData(meQuery)
+    if (me?.role !== 'admin') throw notFound()
+  },
   head: () => ({
     meta: [
       { title: '管理画面' },
-      // 万が一公開されても検索結果に出さない
       { name: 'robots', content: 'noindex, nofollow' },
     ],
   }),
@@ -18,17 +21,40 @@ export const Route = createFileRoute('/admin')({
 })
 
 function AdminLayout() {
+  const tab = 'text-sm text-text-muted transition-colors hover:text-accent'
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between border-b border-border pb-3">
-        <Link to="/admin" className="text-sm font-bold">
-          管理画面
+      <div className="mb-6 flex flex-wrap items-center gap-4 border-b border-border pb-3">
+        <span className="text-sm font-bold">管理画面</span>
+        <Link
+          to="/admin"
+          activeOptions={{ exact: true }}
+          className={tab}
+          activeProps={{ className: 'text-accent' }}
+        >
+          投稿
         </Link>
         <Link
-          to="/admin/posts/new"
-          className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-bg"
+          to="/admin/reports"
+          className={tab}
+          activeProps={{ className: 'text-accent' }}
         >
-          + 新規投稿
+          通報
+        </Link>
+        <Link
+          to="/admin/users"
+          className={tab}
+          activeProps={{ className: 'text-accent' }}
+        >
+          ユーザー
+        </Link>
+        <Link
+          to="/admin/tags"
+          className={tab}
+          activeProps={{ className: 'text-accent' }}
+        >
+          タグ
         </Link>
       </div>
 

@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers'
 
 /**
- * 記事本文に貼る画像の置き場（Cloudflare R2）。
+ * 投稿に添える画像の置き場（Cloudflare R2）。
  *
  * バインディングはただのオブジェクトなので process.env では表せない。
  * @cloudflare/vite-plugin が実際の Workers ランタイム上で動かしているため、

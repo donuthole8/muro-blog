@@ -1,97 +1,183 @@
-import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { useMutation } from '@tanstack/react-query'
-import { deleteAdminPost, listAdminPosts, setPostPublished } from '../lib/admin'
-import { formatDate } from '../lib/format'
-import { DEFAULT_EMOJI } from '../lib/emoji'
+import { useState } from 'react'
+import { Link, createFileRoute } from '@tanstack/react-router'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query'
+import type { AdminPost } from '@blog/api-client'
+import { Button } from '../components/Button'
+import {
+  deletePostAsAdmin,
+  listModerationPosts,
+  setPostHidden,
+} from '../lib/admin'
+import { formatFullTime } from '../lib/format'
+import { imageUrl } from '../lib/image'
 
+type Search = { handle?: string }
+
+/**
+ * 投稿の非表示・削除。削除依頼への対応のため、非表示の投稿も本文ごと見える。
+ * 非表示は取り消せる。削除は本文と画像を消すので取り消せない。
+ */
 export const Route = createFileRoute('/admin/')({
-  loader: () => listAdminPosts({ data: {} }),
-  component: AdminPostList,
+  validateSearch: (search: Record<string, unknown>): Search =>
+    typeof search.handle === 'string' && search.handle !== ''
+      ? { handle: search.handle }
+      : {},
+  component: ModerationPosts,
 })
 
-function AdminPostList() {
-  const posts = Route.useLoaderData()
-  const router = useRouter()
+function ModerationPosts() {
+  const { handle } = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const [filter, setFilter] = useState(handle ?? '')
+  const queryClient = useQueryClient()
+  const queryKey = ['admin', 'posts', handle ?? null]
 
-  const togglePublish = useMutation({
-    mutationFn: (input: { id: number; published: boolean }) =>
-      setPostPublished({ data: input }),
-    onSuccess: () => router.invalidate(),
+  const posts = useInfiniteQuery({
+    queryKey,
+    queryFn: ({ pageParam }) =>
+      listModerationPosts({ data: { cursor: pageParam, handle } }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    staleTime: 0,
   })
 
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: ['admin', 'posts'] })
+
+  const hide = useMutation({
+    mutationFn: (input: { id: string; hidden: boolean }) =>
+      setPostHidden({ data: input }),
+    onSuccess: refresh,
+  })
   const remove = useMutation({
-    mutationFn: (id: number) => deleteAdminPost({ data: { id } }),
-    onSuccess: () => router.invalidate(),
+    mutationFn: (id: string) => deletePostAsAdmin({ data: { id } }),
+    onSuccess: refresh,
   })
 
-  if (posts.length === 0) {
-    return (
-      <p className="text-sm text-text-muted">
-        まだ記事がありません。「+ 新規投稿」から書き始めてください。
-      </p>
-    )
-  }
+  const items = posts.data?.pages.flatMap((page) => page.items) ?? []
 
   return (
-    <div className="divide-y divide-border">
-      {posts.map((post) => {
-        const published = post.status === 'published'
+    <div>
+      <form
+        className="mb-4 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void navigate({ search: filter ? { handle: filter } : {} })
+        }}
+      >
+        <input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="handle で絞り込む"
+          className="flex-1 rounded-md border border-border bg-surface px-3 py-1.5 text-sm"
+        />
+        <Button type="submit" variant="ghost">
+          絞り込む
+        </Button>
+      </form>
 
-        return (
-          <div key={post.id} className="flex flex-wrap items-center gap-3 py-3">
-            <span
-              className={
-                published
-                  ? 'rounded px-1.5 py-0.5 text-[0.65rem] font-bold text-accent bg-accent-soft'
-                  : 'rounded border border-border px-1.5 py-0.5 text-[0.65rem] text-text-muted'
+      {items.length === 0 && !posts.isPending && (
+        <p className="text-sm text-text-muted">投稿がありません。</p>
+      )}
+
+      <div className="divide-y divide-border">
+        {items.map((post) => (
+          <ModerationRow
+            key={post.id}
+            post={post}
+            busy={hide.isPending || remove.isPending}
+            onToggleHidden={() =>
+              hide.mutate({ id: post.id, hidden: post.hiddenAt == null })
+            }
+            onDelete={() => {
+              if (
+                confirm('この投稿を削除します。本文と画像は元に戻せません。')
+              ) {
+                remove.mutate(post.id)
               }
-            >
-              {published ? '公開' : '下書き'}
-            </span>
+            }}
+          />
+        ))}
+      </div>
 
-            <Link
-              to="/admin/posts/$id/edit"
-              params={{ id: String(post.id) }}
-              className="flex-1 truncate text-sm font-bold transition-colors hover:text-accent"
-            >
-              <span aria-hidden className="mr-1.5">
-                {post.emoji || DEFAULT_EMOJI}
-              </span>
-              {post.title}
-            </Link>
+      {posts.hasNextPage && (
+        <button
+          type="button"
+          onClick={() => void posts.fetchNextPage()}
+          className="mt-4 text-sm text-accent hover:underline"
+        >
+          もっと見る
+        </button>
+      )}
+    </div>
+  )
+}
 
-            <time className="font-mono text-xs text-text-muted">
-              {formatDate(post.updatedAt)}
-            </time>
+function ModerationRow({
+  post,
+  busy,
+  onToggleHidden,
+  onDelete,
+}: {
+  post: AdminPost
+  busy: boolean
+  onToggleHidden: () => void
+  onDelete: () => void
+}) {
+  const hidden = post.hiddenAt != null
 
-            <button
-              type="button"
-              disabled={togglePublish.isPending}
-              onClick={() =>
-                togglePublish.mutate({ id: post.id, published: !published })
-              }
-              className="rounded-md border border-border px-2 py-1 text-xs text-text-muted transition-colors hover:border-accent hover:text-accent disabled:opacity-40"
-            >
-              {published ? '下書きに戻す' : '公開する'}
-            </button>
+  return (
+    <div className={`py-3 ${hidden ? 'opacity-60' : ''}`}>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
+        {post.author.handle ? (
+          <Link
+            to="/@{$handle}"
+            params={{ handle: post.author.handle }}
+            className="font-bold text-text"
+          >
+            @{post.author.handle}
+          </Link>
+        ) : (
+          <span>（handle 未設定）</span>
+        )}
+        {post.author.suspendedAt && <span className="text-danger">停止中</span>}
+        <span>{formatFullTime(post.createdAt)}</span>
+        {post.parentId && <span>返信</span>}
+        {hidden && (
+          <span className="rounded border border-border px-1">非表示</span>
+        )}
 
-            <button
-              type="button"
-              disabled={remove.isPending}
-              onClick={() => {
-                if (
-                  confirm(`「${post.title}」を削除します。よろしいですか？`)
-                ) {
-                  remove.mutate(post.id)
-                }
-              }}
-              className="text-xs text-text-muted transition-colors hover:text-red-500 disabled:opacity-40"
-            >
-              削除
-            </button>
-          </div>
-        )
-      })}
+        <span className="ml-auto flex gap-3">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onToggleHidden}
+            className="hover:text-accent disabled:opacity-40"
+          >
+            {hidden ? '非表示を解除' : '非表示にする'}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onDelete}
+            className="hover:text-danger disabled:opacity-40"
+          >
+            削除
+          </button>
+        </span>
+      </div>
+      <p className="mt-1 text-sm whitespace-pre-wrap">{post.bodyMarkdown}</p>
+      {post.imageKey && (
+        <img
+          src={imageUrl(post.imageKey)}
+          alt=""
+          className="mt-1 max-h-32 rounded border border-border"
+        />
+      )}
     </div>
   )
 }

@@ -41,7 +41,7 @@ export function TableOfContents({ items }: { items: Array<TocItem> }) {
   return (
     <details
       open
-      className="mt-6 mb-8 rounded-md border border-border bg-surface px-4 py-3"
+      className="mt-6 mb-8 rounded-xl border border-border bg-surface px-4 py-3"
     >
       <summary className="cursor-pointer text-sm font-bold text-text-muted select-none">
         目次

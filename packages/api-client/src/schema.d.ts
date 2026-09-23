@@ -13,7 +13,39 @@ export interface paths {
         };
         get: operations["get_api_admin_posts_index"];
         put?: never;
-        post: operations["post_api_admin_posts_create"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/posts/{id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_admin_posts_hide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/posts/{id}/unhide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_admin_posts_unhide"];
         delete?: never;
         options?: never;
         head?: never;
@@ -27,8 +59,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_api_admin_posts_show"];
-        put: operations["put_api_admin_posts_update"];
+        get?: never;
+        put?: never;
         post?: never;
         delete: operations["delete_api_admin_posts_delete"];
         options?: never;
@@ -36,23 +68,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/posts/{id}/publish": {
+    "/api/admin/users": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["get_api_admin_users_index"];
         put?: never;
-        post: operations["post_api_admin_posts_publish"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/admin/posts/{id}/unpublish": {
+    "/api/admin/users/{id}/suspend": {
         parameters: {
             query?: never;
             header?: never;
@@ -61,14 +93,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["post_api_admin_posts_unpublish"];
+        post: operations["post_api_admin_users_suspend"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/admin/preview": {
+    "/api/admin/users/{id}/unsuspend": {
         parameters: {
             query?: never;
             header?: never;
@@ -77,7 +109,39 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["post_api_admin_preview"];
+        post: operations["post_api_admin_users_unsuspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_admin_reports_index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reports/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_admin_reports_dismiss"];
         delete?: never;
         options?: never;
         head?: never;
@@ -100,14 +164,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/posts": {
+    "/api/archive/posts": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["get_api_posts_index"];
+        get: operations["get_api_archive_posts_index"];
         put?: never;
         post?: never;
         delete?: never;
@@ -116,7 +180,319 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/posts/{slug}": {
+    "/api/archive/posts/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_archive_posts_show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/archive/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_archive_tags_index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/google/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_auth_google_authorize"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/google/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_auth_google_callback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_api_auth_session_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/dev-login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 開発用のログイン。Google の設定なしでローカルの動作確認をするためだけに使う。
+         *     APP_ENV=dev かつ DEV_LOGIN_ENABLED=1 のときしか動かない。
+         */
+        post: operations["post_api_auth_dev_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/blocks/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["put_api_blocks_put"];
+        post?: never;
+        delete: operations["delete_api_blocks_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_blocks_index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/follows/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["put_api_follows_put"];
+        post?: never;
+        delete: operations["delete_api_follows_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/follows/{handle}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_follows_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/following": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_following"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lobby": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_lobby"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/popular": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_rooms_popular"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_me_show"];
+        put: operations["put_api_me_update"];
+        post?: never;
+        delete: operations["delete_api_me_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 画像アップロードの枠を1つ使う。R2 には API から触れないので、Worker は
+         *     これが 200 を返したときだけ R2 に置く（連続アップロードで無料枠を削らせないため）。
+         */
+        post: operations["post_api_me_uploads"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/viewer-state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_me_viewer_state"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_notifications_index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_notifications_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orgs/{slug}/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_orgs_users"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/posts/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -124,8 +500,72 @@ export interface paths {
             cookie?: never;
         };
         get: operations["get_api_posts_show"];
+        put: operations["put_api_posts_update"];
+        post?: never;
+        delete: operations["delete_api_posts_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/posts/{id}/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_posts_source"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_posts_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/posts/{id}/reactions/{emoji}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["put_api_reactions_put"];
+        post?: never;
+        delete: operations["delete_api_reactions_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/posts/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_posts_report"];
         delete?: never;
         options?: never;
         head?: never;
@@ -148,62 +588,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tags/{slug}/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_tags_posts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_users_show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{handle}/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_users_posts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        PostInput: {
-            /**
-             * @default
-             * @example はじめての記事
-             */
-            title: string;
-            /**
-             * @default
-             * @example hello-world
-             */
-            slug: string;
-            /**
-             * null なら既定の絵文字が入る。
-             * @description 記事のアイキャッチ絵文字
-             * @example 📝
-             */
-            emoji?: string | null;
-            /**
-             * @description Markdown 原文
-             * @default
-             * @example # 見出し
-             *
-             *     本文。
-             */
-            bodyMd: string;
-            /**
-             * null なら本文から自動生成する。
-             * @description 未指定なら本文から自動生成される
-             */
-            excerpt?: string | null;
-            /**
-             * 付与するタグの slug。既存のタグのみ指定できる。
-             *     新しいタグは POST /api/admin/tags で先に作成すること
-             *     （日本語のタグ名から slug を機械的に導出できないため）。
-             * @default []
-             * @example [
-             *       "php",
-             *       "symfony"
-             *     ]
-             */
-            tagSlugs: string[];
-        };
-        MarkdownPreviewInput: {
-            /**
-             * @description プレビューしたい Markdown 原文
-             * @default
-             * @example # 見出し
-             *
-             *     本文。
-             */
-            bodyMd: string;
-        };
         TagInput: {
             /**
              * 表示名。日本語も使える。
@@ -218,47 +654,101 @@ export interface components {
              */
             slug: string;
         };
-        TagSummary: {
-            /** @example JavaScript */
-            name: string;
-            /** @example javascript */
-            slug: string;
+        OAuthCallbackInput: {
+            /** @default  */
+            code: string;
         };
-        PostAdminSummary: {
-            id: number;
-            slug: string;
-            title: string;
-            /** @example 📝 */
-            emoji?: string | null;
+        DevLoginInput: {
             /**
-             * @example draft
-             * @enum {string}
+             * @description ログインする（なければ作る）ユーザーの handle
+             * @default
+             * @example alice
              */
-            status: "draft" | "published";
-            /** Format: date-time */
-            publishedAt?: string | null;
-            /** Format: date-time */
-            updatedAt: string;
-            tags: components["schemas"]["TagSummary"][];
+            handle: string;
         };
-        PostAdminDetail: {
-            id: number;
-            slug: string;
-            title: string;
-            /** @example 📝 */
-            emoji?: string | null;
-            /** @description Markdown 原文 */
-            bodyMd: string;
-            excerpt?: string | null;
+        MeUpdateInput: {
+            /**
+             * @description 初回のみ。英小文字・数字・_ の 3〜20 文字
+             * @example alice
+             */
+            handle?: string | null;
+            /** @default  */
+            displayName: string;
+            bio?: string | null;
+            /** @description 自己申告の所属。空なら未設定 */
+            companyName?: string | null;
+        };
+        PostInput: {
+            /**
+             * @description Markdown
+             * @default
+             * @example 今日は **OpenAPI** の型生成を試した
+             *
+             *     https://example.com
+             */
+            bodyMarkdown: string;
+            /** @description 返信先の親投稿 ID */
+            parentId?: string | null;
+            /**
+             * Worker が R2 に置いた画像のキー。投稿者本人のアップロードしか指定できない。
+             * @description R2 に置いた画像のキー（1枚まで）
+             */
+            imageKey?: string | null;
+            /**
+             * @description 既存タグの slug。返信には付けられない
+             * @default []
+             * @example [
+             *       "php"
+             *     ]
+             */
+            tagSlugs: string[];
+        };
+        PostUpdateInput: {
+            /**
+             * @description Markdown
+             * @default
+             */
+            bodyMarkdown: string;
+            /** @default [] */
+            tagSlugs: string[];
+        };
+        /** @enum {string} */
+        ReportReason: "spam" | "harassment" | "privacy" | "illegal" | "other";
+        ReportInput: {
+            reason?: components["schemas"]["ReportReason"];
+            /** @description 詳細（任意） */
+            detail?: string | null;
+        };
+        AdminUser: {
+            id: string;
+            handle?: string | null;
+            displayName: string;
+            avatarUrl?: string | null;
             /** @enum {string} */
-            status: "draft" | "published";
+            role: "user" | "admin";
             /** Format: date-time */
-            publishedAt?: string | null;
+            suspendedAt?: string | null;
             /** Format: date-time */
             createdAt: string;
+        };
+        AdminPost: {
+            id: string;
+            parentId?: string | null;
+            author: components["schemas"]["AdminUser"];
+            bodyMarkdown: string;
+            imageKey?: string | null;
             /** Format: date-time */
-            updatedAt: string;
-            tags: components["schemas"]["TagSummary"][];
+            hiddenAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AdminPostPage: {
+            items: components["schemas"]["AdminPost"][];
+            nextCursor?: string | null;
+        };
+        PostDeleted: {
+            /** @description 消えた画像のキー */
+            imageKey?: string | null;
         };
         ValidationError: {
             /** @example 入力内容に誤りがあります。 */
@@ -272,13 +762,36 @@ export interface components {
                 [key: string]: string;
             };
         };
-        MarkdownPreview: {
-            /** @description 変換後の HTML */
-            bodyHtml: string;
-            /** @description 本文から自動生成した抜粋 */
-            excerpt: string;
+        AdminReport: {
+            id: string;
+            post: components["schemas"]["AdminPost"];
+            /**
+             * @description 投稿の状態
+             * @enum {string}
+             */
+            postState: "visible" | "hidden" | "deleted";
+            reporter: components["schemas"]["AdminUser"];
+            /** @enum {string} */
+            reason: "spam" | "harassment" | "privacy" | "illegal" | "other";
+            detail?: string | null;
+            /** @enum {string|null} */
+            resolution?: "actioned" | "dismissed" | null;
+            resolvedAt?: string | null;
+            createdAt: string;
         };
-        PostSummary: {
+        AdminReportPage: {
+            items: components["schemas"]["AdminReport"][];
+            nextCursor?: string | null;
+            /** @description 未対応の通報の総数 */
+            openCount: number;
+        };
+        TagSummary: {
+            /** @example JavaScript */
+            name: string;
+            /** @example javascript */
+            slug: string;
+        };
+        ArchivedPostSummary: {
             id: number;
             /** @example hello-world */
             slug: string;
@@ -293,8 +806,8 @@ export interface components {
             publishedAt?: string | null;
             tags: components["schemas"]["TagSummary"][];
         };
-        PaginatedPosts: {
-            items: components["schemas"]["PostSummary"][];
+        PaginatedArchivedPosts: {
+            items: components["schemas"]["ArchivedPostSummary"][];
             /**
              * @description 全件数
              * @example 42
@@ -304,7 +817,7 @@ export interface components {
             perPage: number;
             totalPages: number;
         };
-        PostDetail: {
+        ArchivedPostDetail: {
             id: number;
             slug: string;
             title: string;
@@ -325,10 +838,191 @@ export interface components {
             /** @example javascript */
             slug: string;
             /**
-             * @description 公開済み記事の件数
+             * @description 投稿（アーカイブの場合は記事）の件数
              * @example 12
              */
             postCount: number;
+        };
+        AuthorizationUrl: {
+            /** @description Google の同意画面の URL */
+            url: string;
+            /** @description CSRF 対策の state。Worker が Cookie に控え、コールバックで照合する */
+            state: string;
+        };
+        SessionIssued: {
+            /** @description セッショントークン。Worker が HttpOnly Cookie に入れる */
+            token: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description handle が未決定なら true（handle 決定画面へ誘導する） */
+            needsHandle: boolean;
+        };
+        UserSummary: {
+            /** @example alice */
+            handle: string;
+            /** @example Alice */
+            displayName: string;
+            avatarUrl?: string | null;
+        };
+        BlockedUser: {
+            user: components["schemas"]["UserSummary"];
+            blockedAt: string;
+        };
+        RoomSummary: {
+            user: components["schemas"]["UserSummary"];
+            bio?: string | null;
+            companyName?: string | null;
+            /**
+             * Format: date-time
+             * @description 最新の親投稿の日時
+             */
+            lastPostAt?: string | null;
+            /** @description 人気の部屋: 過去24時間のリアクション数＋返信数 / フォロー中: 未読数 */
+            count?: number | null;
+        };
+        ReactionCount: {
+            /** @example 👍 */
+            emoji: string;
+            /** @example 3 */
+            count: number;
+        };
+        TimesPost: {
+            /**
+             * @description ULID
+             * @example 01J8Z3K6W2Q4Y7T9V1B3N5M7P9
+             */
+            id: string;
+            /** @description 返信なら親投稿の ID */
+            parentId?: string | null;
+            /** @description 退会したユーザーの投稿なら null */
+            author?: components["schemas"]["UserSummary"] | null;
+            /**
+             * @description deleted: 本人が削除 / hidden: 管理者が非表示にしたか、投稿者が停止中。どちらも本文は空
+             * @enum {string}
+             */
+            state: "visible" | "deleted" | "hidden";
+            /** @description 変換済みの HTML。state が visible 以外なら空 */
+            bodyHtml: string;
+            /** @description R2 上の画像のキー。/uploads/{key} で配信される */
+            imageKey?: string | null;
+            replyCount: number;
+            reactionCount: number;
+            reactions: components["schemas"]["ReactionCount"][];
+            tags: components["schemas"]["TagSummary"][];
+            /** Format: date-time */
+            lastReplyAt?: string | null;
+            /**
+             * Format: date-time
+             * @description 編集されていれば日時（「編集済み」表示に使う）
+             */
+            editedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        PostPage: {
+            items: components["schemas"]["TimesPost"][];
+            /** @description 次のページを取るときに ?cursor= に渡す。最後のページなら null */
+            nextCursor?: string | null;
+        };
+        Me: {
+            id: string;
+            /** @description 初回ログイン直後は未決定で null */
+            handle?: string | null;
+            displayName: string;
+            avatarUrl?: string | null;
+            bio?: string | null;
+            companyName?: string | null;
+            companySlug?: string | null;
+            /** @enum {string} */
+            role: "user" | "admin";
+            unreadNotificationCount: number;
+        };
+        AccountDeleted: {
+            /** @description Worker が R2 から消すべき画像のキー */
+            imageKeys: string[];
+        };
+        UploadTicket: {
+            /** @description アップロードする本人の ID（ULID） */
+            userId: string;
+        };
+        ViewerReactions: {
+            postId: string;
+            /** @description 自分が付けた絵文字 */
+            emojis: string[];
+        };
+        ViewerState: {
+            reactions: components["schemas"]["ViewerReactions"][];
+            /** @description handle を指定したときだけ。その部屋をフォローしているか */
+            isFollowing?: boolean | null;
+            /**
+             * @description 自分がブロックしている handle（画面上で投稿を折りたたむ）
+             * @default []
+             */
+            blockedHandles: string[];
+            /**
+             * @description handle を指定したときだけ。その人をブロックしているか
+             * @default null
+             */
+            isBlocking: boolean | null;
+        };
+        NotificationItem: {
+            id: string;
+            /** @enum {string} */
+            type: "reply" | "mention" | "reaction";
+            actor?: components["schemas"]["UserSummary"] | null;
+            /** @description 通知の対象になった投稿 */
+            postId: string;
+            /** @description リンク先のスレッド（親投稿）の ID */
+            threadId: string;
+            /** @description スレッドの持ち主の handle。/@{handle}/{threadId} に飛ばす */
+            threadHandle?: string | null;
+            /** @description 投稿の冒頭（プレーンテキスト） */
+            excerpt: string;
+            /** Format: date-time */
+            readAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        NotificationPage: {
+            items: components["schemas"]["NotificationItem"][];
+            nextCursor?: string | null;
+            unreadCount: number;
+        };
+        OrgRooms: {
+            slug: string;
+            /** @description 表示用の会社名（いちばん多い表記） */
+            name: string;
+            rooms: components["schemas"]["RoomSummary"][];
+        };
+        Thread: {
+            post: components["schemas"]["TimesPost"];
+            /** @description 古い順 */
+            replies: components["schemas"]["TimesPost"][];
+        };
+        PostSource: {
+            /** @description Markdown 原文 */
+            bodyMarkdown: string;
+        };
+        TagPostPage: {
+            tag: components["schemas"]["TagSummary"];
+            items: components["schemas"]["TimesPost"][];
+            nextCursor?: string | null;
+        };
+        UserProfile: {
+            /** @example alice */
+            handle: string;
+            displayName: string;
+            avatarUrl?: string | null;
+            bio?: string | null;
+            /** @description 自己申告の所属（未認証） */
+            companyName?: string | null;
+            /** @description /org/{slug} の slug */
+            companySlug?: string | null;
+            followerCount: number;
+            /** @description 利用停止中か。停止中の部屋は投稿を表示しない */
+            suspended: boolean;
+            /** Format: date-time */
+            createdAt: string;
         };
     };
     responses: never;
@@ -342,8 +1036,9 @@ export interface operations {
     get_api_admin_posts_index: {
         parameters: {
             query?: {
-                /** @description 状態で絞り込む */
-                status?: "draft" | "published" | null;
+                cursor?: string | null;
+                /** @description この人の投稿に絞る */
+                handle?: string | null;
             };
             header?: never;
             path?: never;
@@ -351,81 +1046,82 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 下書きを含む全記事を更新の新しい順で返す */
+            /** @description 削除済み以外の全投稿（非表示を含む）を新しい順に */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PostAdminSummary"][];
+                    "application/json": components["schemas"]["AdminPostPage"];
                 };
             };
         };
     };
-    post_api_admin_posts_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PostInput"];
-            };
-        };
-        responses: {
-            /** @description 作成された記事 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PostAdminDetail"];
-                };
-            };
-            /** @description slug が既に使われている */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValidationError"];
-                };
-            };
-            /** @description 入力値が不正 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValidationError"];
-                };
-            };
-        };
-    };
-    get_api_admin_posts_show: {
+    post_api_admin_posts_hide: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description 記事 ID */
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description 編集用の記事（Markdown 原文を含む） */
+            /** @description 非表示にした */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PostAdminDetail"];
+                    "application/json": components["schemas"]["AdminPost"];
                 };
             };
-            /** @description 記事が存在しない */
+        };
+    };
+    post_api_admin_posts_unhide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 非表示を解除した */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPost"];
+                };
+            };
+        };
+    };
+    delete_api_admin_posts_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 削除した */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostDeleted"];
+                };
+            };
+            /** @description 投稿が存在しない */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -436,120 +1132,133 @@ export interface operations {
             };
         };
     };
-    put_api_admin_posts_update: {
+    get_api_admin_users_index: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 記事 ID */
-                id: number;
+            query?: {
+                /** @description handle か表示名の部分一致 */
+                q?: string | null;
             };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PostInput"];
-            };
-        };
-        responses: {
-            /** @description 更新後の記事 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PostAdminDetail"];
-                };
-            };
-        };
-    };
-    delete_api_admin_posts_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 記事 ID */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 削除完了 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    post_api_admin_posts_publish: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 記事 ID */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 公開後の記事 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PostAdminDetail"];
-                };
-            };
-        };
-    };
-    post_api_admin_posts_unpublish: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 記事 ID */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 下書きに戻した記事 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PostAdminDetail"];
-                };
-            };
-        };
-    };
-    post_api_admin_preview: {
-        parameters: {
-            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MarkdownPreviewInput"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description 保存時と同じ変換結果 */
+            /** @description ユーザー一覧（新しい順に50件） */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MarkdownPreview"];
+                    "application/json": components["schemas"]["AdminUser"][];
+                };
+            };
+        };
+    };
+    post_api_admin_users_suspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 停止した。全端末からログアウトさせる */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUser"];
+                };
+            };
+            /** @description 管理者は停止できない */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    post_api_admin_users_unsuspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 停止を解除した */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUser"];
+                };
+            };
+        };
+    };
+    get_api_admin_reports_index: {
+        parameters: {
+            query?: {
+                /** @description open: 未対応（既定） / resolved: 対応済み */
+                status?: "open" | "resolved" | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 通報の一覧（新しい順） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReportPage"];
+                };
+            };
+        };
+    };
+    post_api_admin_reports_dismiss: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 問題なしとして却下した */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReport"];
+                };
+            };
+            /** @description 通報が存在しない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
                 };
             };
         };
@@ -605,7 +1314,7 @@ export interface operations {
             };
         };
     };
-    get_api_posts_index: {
+    get_api_archive_posts_index: {
         parameters: {
             query?: {
                 /** @description 1 始まりのページ番号 */
@@ -627,12 +1336,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedPosts"];
+                    "application/json": components["schemas"]["PaginatedArchivedPosts"];
                 };
             };
         };
     };
-    get_api_posts_show: {
+    get_api_archive_posts_show: {
         parameters: {
             query?: never;
             header?: never;
@@ -649,11 +1358,879 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PostDetail"];
+                    "application/json": components["schemas"]["ArchivedPostDetail"];
                 };
             };
-            /** @description 記事が存在しないか、まだ公開されていない */
+            /** @description 記事が存在しないか、公開されていない */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_archive_tags_index: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description アーカイブ記事を持つタグを、記事数の多い順に返す */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagWithCount"][];
+                };
+            };
+        };
+    };
+    get_api_auth_google_authorize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 同意画面の URL */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationUrl"];
+                };
+            };
+            /** @description Google OAuth が未設定 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    post_api_auth_google_callback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthCallbackInput"];
+            };
+        };
+        responses: {
+            /** @description ログイン成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionIssued"];
+                };
+            };
+            /** @description 認可コードが無効 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description アカウントが停止されている */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_auth_session_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ログアウトした（トークンを無効化した） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    post_api_auth_dev_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DevLoginInput"];
+            };
+        };
+        responses: {
+            /** @description ログイン成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionIssued"];
+                };
+            };
+            /** @description 開発用ログインが無効 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    put_api_blocks_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ブロックした（既にしていても 204）。お互いのフォローは外す */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ユーザーが存在しない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_blocks_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ブロックを解除した（していなくても 204） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_api_blocks_index: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ブロック中のユーザー（新しい順） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlockedUser"][];
+                };
+            };
+        };
+    };
+    put_api_follows_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description フォローした（既にしていても 204） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 部屋が存在しない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_follows_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description フォローを外した */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    post_api_follows_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description その部屋を既読にした（フォローしていなければ何もしない） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_api_following: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description フォロー中の部屋と未読数（count）。未読の多い順 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomSummary"][];
+                };
+            };
+        };
+    };
+    get_api_lobby: {
+        parameters: {
+            query?: {
+                /** @description 前のページの nextCursor */
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 全員の親投稿を新しい順に */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostPage"];
+                };
+            };
+        };
+    };
+    get_api_rooms_popular: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 過去24時間のリアクション数＋返信数（本人以外から）の多い部屋 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomSummary"][];
+                };
+            };
+        };
+    };
+    get_api_me_show: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 本人の情報と未読通知数 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description 未ログイン */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    put_api_me_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description 更新後の本人の情報 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description handle が既に使われている */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 入力値が不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_me_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 退会した。投稿の本文・画像・リアクション・フォロー・通知を削除し、ログアウトさせる */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeleted"];
+                };
+            };
+        };
+    };
+    post_api_me_uploads: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description アップロードしてよい */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadTicket"];
+                };
+            };
+            /** @description 回数の上限に達した（Retry-After ヘッダー付き） */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_me_viewer_state: {
+        parameters: {
+            query?: {
+                /** @description カンマ区切りの投稿 ID（100件まで） */
+                postIds?: string | null;
+                /** @description 指定すると、その人をフォロー・ブロックしているかも返す */
+                handle?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 閲覧者ごとの情報 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewerState"];
+                };
+            };
+        };
+    };
+    get_api_notifications_index: {
+        parameters: {
+            query?: {
+                /** @description 前のページの nextCursor */
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 新しい順 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPage"];
+                };
+            };
+        };
+    };
+    post_api_notifications_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description すべて既読にした */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_api_orgs_users: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 同じ会社を自己申告している人の部屋 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgRooms"];
+                };
+            };
+            /** @description 該当する人がいない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_posts_show: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description スレッド（親投稿と返信） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Thread"];
+                };
+            };
+            /** @description スレッドがない（返信の ID を指定した場合も 404） */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    put_api_posts_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description 編集後の投稿 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesPost"];
+                };
+            };
+            /** @description 自分の投稿ではない */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 入力値が不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_posts_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 削除した（親投稿は返信を残して「削除されました」になる） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostDeleted"];
+                };
+            };
+            /** @description 自分の投稿ではない */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_posts_source: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 編集用の Markdown 原文（本人のみ） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostSource"];
+                };
+            };
+            /** @description 投稿が存在しないか、自分の投稿ではない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    post_api_posts_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostInput"];
+            };
+        };
+        responses: {
+            /** @description 作成された投稿 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesPost"];
+                };
+            };
+            /** @description 返信先の投稿者にブロックされている */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 入力値が不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 投稿回数の上限に達した（Retry-After ヘッダー付き） */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    put_api_reactions_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 絵文字1つ（URL エンコードする） */
+                emoji: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description リアクションを付けた（既に付いていても 204） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 投稿者にブロックされている */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 絵文字として扱えない */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 回数の上限に達した */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_reactions_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 絵文字1つ（URL エンコードする） */
+                emoji: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description リアクションを外した（付いていなくても 204） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    post_api_posts_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportInput"];
+            };
+        };
+        responses: {
+            /** @description 通報した（同じ投稿を通報し直した場合は内容を差し替える） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 投稿が存在しない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 自分の投稿は通報できない */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 回数の上限に達した */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -672,13 +2249,112 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 公開記事を持つタグを、記事数の多い順に返す */
+            /** @description 全タグ（投稿0件も含む）を投稿数の多い順に。投稿時のタグ選択にも使う */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["TagWithCount"][];
+                };
+            };
+        };
+    };
+    get_api_tags_posts: {
+        parameters: {
+            query?: {
+                /** @description 前のページの nextCursor */
+                cursor?: string | null;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description タグ付きの親投稿を新しい順に */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagPostPage"];
+                };
+            };
+            /** @description タグが存在しない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_users_show: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 部屋の持ち主のプロフィール */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfile"];
+                };
+            };
+            /** @description 部屋が存在しない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_users_posts: {
+        parameters: {
+            query?: {
+                /** @description 前のページの nextCursor */
+                cursor?: string | null;
+            };
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 部屋の親投稿を新しい順に */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostPage"];
+                };
+            };
+            /** @description 部屋が存在しない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
                 };
             };
         };

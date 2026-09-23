@@ -1,3 +1,8 @@
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+
+# wrangler types / tsr generate が作る生成物。
+# prettier をかけると巨大な差分になるだけなので触らない。
+worker-configuration.d.ts
+src/routeTree.gen.ts

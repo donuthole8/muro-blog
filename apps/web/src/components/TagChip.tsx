@@ -11,7 +11,7 @@ export function TagChip({ name, slug, count }: Props) {
     <Link
       to="/tags/$slug"
       params={{ slug }}
-      className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs text-text-muted transition-colors hover:border-accent hover:text-accent"
+      className="inline-flex min-h-8 items-center gap-1 rounded-full border border-border px-2.5 text-xs text-text-muted transition-colors hover:border-accent hover:text-accent"
     >
       <span aria-hidden="true">#</span>
       {name}

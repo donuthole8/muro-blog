@@ -1,0 +1,31 @@
+security:
+    providers:
+        # セッショントークンから User を引く処理は SessionTokenHandler が持つ。
+        # ここはファイアウォールが要求するので置いているだけ。
+        app_users:
+            entity:
+                class: App\Entity\User
+                property: id
+
+    firewalls:
+        dev:
+            pattern: ^/(_profiler|_wdt|assets|build)/
+            security: false
+        api:
+            pattern: ^/api/
+            # ブラウザは Symfony を直接叩かない。Worker が Cookie のセッショントークンを
+            # Authorization: Bearer に載せ替えて呼ぶので、PHP のセッションは使わない。
+            # Cloud Run でインスタンスが複数になってもそのまま動く。
+            stateless: true
+            provider: app_users
+            user_checker: App\Security\UserChecker
+            entry_point: App\Security\JsonEntryPoint
+            access_token:
+                token_handler: App\Security\SessionTokenHandler
+                failure_handler: App\Security\JsonAuthenticationFailureHandler
+
+    role_hierarchy:
+        ROLE_ADMIN: ROLE_USER
+
+    access_control:
+        - { path: ^/api/admin, roles: ROLE_ADMIN }

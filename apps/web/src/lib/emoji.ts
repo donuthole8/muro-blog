@@ -1,10 +1,11 @@
-/** 絵文字を選ばずに保存したときに API 側が入れる既定値（Post::DEFAULT_EMOJI と揃える）。 */
+/** アーカイブ記事に絵文字が無いときの既定値（ArchivedPost::DEFAULT_EMOJI と揃える）。 */
 export const DEFAULT_EMOJI = '📝'
 
 /**
- * 絵文字ピッカーの候補。
+ * リアクションの絵文字ピッカーの候補。
  *
- * 全絵文字を持つとバンドルが太るため、技術記事で使いそうなものに絞っている。
+ * 全絵文字を持つとバンドルが太るため、よく使いそうなものに絞っている。
+ * 候補にないものは検索欄に直接貼り付けて使える（API は絵文字1つなら何でも受け付ける）。
  * `keywords` は検索用。日本語・英語のどちらでも引けるようにする。
  */
 export type EmojiCategory = {
@@ -13,6 +14,27 @@ export type EmojiCategory = {
 }
 
 export const emojiCategories: Array<EmojiCategory> = [
+  {
+    label: 'リアクション',
+    emojis: [
+      { char: '👍', keywords: 'good いいね +1 賛成' },
+      { char: '🙏', keywords: 'thanks 感謝 お願い' },
+      { char: '🎉', keywords: 'party お祝い おめでとう' },
+      { char: '👀', keywords: 'eyes 見てる 注目' },
+      { char: '😂', keywords: 'joy 笑 わら' },
+      { char: '🔥', keywords: 'fire 炎 熱い' },
+      { char: '✅', keywords: 'check 完了 done' },
+      { char: '❤️', keywords: 'heart 好き love' },
+      { char: '💯', keywords: '100 満点' },
+      { char: '🤔', keywords: 'thinking 考える' },
+      { char: '😢', keywords: 'cry 悲しい' },
+      { char: '🙌', keywords: 'hooray 万歳' },
+      { char: '💪', keywords: 'muscle 頑張れ ファイト' },
+      { char: '😇', keywords: 'angel 天使 無' },
+      { char: '🍵', keywords: 'tea お茶 おつかれ' },
+      { char: '🫡', keywords: 'salute 了解 敬礼' },
+    ],
+  },
   {
     label: 'よく使う',
     emojis: [
@@ -143,8 +165,4 @@ export function searchEmojis(query: string) {
   return allEmojis.filter(
     (emoji) => emoji.char === q || emoji.keywords.toLowerCase().includes(q),
   )
-}
-
-export function randomEmoji() {
-  return allEmojis[Math.floor(Math.random() * allEmojis.length)].char
 }

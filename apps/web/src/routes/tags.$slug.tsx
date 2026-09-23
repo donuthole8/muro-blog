@@ -1,26 +1,24 @@
-import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { fetchPosts, fetchTags } from '../lib/blog'
-import { PostCard } from '../components/PostCard'
+import { Link, createFileRoute } from '@tanstack/react-router'
+import { useInfiniteQuery } from '@tanstack/react-query'
+import { EmptyState } from '../components/EmptyState'
+import { PageHeader } from '../components/PageHeader'
+import { PostList } from '../components/times/PostList'
+import { tagPostsQuery } from '../lib/queries'
 import { site } from '../lib/site'
 
 export const Route = createFileRoute('/tags/$slug')({
-  loader: async ({ params }) => {
-    const tags = await fetchTags()
-    const tag = tags.find((t) => t.slug === params.slug)
+  loader: async ({ context, params }) => {
+    const data = await context.queryClient.ensureInfiniteQueryData(
+      tagPostsQuery(params.slug),
+    )
 
-    // 公開記事を持たないタグはページを作らない
-    if (!tag) throw notFound()
-
-    return {
-      tag,
-      posts: await fetchPosts({ data: { page: 1, tag: params.slug } }),
-    }
+    return data.pages[0].tag
   },
-  head: ({ loaderData }) => {
-    if (!loaderData) return { meta: [] }
+  head: ({ loaderData: tag }) => {
+    if (!tag) return { meta: [] }
 
-    const title = `#${loaderData.tag.name} の記事 | ${site.title}`
-    const description = `「${loaderData.tag.name}」タグが付いた記事の一覧です。`
+    const title = `#${tag.name} の新着 | ${site.title}`
+    const description = `「${tag.name}」タグが付いた times の新着です。`
 
     return {
       meta: [
@@ -31,29 +29,44 @@ export const Route = createFileRoute('/tags/$slug')({
       ],
     }
   },
-  component: TagDetail,
+  component: TagPosts,
 })
 
-function TagDetail() {
-  const { tag, posts } = Route.useLoaderData()
+function TagPosts() {
+  const { slug } = Route.useParams()
+  const query = useInfiniteQuery(tagPostsQuery(slug))
+  const tag = query.data?.pages[0]?.tag
+  const posts = query.data?.pages.flatMap((page) => page.items) ?? []
 
   return (
     <div>
-      <h1 className="text-xl font-bold">
-        <span className="text-text-muted">#</span>
-        {tag.name}
-      </h1>
-      <p className="mt-1 text-xs text-text-muted">{posts.total} 件</p>
+      <PageHeader
+        title={
+          <>
+            <span className="text-text-muted">#</span>
+            {tag?.name ?? slug}
+          </>
+        }
+      />
 
-      <div className="mt-4">
-        {posts.items.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
-      </div>
+      <PostList
+        posts={posts}
+        hasNextPage={query.hasNextPage}
+        isFetchingNextPage={query.isFetchingNextPage}
+        onLoadMore={() => void query.fetchNextPage()}
+        isLoading={query.isPending}
+        empty={
+          <EmptyState
+            icon="🏷"
+            title="このタグの投稿はまだありません"
+            description="投稿するときにこのタグを付けると、ここに並びます。"
+          />
+        }
+      />
 
       <Link
         to="/tags"
-        className="mt-10 inline-block text-sm text-accent hover:underline"
+        className="mt-6 inline-block text-sm text-accent hover:underline"
       >
         ← タグ一覧へ
       </Link>

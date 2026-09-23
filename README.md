@@ -1,6 +1,7 @@
-# blog
+# times
 
-個人ブログ。設計は [docs/DESIGN.md](docs/DESIGN.md) を参照。
+誰でも自分の times（分報）を持てるサービス。個人ブログから作り替えた。
+計画は [docs/PLAN.md](docs/PLAN.md)、元の設計は [docs/DESIGN.md](docs/DESIGN.md) を参照。
 
 ## 構成
 
@@ -38,8 +39,8 @@ pnpm dev
 ```
 
 ```
-  ブログ    http://localhost:3100
-  管理画面  http://localhost:3100/admin
+  times     http://localhost:3100
+  ログイン  http://localhost:3100/dev-login （Google 未設定時の開発用）
   API ドキュメント  http://127.0.0.1:8000/api/doc
 ```
 
@@ -53,8 +54,20 @@ cp apps/web/.env.example apps/web/.env
 
 cd apps/api
 php bin/console doctrine:migrations:migrate --no-interaction
-php bin/console app:seed          # 任意
+php bin/console app:seed            # 任意。alice / bob / carol と投稿を作る
+php bin/console app:user:role alice # 任意。alice を管理者にする
 ```
+
+### ログイン
+
+本番は Google ログインのみ。ローカルで Google OAuth を設定していない場合
+（`apps/api/.env` の `GOOGLE_CLIENT_ID` が空）は、「ログイン」を押すと
+開発用ログイン画面（`/dev-login`）に回され、handle を入れるだけでその人としてログインできる。
+これは API が `APP_ENV=dev` かつ `DEV_LOGIN_ENABLED=1` のときだけ動く。
+
+Google ログインをローカルで試すときは、Google Cloud Console で OAuth クライアント ID を作り、
+承認済みのリダイレクト URI に `http://localhost:3100/auth/callback` を登録して、
+`apps/api/.env` の `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` を埋める。
 
 ### 個別に起動したい場合
 
@@ -68,12 +81,12 @@ cd apps/web && pnpm dev                                   # フロント (:3100)
 
 ### ページが 500 になる / "Network connection lost" と出る
 
-**Symfony API（8000番）が起動していない。** フロントエンドは記事を API から
+**Symfony API（8000番）が起動していない。** フロントエンドは投稿を API から
 取得するため、API が落ちているとページを描画できない。
 `pnpm dev` で両方まとめて起動すればこの状態にならない。
 
 ```sh
-curl http://127.0.0.1:8000/api/posts   # 200 が返るか確認
+curl http://127.0.0.1:8000/api/lobby   # 200 が返るか確認
 ```
 
 ### 3101 や 3102 でサーバーが立ち上がる
@@ -93,35 +106,30 @@ pnpm dev            # http://localhost:3100
 ポート 3100 を使うのは、3000 番を別プロジェクト（OpenWork Festa）が
 占有しているため。
 
-### 本番ビルド（プリレンダリング）
+### 本番ビルド
 
 ```sh
 cd apps/web
 pnpm build
 ```
 
-`/` から始めてリンクを辿り、記事詳細・タグ別一覧まで自動的に静的化する。
-**ビルド中は Symfony API が起動している必要がある。**
-出力は `dist/client/` に静的 HTML + `sitemap.xml` + `rss.xml`。
+静的化（プリレンダリング）するのは旧ブログのアーカイブ記事（`/posts/:slug`）と
+`rss.xml`・`robots.txt` だけ。times の画面はすべて SSR で、公開 API の応答を
+Cloudflare のエッジでキャッシュする（`apps/web/src/lib/edgeCache.ts`）。
+**ビルド中は Symfony API が起動している必要がある**（アーカイブ記事の一覧を取るため）。
 
 環境変数は `apps/web/.env.example` を参照。
 
 ## 管理画面
 
-`http://localhost:3100/admin`
+`http://localhost:3100/admin`（`role=admin` のユーザーだけが開ける）
 
-- 記事一覧（下書き含む）・公開/下書きの切り替え・削除
-- 新規投稿 / 編集（Markdown + ライブプレビュー）
-- 記事のアイキャッチ絵文字の設定（候補から選ぶ / 検索 / ランダム / 直接貼り付け）
-- タグの選択と新規作成
+- 投稿の非表示・非表示の解除・削除（非表示の投稿も本文ごと見える）
+- ユーザーの停止・停止の解除（停止すると全端末からログアウトし、投稿は一覧から消える）
+- トピックタグの作成
 
-プレビューは API の `POST /api/admin/preview` を呼んでいる。
-ブラウザ側で別の Markdown ライブラリを使うと保存後の表示とズレるため、
-**保存時と同じ変換器**を通した結果を表示している。
-
-Phase 1 ではローカル起動のみを想定しており、認証は持たない。
-API 側は `X-Admin-Token` で保護されており、
-トークンはサーバー関数の中だけで扱われるのでブラウザには出ない。
+管理者は `php bin/console app:user:role <handle>` で任命する（`--revoke` で外す）。
+権限は API 側（`/api/admin` は `ROLE_ADMIN` のみ）で判定している。
 
 ## OpenAPI から型を再生成する
 
@@ -135,40 +143,63 @@ pnpm exec tsc --noEmit
 
 ## 疎通確認
 
-API のみ（Symfony を起動した状態で）:
+API のみ（Symfony を起動し、`DEV_LOGIN_ENABLED=1` の状態で）:
 
 ```sh
 cd packages/api-client && pnpm exec tsx scripts/smoke.ts
 ```
 
-管理画面のミューテーション経路（API と dev サーバーを起動した状態で）:
-
-```sh
-cd apps/web && node scripts/admin-smoke.mjs 3100   # 引数は dev サーバーのポート
-```
-
-ブラウザと同じ seroval 形式でサーバー関数を直接叩き、
-プレビュー・作成・バリデーション・公開・公開 API への反映・削除を通しで確認する。
+ロビーの取得 → 開発用ログイン → 投稿 → リアクション → スレッドの取得 → 削除 →
+バリデーションエラーまでを、生成した型付きクライアントで通しで確認する。
 
 ## エンドポイント
 
-### 公開（認証不要・読み取りのみ）
+全体は `http://127.0.0.1:8000/api/doc`（Swagger UI）を参照。
+
+### 公開（認証不要・エッジでキャッシュされる）
+
+| メソッド | パス | キャッシュ |
+|---|---|---|
+| GET | `/api/lobby?cursor=` | 15 秒 |
+| GET | `/api/rooms/popular` | 5 分 |
+| GET | `/api/users/{handle}` / `/api/users/{handle}/posts?cursor=` | 15 秒 |
+| GET | `/api/posts/{id}`（親投稿＋返信） | 15 秒 |
+| GET | `/api/tags` / `/api/tags/{slug}/posts?cursor=` | 5 分 / 15 秒 |
+| GET | `/api/orgs/{slug}/users` | 5 分 |
+| GET | `/api/archive/posts` / `/api/archive/posts/{slug}` / `/api/archive/tags` | 1 時間 |
+
+### ログインが必要（`Authorization: Bearer <セッショントークン>`）
 
 | メソッド | パス |
 |---|---|
-| GET | `/api/posts?page=&perPage=&tag=` |
-| GET | `/api/posts/{slug}` |
-| GET | `/api/tags` |
+| GET / PUT / DELETE | `/api/me`（DELETE は退会） |
+| GET | `/api/me/viewer-state?postIds=&handle=` |
+| POST | `/api/posts`（`parentId` を付ければ返信） |
+| GET | `/api/posts/{id}/source`（編集用の Markdown。本人のみ） |
+| PUT / DELETE | `/api/posts/{id}` |
+| PUT / DELETE | `/api/posts/{id}/reactions/{emoji}` |
+| PUT / DELETE | `/api/follows/{handle}` |
+| POST | `/api/follows/{handle}/read` |
+| GET | `/api/following` |
+| GET | `/api/notifications?cursor=` |
+| POST | `/api/notifications/read` |
 
-### 管理（`X-Admin-Token` ヘッダーが必要）
+### 管理（`role=admin` のみ）
 
 | メソッド | パス |
 |---|---|
-| GET / POST | `/api/admin/posts` |
-| GET / PUT / DELETE | `/api/admin/posts/{id}` |
-| POST | `/api/admin/posts/{id}/publish` |
-| POST | `/api/admin/posts/{id}/unpublish` |
+| GET | `/api/admin/posts?cursor=&handle=` |
+| POST | `/api/admin/posts/{id}/hide` / `/unhide` |
+| DELETE | `/api/admin/posts/{id}` |
+| GET | `/api/admin/users?q=` |
+| POST | `/api/admin/users/{id}/suspend` / `/unsuspend` |
 | GET / POST | `/api/admin/tags` |
-| POST | `/api/admin/preview` |
 
-トークンは `apps/api/.env` の `ADMIN_TOKEN`（開発値: `dev-local-token`）。
+### ログイン（Worker が中継する）
+
+| メソッド | パス |
+|---|---|
+| GET | `/api/auth/google/authorize` |
+| POST | `/api/auth/google/callback` |
+| DELETE | `/api/auth/session` |
+| POST | `/api/auth/dev-login`（開発時のみ） |

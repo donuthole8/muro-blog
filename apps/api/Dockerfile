@@ -53,7 +53,6 @@ RUN printf '%s\n' \
 # ビルド時は実 DB に繋がないため、ダミーの DATABASE_URL でウォームアップする。
 RUN APP_SECRET=build-time-placeholder \
     DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build?serverVersion=16" \
-    ADMIN_TOKEN=build-time-placeholder \
     php bin/console cache:warmup --env=prod \
  && chmod -R 777 var
 

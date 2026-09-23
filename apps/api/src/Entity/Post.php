@@ -4,161 +4,116 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Enum\PostStatus;
 use App\Repository\PostRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Types\UlidType;
+use Symfony\Component\Uid\Ulid;
 
+/**
+ * times の投稿。parent が null なら部屋に流れる親投稿、そうでなければスレッドの返信。
+ *
+ * スレッドは1階層に固定する（返信への返信は作らない）。
+ * ID は ULID なので、ID の降順がそのまま新しい順になる。ページングもこれを使う。
+ */
 #[ORM\Entity(repositoryClass: PostRepository::class)]
 #[ORM\Table(name: 'posts')]
-#[ORM\Index(name: 'idx_posts_published', columns: ['status', 'published_at'])]
-#[ORM\HasLifecycleCallbacks]
+// 部屋: ある人の親投稿を新しい順に
+#[ORM\Index(name: 'idx_posts_room', columns: ['author_id', 'id'], options: ['where' => '(parent_id IS NULL)'])]
+// ロビー: 全員の親投稿を新しい順に
+#[ORM\Index(name: 'idx_posts_lobby', columns: ['id'], options: ['where' => '(parent_id IS NULL)'])]
+// スレッド: 親投稿ごとの返信を古い順に
+#[ORM\Index(name: 'idx_posts_thread', columns: ['parent_id', 'id'])]
 class Post
 {
-    /** 絵文字を選ばずに保存したときに入る既定値。 */
-    public const DEFAULT_EMOJI = '📝';
+    public const MAX_BODY_LENGTH = 2000;
+    public const MAX_TAGS = 3;
 
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: UlidType::NAME)]
+    private Ulid $id;
 
-    #[ORM\Column(length: 128, unique: true)]
-    #[Assert\NotBlank]
-    #[Assert\Regex('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', message: 'slug は英小文字・数字・ハイフンのみ使用できます。')]
-    private string $slug = '';
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    private User $author;
 
-    #[ORM\Column(length: 255)]
-    #[Assert\NotBlank]
-    #[Assert\Length(max: 255)]
-    private string $title = '';
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    private ?Post $parent;
 
-    /** 記事のアイキャッチ絵文字。Zenn と同じく1つだけ持つ。 */
-    #[ORM\Column(length: 32, nullable: true)]
-    #[Assert\Length(max: 8)]
-    private ?string $emoji = null;
-
-    /** Markdown 原文。編集時に使う。 */
     #[ORM\Column(type: 'text')]
-    #[Assert\NotBlank]
-    private string $bodyMd = '';
+    private string $bodyMarkdown = '';
 
-    /** 保存時に bodyMd から変換した HTML。表示時はこちらだけを使う。 */
+    /** 保存時に bodyMarkdown から変換した HTML。表示はこちらだけを使う。 */
     #[ORM\Column(type: 'text')]
     private string $bodyHtml = '';
 
-    /** 一覧・OGP 用の抜粋。未指定なら本文から自動生成する。 */
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Length(max: 255)]
-    private ?string $excerpt = null;
+    /** R2 上の画像のキー。配信は Worker の /uploads/{key} が行う。 */
+    #[ORM\Column(length: 128, nullable: true)]
+    private ?string $imageKey = null;
 
-    #[ORM\Column(length: 16, enumType: PostStatus::class)]
-    private PostStatus $status = PostStatus::Draft;
+    /** 非正規化したカウンタ。一覧表示のたびに COUNT しないため。 */
+    #[ORM\Column(options: ['default' => 0])]
+    private int $replyCount = 0;
+
+    #[ORM\Column(options: ['default' => 0])]
+    private int $reactionCount = 0;
 
     #[ORM\Column(nullable: true)]
-    private ?\DateTimeImmutable $publishedAt = null;
+    private ?\DateTimeImmutable $lastReplyAt = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $editedAt = null;
+
+    /** 論理削除。親投稿はスレッドの返信を残すため行を消さない。 */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $deletedAt = null;
+
+    /** 管理者による非表示。 */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $hiddenAt = null;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
-    #[ORM\Column]
-    private \DateTimeImmutable $updatedAt;
-
     /** @var Collection<int, Tag> */
-    #[ORM\ManyToMany(targetEntity: Tag::class, inversedBy: 'posts')]
+    #[ORM\ManyToMany(targetEntity: Tag::class)]
     #[ORM\JoinTable(name: 'post_tags')]
     private Collection $tags;
 
-    public function __construct()
+    public function __construct(User $author, ?Post $parent = null)
     {
+        $this->id = new Ulid();
+        $this->author = $author;
+        $this->parent = $parent;
         $this->tags = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
-        $this->updatedAt = $this->createdAt;
     }
 
-    #[ORM\PreUpdate]
-    public function touch(): void
-    {
-        $this->updatedAt = new \DateTimeImmutable();
-    }
-
-    public function isPublished(): bool
-    {
-        return PostStatus::Published === $this->status;
-    }
-
-    /**
-     * 公開する。publishedAt は初回公開時にだけ設定し、
-     * 再公開でタイムスタンプが動かないようにする。
-     */
-    public function publish(): static
-    {
-        $this->status = PostStatus::Published;
-        $this->publishedAt ??= new \DateTimeImmutable();
-
-        return $this;
-    }
-
-    public function unpublish(): static
-    {
-        $this->status = PostStatus::Draft;
-
-        return $this;
-    }
-
-    public function getId(): ?int
+    public function getId(): Ulid
     {
         return $this->id;
     }
 
-    public function getSlug(): string
+    public function getAuthor(): User
     {
-        return $this->slug;
+        return $this->author;
     }
 
-    public function setSlug(string $slug): static
+    public function getParent(): ?Post
     {
-        $this->slug = $slug;
-
-        return $this;
+        return $this->parent;
     }
 
-    public function getTitle(): string
+    public function isReply(): bool
     {
-        return $this->title;
+        return null !== $this->parent;
     }
 
-    public function setTitle(string $title): static
+    public function getBodyMarkdown(): string
     {
-        $this->title = $title;
-
-        return $this;
-    }
-
-    public function getEmoji(): ?string
-    {
-        return $this->emoji;
-    }
-
-    public function setEmoji(?string $emoji): static
-    {
-        $this->emoji = $emoji;
-
-        return $this;
-    }
-
-    public function getBodyMd(): string
-    {
-        return $this->bodyMd;
-    }
-
-    public function setBodyMd(string $bodyMd): static
-    {
-        $this->bodyMd = $bodyMd;
-
-        return $this;
+        return $this->bodyMarkdown;
     }
 
     public function getBodyHtml(): string
@@ -166,43 +121,117 @@ class Post
         return $this->bodyHtml;
     }
 
-    public function setBodyHtml(string $bodyHtml): static
+    public function setBody(string $markdown, string $html): static
     {
-        $this->bodyHtml = $bodyHtml;
+        $this->bodyMarkdown = $markdown;
+        $this->bodyHtml = $html;
 
         return $this;
     }
 
-    public function getExcerpt(): ?string
+    /** 本文を変えずに HTML だけ作り直す（リンクカードを後から埋めるとき）。 */
+    public function setBodyHtml(string $html): static
     {
-        return $this->excerpt;
-    }
-
-    public function setExcerpt(?string $excerpt): static
-    {
-        $this->excerpt = $excerpt;
+        $this->bodyHtml = $html;
 
         return $this;
     }
 
-    public function getStatus(): PostStatus
+    public function getImageKey(): ?string
     {
-        return $this->status;
+        return $this->imageKey;
     }
 
-    public function getPublishedAt(): ?\DateTimeImmutable
+    public function setImageKey(?string $imageKey): static
     {
-        return $this->publishedAt;
+        $this->imageKey = $imageKey;
+
+        return $this;
+    }
+
+    public function getReplyCount(): int
+    {
+        return $this->replyCount;
+    }
+
+    public function getReactionCount(): int
+    {
+        return $this->reactionCount;
+    }
+
+    public function getLastReplyAt(): ?\DateTimeImmutable
+    {
+        return $this->lastReplyAt;
+    }
+
+    public function getEditedAt(): ?\DateTimeImmutable
+    {
+        return $this->editedAt;
+    }
+
+    public function markEdited(): static
+    {
+        $this->editedAt = new \DateTimeImmutable();
+
+        return $this;
+    }
+
+    public function getDeletedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletedAt;
+    }
+
+    public function isDeleted(): bool
+    {
+        return null !== $this->deletedAt;
+    }
+
+    /**
+     * 論理削除。本文と画像は消す（データとしても残さない）。
+     * 行を残すのは、親投稿の場合にスレッドの返信をぶら下げたままにするため。
+     */
+    public function softDelete(): static
+    {
+        $this->deletedAt ??= new \DateTimeImmutable();
+        $this->bodyMarkdown = '';
+        $this->bodyHtml = '';
+        $this->imageKey = null;
+        $this->tags->clear();
+
+        return $this;
+    }
+
+    public function getHiddenAt(): ?\DateTimeImmutable
+    {
+        return $this->hiddenAt;
+    }
+
+    public function hide(): static
+    {
+        $this->hiddenAt ??= new \DateTimeImmutable();
+
+        return $this;
+    }
+
+    public function unhide(): static
+    {
+        $this->hiddenAt = null;
+
+        return $this;
+    }
+
+    /** 本文を見せてよいか。削除・非表示・投稿者の停止のいずれかなら見せない。 */
+    public function isVisible(): bool
+    {
+        return null === $this->deletedAt
+            && null === $this->hiddenAt
+            && !$this->author->isSuspended()
+            && !$this->author->isDeleted();
     }
 
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function getUpdatedAt(): \DateTimeImmutable
-    {
-        return $this->updatedAt;
     }
 
     /** @return Collection<int, Tag> */
@@ -211,25 +240,13 @@ class Post
         return $this->tags;
     }
 
-    public function addTag(Tag $tag): static
-    {
-        if (!$this->tags->contains($tag)) {
-            $this->tags->add($tag);
-        }
-
-        return $this;
-    }
-
-    public function removeTag(Tag $tag): static
-    {
-        $this->tags->removeElement($tag);
-
-        return $this;
-    }
-
-    public function clearTags(): static
+    /** @param list<Tag> $tags */
+    public function replaceTags(array $tags): static
     {
         $this->tags->clear();
+        foreach ($tags as $tag) {
+            $this->tags->add($tag);
+        }
 
         return $this;
     }

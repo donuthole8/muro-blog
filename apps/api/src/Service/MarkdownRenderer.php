@@ -11,7 +11,8 @@ use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
 use League\CommonMark\MarkdownConverter;
 
 /**
- * 記事の Markdown を保存時に HTML へ変換する。
+ * アーカイブ記事（旧ブログ）の Markdown を HTML へ変換する。
+ * times の投稿は第三者が書くので、生 HTML を通さない PostBodyRenderer を使うこと。
  *
  * 表示側（フロントエンド）は変換済みの HTML を受け取るだけなので、
  * 変換ロジックはこのクラスに閉じる。
@@ -21,7 +22,7 @@ final class MarkdownRenderer
     private readonly MarkdownConverter $converter;
 
     public function __construct(
-        private readonly LinkCardFetcher $linkCards,
+        private readonly LinkCardEmbedder $linkCards,
     ) {
         $environment = new Environment([
             // 記事を書くのは管理者本人のみ。生 HTML の埋め込みを許可する。
@@ -50,138 +51,7 @@ final class MarkdownRenderer
     {
         $html = $this->converter->convert($markdown)->getContent();
 
-        return $this->embedLinkCards($html);
-    }
-
-    /**
-     * 独立行に貼っただけの裸 URL（Markdown の自動リンク＝
-     * `<p><a href="X">X</a></p>`）を OGP 情報つきのリンクカードに差し替える。
-     * URL の取得に失敗したものはそのまま裸リンクとして残す
-     * （フロント側の CSS がカード風の見た目にフォールバックする）。
-     */
-    private function embedLinkCards(string $html): string
-    {
-        if (!str_contains($html, '<a ')) {
-            return $html;
-        }
-
-        $doc = new \DOMDocument();
-        libxml_use_internal_errors(true);
-        $doc->loadHTML(
-            '<?xml encoding="utf-8"?><div>'.$html.'</div>',
-            LIBXML_NOWARNING | LIBXML_NOERROR,
-        );
-        libxml_clear_errors();
-
-        $body = $doc->getElementsByTagName('body')->item(0);
-        $root = $body?->firstChild;
-        if (!$root instanceof \DOMElement) {
-            return $html;
-        }
-
-        $targets = [];
-        foreach ($root->childNodes as $node) {
-            if ($node instanceof \DOMElement && $node->tagName === 'p' && $this->isBareLinkParagraph($node)) {
-                $targets[] = $node;
-            }
-        }
-
-        foreach ($targets as $p) {
-            /** @var \DOMElement $anchor */
-            $anchor = $p->firstChild;
-            $card = $this->linkCards->fetch($anchor->getAttribute('href'));
-
-            if ($card === null) {
-                // OGP が取れなかった裸 URL。CSS 側は「p の唯一の子が a」という
-                // 構造セレクタ(:only-child)だとテキストを無視して誤爆する
-                // （例: 文中の [text](url) も拾ってしまう）ため、
-                // ここで明示的にクラスを振って対象を確定させる。
-                $anchor->setAttribute('class', trim($anchor->getAttribute('class').' bare-link'));
-
-                continue;
-            }
-
-            $p->parentNode?->replaceChild($this->renderLinkCard($doc, $card), $p);
-        }
-
-        $innerHtml = '';
-        foreach ($root->childNodes as $child) {
-            $innerHtml .= $doc->saveHTML($child);
-        }
-
-        return $innerHtml;
-    }
-
-    private function isBareLinkParagraph(\DOMElement $p): bool
-    {
-        if ($p->childNodes->length !== 1) {
-            return false;
-        }
-
-        $child = $p->firstChild;
-        if (!$child instanceof \DOMElement || $child->tagName !== 'a') {
-            return false;
-        }
-
-        $href = $child->getAttribute('href');
-        $text = trim($child->textContent);
-
-        return $href !== '' && ($text === $href || $text === rtrim($href, '/'));
-    }
-
-    private function renderLinkCard(\DOMDocument $doc, LinkCardData $card): \DOMElement
-    {
-        $a = $doc->createElement('a');
-        $a->setAttribute('href', $card->url);
-        $a->setAttribute('class', 'link-card');
-
-        $body = $doc->createElement('span');
-        $body->setAttribute('class', 'link-card-body');
-
-        $title = $doc->createElement('span');
-        $title->setAttribute('class', 'link-card-title');
-        $title->appendChild($doc->createTextNode($card->title));
-        $body->appendChild($title);
-
-        if ($card->description !== null) {
-            $desc = $doc->createElement('span');
-            $desc->setAttribute('class', 'link-card-desc');
-            $desc->appendChild($doc->createTextNode($card->description));
-            $body->appendChild($desc);
-        }
-
-        $meta = $doc->createElement('span');
-        $meta->setAttribute('class', 'link-card-meta');
-
-        if ($card->favicon !== null) {
-            $favicon = $doc->createElement('img');
-            $favicon->setAttribute('src', $card->favicon);
-            $favicon->setAttribute('alt', '');
-            $favicon->setAttribute('loading', 'lazy');
-            $favicon->setAttribute('class', 'link-card-favicon');
-            $favicon->setAttribute('onerror', "this.style.display='none'");
-            $meta->appendChild($favicon);
-        }
-
-        $domain = $doc->createElement('span');
-        $domain->setAttribute('class', 'link-card-domain');
-        $domain->appendChild($doc->createTextNode($card->siteName));
-        $meta->appendChild($domain);
-
-        $body->appendChild($meta);
-        $a->appendChild($body);
-
-        if ($card->image !== null) {
-            $thumb = $doc->createElement('img');
-            $thumb->setAttribute('src', $card->image);
-            $thumb->setAttribute('alt', '');
-            $thumb->setAttribute('loading', 'lazy');
-            $thumb->setAttribute('class', 'link-card-thumb');
-            $thumb->setAttribute('onerror', "this.style.display='none'");
-            $a->appendChild($thumb);
-        }
-
-        return $a;
+        return $this->linkCards->embed($html);
     }
 
     /**

@@ -58,7 +58,7 @@ echo "[2/3] Symfony API を起動…"
 (cd "$ROOT/apps/api" && php -S 127.0.0.1:"$API_PORT" -t public public/index.php) >/dev/null 2>&1 &
 pids+=("$!")
 for _ in $(seq 1 30); do
-  curl -sf -o /dev/null "http://127.0.0.1:$API_PORT/api/posts" && break
+  curl -sf -o /dev/null "http://127.0.0.1:$API_PORT/api/lobby" && break
   sleep 1
 done
 echo "      → http://127.0.0.1:$API_PORT  （API ドキュメント: /api/doc）"
@@ -69,8 +69,8 @@ pids+=("$!")
 
 echo ""
 echo "──────────────────────────────────────────"
-echo "  ブログ    http://localhost:$WEB_PORT"
-echo "  管理画面  http://localhost:$WEB_PORT/admin"
+echo "  times     http://localhost:$WEB_PORT"
+echo "  ログイン  http://localhost:$WEB_PORT/dev-login （Google 未設定時の開発用）"
 echo "  API ドキュメント  http://127.0.0.1:$API_PORT/api/doc"
 echo "──────────────────────────────────────────"
 echo "  Ctrl+C で全て停止します"

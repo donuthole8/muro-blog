@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 記事ごとの OGP 画像をビルド時に静的生成する。
+ * アーカイブ記事ごとの OGP 画像をビルド時に静的生成する。
  *
  * Cloud Run はコールドスタートするため、読者アクセス時にオンデマンド生成する
  * 設計にはせず、`pnpm build` の一部として一度だけ作って `public/og/` に置く。
@@ -27,7 +27,7 @@ loadDotEnv(path.join(root, '.env'))
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://127.0.0.1:8000'
 // apps/web/src/lib/site.ts と表記を揃えること
-const SITE_TITLE = 'blog'
+const SITE_TITLE = 'times'
 
 const OUT_DIR = path.join(root, 'public', 'og')
 const WIDTH = 1200
@@ -62,7 +62,7 @@ async function fetchAllPublishedPosts() {
 
   do {
     const res = await fetch(
-      `${API_BASE_URL}/api/posts?page=${page}&perPage=${perPage}`,
+      `${API_BASE_URL}/api/archive/posts?page=${page}&perPage=${perPage}`,
     )
     if (!res.ok) {
       throw new Error(

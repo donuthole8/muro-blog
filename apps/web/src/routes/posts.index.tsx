@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { fetchPosts } from '../lib/blog'
-import { PostCard } from '../components/PostCard'
+import { fetchArchivedPosts } from '../lib/archive'
+import { ArchivedPostCard } from '../components/ArchivedPostCard'
+import { EmptyState } from '../components/EmptyState'
+import { PageHeader } from '../components/PageHeader'
 import { Pagination } from '../components/Pagination'
 import { site } from '../lib/site'
 
@@ -20,15 +22,15 @@ export const Route = createFileRoute('/posts/')({
     return Number.isFinite(page) && page > 1 ? { page } : {}
   },
   loaderDeps: ({ search }) => ({ page: search.page ?? 1 }),
-  loader: ({ deps }) => fetchPosts({ data: { page: deps.page } }),
+  loader: ({ deps }) => fetchArchivedPosts({ data: { page: deps.page } }),
   head: ({ loaderData }) => ({
     meta: [
-      { title: `記事一覧 | ${site.title}` },
+      { title: `旧ブログの記事 | ${site.title}` },
       {
         name: 'description',
         content: loaderData
-          ? `${site.title}の記事一覧です。全${loaderData.total}件。`
-          : `${site.title}の記事一覧です。`,
+          ? `${site.title} になる前の旧ブログの記事です。全${loaderData.total}件。`
+          : `${site.title} になる前の旧ブログの記事です。`,
       },
     ],
   }),
@@ -41,15 +43,14 @@ function PostsIndex() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold">記事一覧</h1>
-      <p className="mt-1 text-xs text-text-muted">{posts.total} 件</p>
+      <PageHeader title="旧ブログの記事" description={`${posts.total} 件`} />
 
       {posts.items.length === 0 ? (
-        <p className="mt-8 text-sm text-text-muted">記事がありません。</p>
+        <EmptyState icon="📦" title="記事がありません" />
       ) : (
-        <div className="mt-4">
+        <div>
           {posts.items.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <ArchivedPostCard key={post.id} post={post} />
           ))}
         </div>
       )}

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\EventSubscriber;
 
-use App\Exception\SlugAlreadyUsedException;
-use App\Exception\UnknownTagException;
+use App\Exception\InvalidInputException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 
 /**
@@ -23,8 +23,10 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface
 {
     public static function getSubscribedEvents(): array
     {
-        // Symfony 本体のエラーレンダラより先に処理する
-        return [KernelEvents::EXCEPTION => ['onKernelException', 16]];
+        // Symfony 本体のエラーレンダラ（-128）より先に、ただし Security の
+        // ExceptionListener（1）より後に処理する。先に処理すると、未ログイン時の 401 と
+        // 権限不足の 403 への振り分けを Security にさせる前に握りつぶしてしまう。
+        return [KernelEvents::EXCEPTION => ['onKernelException', 0]];
     }
 
     public function onKernelException(ExceptionEvent $event): void
@@ -51,9 +53,16 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface
             return;
         }
 
+        if ($exception instanceof InvalidInputException) {
+            $event->setResponse(new JsonResponse([
+                'message' => $exception->getMessage(),
+                'errors' => $exception->errors,
+            ], 422));
+
+            return;
+        }
+
         $status = match (true) {
-            $exception instanceof SlugAlreadyUsedException => 409,
-            $exception instanceof UnknownTagException => 400,
             $exception instanceof HttpExceptionInterface => $exception->getStatusCode(),
             default => null,
         };
@@ -62,15 +71,21 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface
             return;
         }
 
-        // ValueResolver が投げる 404 には内部クラス名が含まれるため、外には出さない
-        $message = 404 === $status
-            ? 'リソースが見つかりません。'
-            : $exception->getMessage();
+        // ValueResolver が投げる 404 には内部クラス名が含まれるため、外には出さない。
+        // Security が投げる 403（ROLE_ADMIN がない等）も英語の内部メッセージなので差し替える。
+        $message = match (true) {
+            404 === $status => 'リソースが見つかりません。',
+            $exception->getPrevious() instanceof AccessDeniedException => 'この操作を行う権限がありません。',
+            default => $exception->getMessage(),
+        };
+
+        // 429 の Retry-After など、HttpException が持つヘッダーはそのまま返す
+        $headers = $exception instanceof HttpExceptionInterface ? $exception->getHeaders() : [];
 
         $event->setResponse(new JsonResponse([
             'message' => $message,
             'errors' => new \stdClass(),
-        ], $status));
+        ], $status, $headers));
     }
 
     private function findValidationFailure(\Throwable $exception): ?ValidationFailedException

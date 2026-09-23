@@ -3,7 +3,7 @@ dist/
 .DS_Store
 
 # Symfony
-# .env* は ADMIN_TOKEN / APP_SECRET / DB 接続情報を含むためコミットしない。
+# .env* は GOOGLE_CLIENT_SECRET / APP_SECRET / DB 接続情報を含むためコミットしない。
 # 雛形は apps/api/.env.example を参照。
 apps/api/var/
 apps/api/vendor/
@@ -11,7 +11,7 @@ apps/api/.env
 apps/api/.env.*
 !apps/api/.env.example
 
-# フロントエンド（ADMIN_TOKEN を持つので絶対にコミットしない）
+# フロントエンド（本番の接続先などを持つのでコミットしない）
 apps/web/.env
 apps/web/.env.local
 apps/web/.wrangler/

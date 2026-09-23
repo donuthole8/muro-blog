@@ -1,10 +1,11 @@
 # デプロイ手順
 
-構成は [DESIGN.md](DESIGN.md) を参照。
+構成は [PLAN.md](PLAN.md)（times サービス化）と [DESIGN.md](DESIGN.md) を参照。
 
 ```
-[読者] → Cloudflare Workers（静的HTML）      ← Symfony には到達しない
-[管理] → Cloudflare Workers /admin → Cloud Run (Symfony) → Neon (PostgreSQL)
+[閲覧]       → Cloudflare Workers（SSR）─ 公開 API の応答はエッジでキャッシュ ─┐
+[ログイン中] → Cloudflare Workers ─ Cookie を Bearer に載せ替え ──────────┴→ Cloud Run (Symfony) → Neon
+[旧ブログ]   → Cloudflare Workers（/posts/:slug はビルド時に静的化）
 ```
 
 ## 0. 事前に必要なもの
@@ -13,7 +14,8 @@
 |---|---|---|
 | Neon アカウント | PostgreSQL | 無料。カード不要 |
 | Google Cloud アカウント | Cloud Run | **カード登録が必須**（無料枠内なら課金されない） |
-| Cloudflare アカウント | Workers | 無料。カード不要 |
+| Cloudflare アカウント | Workers・R2 | 無料。カード不要。**独自ドメインが必要**（後述） |
+| Google Cloud の OAuth クライアント | Google ログイン | Cloud Run と同じプロジェクトで作ればよい |
 | `gcloud` CLI | デプロイ | 未インストール |
 | `wrangler` | デプロイ | `apps/web` の devDependencies に含まれる |
 
@@ -64,19 +66,29 @@ gcloud run deploy blog-api \
   --set-env-vars "APP_ENV=prod,APP_DEBUG=0" \
   --set-env-vars "DATABASE_URL=postgresql://…?sslmode=require&serverVersion=16&charset=utf8" \
   --set-env-vars "APP_SECRET=$(openssl rand -hex 32)" \
-  --set-env-vars "ADMIN_TOKEN=$(openssl rand -hex 32)"
+  --set-env-vars "GOOGLE_CLIENT_ID=…,GOOGLE_CLIENT_SECRET=…" \
+  --set-env-vars "GOOGLE_REDIRECT_URI=https://<サイトのドメイン>/auth/callback" \
+  --set-env-vars "SITE_HOST=<サイトのドメイン>"
 ```
+
+`DEV_LOGIN_ENABLED` は**本番では設定しない**（開発用ログインは APP_ENV=dev でしか動かないが、念のため）。
 
 **`--max-instances 3` は必ず付ける。** 上限がないと、想定外のアクセスや
 無限ループで無料枠を突き抜けて課金される。
 
-`ADMIN_TOKEN` に設定した値は控えておくこと。手順4で Cloudflare 側にも登録する。
+### Google OAuth クライアント
+
+1. Google Cloud コンソール →「API とサービス」→「認証情報」→「OAuth クライアント ID を作成」
+2. 種類は「ウェブ アプリケーション」
+3. 承認済みのリダイレクト URI に `https://<サイトのドメイン>/auth/callback` を登録
+   （ローカル用に `http://localhost:3100/auth/callback` も足してよい）
+4. 同意画面のスコープは `openid` と `profile` だけ（メールアドレスは取らない）
 
 デプロイが終わると `https://blog-api-xxxxx.asia-northeast1.run.app` のような
 URL が払い出される。動作確認:
 
 ```sh
-curl https://blog-api-xxxxx.asia-northeast1.run.app/api/posts
+curl https://blog-api-xxxxx.asia-northeast1.run.app/api/lobby
 ```
 
 ### 秘密情報について
@@ -108,12 +120,21 @@ Artifact Registry のストレージ無料枠は 0.5GB。イメージがこれ�
 
 | 読む場所 | 供給元 | 該当するもの |
 |---|---|---|
-| Worker の中 | `apps/web/.env`（ビルド時に `.dev.vars` へ変換される） | `src/lib/api.ts` の `API_BASE_URL`、`src/lib/site.ts` の `SITE_URL`、`ADMIN_TOKEN` |
+| Worker の中 | `apps/web/.env`（ビルド時に `.dev.vars` へ変換される） | `src/lib/api.ts` の `API_BASE_URL`、`src/lib/site.ts` の `SITE_URL` |
 | Node のビルドプロセス | シェルの環境変数 | `vite.config.ts` のサイトマップ `host` |
 | デプロイ後の Worker | `wrangler.jsonc` の `vars` と `wrangler secret` | 実行時の全て |
 
-プリレンダリングは**ビルド中にローカルで Worker を動かして**行われるため、
+プリレンダリング（旧ブログの `/posts/:slug` のみ）は**ビルド中にローカルで Worker を動かして**行われるため、
 本番の記事を取りに行かせるには `apps/web/.env` を本番向けに書き換える必要がある。
+
+### 独自ドメインが必要な理由
+
+公開 API の応答を Workers の Cache API に置いて Neon を眠らせる設計だが、
+**Cache API は `*.workers.dev` では何もしない**（独自ドメインのゾーンでだけ効く）。
+workers.dev のまま公開すると、閲覧のたびに Cloud Run と Neon まで届いて無料枠を消費する。
+Cloudflare にドメインを追加し、Worker にカスタムドメインを割り当ててから公開すること。
+
+セッション Cookie の `Secure` は `SITE_URL` が `https://` で始まるときだけ付く。
 
 ### 手順
 
@@ -123,22 +144,21 @@ cd apps/web
 # 1. ビルド（プリレンダリング）用の値を .env に設定する
 cat > .env <<'EOF'
 API_BASE_URL=https://blog-api-xxxxx.asia-northeast1.run.app
-SITE_URL=https://blog.example.com
-ADMIN_TOKEN=<手順2で設定した値>
+SITE_URL=https://times.example.com
 EOF
 
 # 2. デプロイ後の Worker が使う値を wrangler.jsonc に書く
 #    vars.API_BASE_URL と vars.SITE_URL を上と同じ値に
 
-# 3. 管理 API のトークンは秘密情報として登録する（wrangler.jsonc には書かない）
-pnpm exec wrangler secret put ADMIN_TOKEN
+# 3. 投稿画像の置き場（初回のみ）
+pnpm exec wrangler r2 bucket create blog-images
 
 # 4. ビルドしてデプロイ
-#    ビルド時にプリレンダリングが走るため、Cloud Run が起動している必要がある
+#    ビルド時にアーカイブ記事のプリレンダリングが走るため、Cloud Run が起動している必要がある
 pnpm run deploy
 ```
 
-`.env` は `.gitignore` 済み（ADMIN_TOKEN を含むため絶対にコミットしないこと）。
+Worker は秘密情報を持たない（ログインの検証は API 側で行う）。
 
 ### ローカルで本番同等の確認をする
 
@@ -150,7 +170,6 @@ cd apps/api
 docker build -t blog-api:local .
 docker run -d --name blog-api-prod --network api_default -p 8090:8080 \
   -e APP_SECRET=$(openssl rand -hex 32) \
-  -e ADMIN_TOKEN=rehearsal-token \
   -e DATABASE_URL="postgresql://blog:blog@database:5432/blog?serverVersion=16&charset=utf8" \
   blog-api:local
 
@@ -162,28 +181,41 @@ cd ../web && pnpm run build
 Cloud Run ではこれにイメージ取得が加わる。
 読者はプリレンダリング済み HTML を見るのでこの遅延には当たらない。
 
-## 5. 記事を書いて公開する
+## 5. 最初の管理者を任命する
 
-1. `https://<Workers の URL>/admin` を開く
-2. 記事を書いて「公開する」
-3. **再ビルド・再デプロイすると公開ページに反映される**（1〜2分）
+管理画面（`/admin`）は `role=admin` のユーザーだけが開ける。最初の1人は画面から作れないので、
+本人が Google でログインして handle を決めたあと、本番 DB に対して実行する。
+
+```sh
+cd apps/api
+DATABASE_URL="postgresql://…?sslmode=require&serverVersion=16&charset=utf8" \
+  php bin/console app:user:role <handle>
+```
+
+## 6. Neon が眠っていることを確かめる
+
+無料枠（100 CU-hours）を守る要は、閲覧が Neon まで届かないこと。公開後に次を確認する。
+
+1. Neon コンソールの Monitoring で、アクセスがない時間帯に Compute が **Idle（suspended）** になっているか
+2. 同じページを続けて開き、Cloud Run のログに同じ公開 API（`/api/lobby` など）が
+   15 秒に1回程度しか出ていないか（毎回出ていればエッジキャッシュが効いていない → 独自ドメインを確認）
+3. 公開 API のレスポンスヘッダーに `Cache-Control: public, max-age=0, s-maxage=15` が付いているか
+
+```sh
+curl -sI https://blog-api-xxxxx.asia-northeast1.run.app/api/lobby | grep -i cache-control
+```
+
+ログイン中の人の画面は、ヘッダーの未読数（`/api/me`）と自分のリアクション状態
+（`/api/me/viewer-state`）を取るたびに DB に届く。常時ポーリングはしていないので、
+届くのは画面を開いたとき・タブに戻ったときだけ。
+
+## 7. 旧ブログの記事を直したとき
+
+アーカイブ（`/posts/:slug`）はビルド時に静的化しているので、再デプロイで反映される。
 
 ```sh
 cd apps/web && pnpm run deploy
 ```
-
-Phase 2 でここを自動化する（公開 API がデプロイフックを叩く）。
-
-## 6. 管理画面を保護する（Phase 2）
-
-Phase 1 の時点では `/admin` は URL を知っていれば誰でも開ける。
-**公開前に必ず Cloudflare Access をかけること。**
-
-1. Cloudflare ダッシュボード → Zero Trust → Access → Applications
-2. Self-hosted アプリケーションを追加し、パスを `/admin*` に設定
-3. ポリシーで自分の Google アカウントのメールアドレスのみ許可
-
-無料枠は50ユーザーまで。アプリ側の実装は不要。
 
 ## チェックリスト
 
@@ -191,7 +223,10 @@ Phase 1 の時点では `/admin` は URL を知っていれば誰でも開ける
 - [ ] マイグレーション適用
 - [ ] Cloud Run デプロイ（`--max-instances 3` 付き）
 - [ ] 予算アラート設定
+- [ ] Google OAuth クライアント作成（リダイレクト URI を登録）
 - [ ] `wrangler.jsonc` の vars 更新
-- [ ] `wrangler secret put ADMIN_TOKEN`
-- [ ] Cloudflare Workers デプロイ
-- [ ] **Cloudflare Access で `/admin` を保護**
+- [ ] R2 バケット作成
+- [ ] Cloudflare Workers デプロイ（**独自ドメインで**）
+- [ ] 最初の管理者を任命
+- [ ] 利用規約・プライバシーポリシーの制定日・連絡先を記入
+- [ ] Neon が眠ることを確認

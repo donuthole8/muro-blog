@@ -1,188 +1,183 @@
 import { createServerFn } from '@tanstack/react-start'
-import { notFound } from '@tanstack/react-router'
-import type { components } from '@blog/api-client'
-import { getAdminApiClient } from './api'
-
-export type PostInput = components['schemas']['PostInput']
-export type PostAdminSummary = components['schemas']['PostAdminSummary']
-export type PostAdminDetail = components['schemas']['PostAdminDetail']
-export type ValidationError = components['schemas']['ValidationError']
+import { getSessionApiClient } from './api'
+import { toFailure, throwRead, unauthenticated } from './result'
+import { getUploadsBucket } from './uploads'
 
 /**
- * 書き込み系サーバー関数の戻り値。
- *
- * 例外を投げるとクラス情報が RPC 境界を越えられず
- * （seroval が素の Error に落とすため instanceof が効かない）、
- * フィールド単位のエラーを画面で拾えなくなる。
- * そのため成否を素のオブジェクトで返す。
+ * 管理画面（投稿の非表示・削除、ユーザーの停止、タグの作成）。
+ * 権限は API 側が role=admin で判定する。ここはログイン中の本人として叩くだけ。
  */
-export type Failure = {
-  ok: false
-  message: string
-  /** フィールド名 => エラーメッセージ */
-  errors: Record<string, string>
-  status: number
-}
 
-export type Result<T> = ({ ok: true } & T) | Failure
-
-function toFailure(error: unknown, status: number, fallback: string): Failure {
-  const body = error as ValidationError | undefined
-
-  return {
-    ok: false,
-    message: body?.message ?? fallback,
-    errors: body?.errors ?? {},
-    status,
-  }
-}
-
-/** 読み取り系はページ描画そのものが成立しないので例外のままでよい。 */
-function throwRead(error: unknown, status: number, fallback: string): never {
-  const body = error as ValidationError | undefined
-
-  throw new Error(body?.message ?? fallback, { cause: status })
-}
-
-export const listAdminPosts = createServerFn({ method: 'GET' })
-  .validator((input: { status?: 'draft' | 'published' }) => input)
+export const listModerationPosts = createServerFn({ method: 'GET' })
+  .validator((input: { cursor?: string; handle?: string }) => input)
   .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) throwRead(null, 401, 'ログインが必要です。')
+
     const {
-      data: posts,
+      data: page,
       error,
       response,
-    } = await getAdminApiClient().fetch.GET('/api/admin/posts', {
-      params: { query: { status: data.status } },
+    } = await api.fetch.GET('/api/admin/posts', {
+      params: { query: { cursor: data.cursor, handle: data.handle } },
     })
+    if (!page) throwRead(error, response.status, '投稿の取得に失敗しました。')
 
-    if (!posts)
-      throwRead(error, response.status, '記事一覧の取得に失敗しました。')
-
-    return posts
+    return page
   })
 
-export const getAdminPost = createServerFn({ method: 'GET' })
-  .validator((input: { id: number }) => input)
+export const setPostHidden = createServerFn({ method: 'POST' })
+  .validator((input: { id: string; hidden: boolean }) => input)
   .handler(async ({ data }) => {
-    const { data: post, response } = await getAdminApiClient().fetch.GET(
-      '/api/admin/posts/{id}',
-      { params: { path: { id: data.id } } },
-    )
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
 
-    if (response.status === 404) throw notFound()
-    if (!post) throw new Error('記事の取得に失敗しました。')
+    const path = data.hidden
+      ? ('/api/admin/posts/{id}/hide' as const)
+      : ('/api/admin/posts/{id}/unhide' as const)
+    const {
+      data: post,
+      error,
+      response,
+    } = await api.fetch.POST(path, {
+      params: { path: { id: data.id } },
+    })
+    if (!post) return toFailure(error, response.status, '変更に失敗しました。')
 
-    return post
+    return { ok: true as const, post }
+  })
+
+export const deletePostAsAdmin = createServerFn({ method: 'POST' })
+  .validator((input: { id: string }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const {
+      data: deleted,
+      error,
+      response,
+    } = await api.fetch.DELETE('/api/admin/posts/{id}', {
+      params: { path: { id: data.id } },
+    })
+    if (!deleted)
+      return toFailure(error, response.status, '削除に失敗しました。')
+
+    if (deleted.imageKey) {
+      await getUploadsBucket()
+        .delete(deleted.imageKey)
+        .catch(() => undefined)
+    }
+
+    return { ok: true as const }
+  })
+
+export const listUsers = createServerFn({ method: 'GET' })
+  .validator((input: { q?: string }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) throwRead(null, 401, 'ログインが必要です。')
+
+    const {
+      data: users,
+      error,
+      response,
+    } = await api.fetch.GET('/api/admin/users', {
+      params: { query: { q: data.q } },
+    })
+    if (!users)
+      throwRead(error, response.status, 'ユーザーの取得に失敗しました。')
+
+    return users
+  })
+
+export const setUserSuspended = createServerFn({ method: 'POST' })
+  .validator((input: { id: string; suspended: boolean }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const path = data.suspended
+      ? ('/api/admin/users/{id}/suspend' as const)
+      : ('/api/admin/users/{id}/unsuspend' as const)
+    const {
+      data: user,
+      error,
+      response,
+    } = await api.fetch.POST(path, {
+      params: { path: { id: data.id } },
+    })
+    if (!user) return toFailure(error, response.status, '変更に失敗しました。')
+
+    return { ok: true as const, user }
   })
 
 export const listAdminTags = createServerFn({ method: 'GET' }).handler(
   async () => {
+    const api = getSessionApiClient()
+    if (!api) throwRead(null, 401, 'ログインが必要です。')
+
     const {
       data: tags,
       error,
       response,
-    } = await getAdminApiClient().fetch.GET('/api/admin/tags')
-
+    } = await api.fetch.GET('/api/admin/tags')
     if (!tags) throwRead(error, response.status, 'タグの取得に失敗しました。')
 
     return tags
   },
 )
 
-export const createAdminPost = createServerFn({ method: 'POST' })
-  .validator((input: PostInput) => input)
-  .handler(async ({ data }) => {
-    const {
-      data: post,
-      error,
-      response,
-    } = await getAdminApiClient().fetch.POST('/api/admin/posts', { body: data })
-
-    if (!post)
-      return toFailure(error, response.status, '記事の作成に失敗しました。')
-
-    return { ok: true as const, post }
-  })
-
-export const updateAdminPost = createServerFn({ method: 'POST' })
-  .validator((input: { id: number; post: PostInput }) => input)
-  .handler(async ({ data }) => {
-    const {
-      data: post,
-      error,
-      response,
-    } = await getAdminApiClient().fetch.PUT('/api/admin/posts/{id}', {
-      params: { path: { id: data.id } },
-      body: data.post,
-    })
-
-    if (!post)
-      return toFailure(error, response.status, '記事の更新に失敗しました。')
-
-    return { ok: true as const, post }
-  })
-
-export const setPostPublished = createServerFn({ method: 'POST' })
-  .validator((input: { id: number; published: boolean }) => input)
-  .handler(async ({ data }) => {
-    const path = data.published
-      ? ('/api/admin/posts/{id}/publish' as const)
-      : ('/api/admin/posts/{id}/unpublish' as const)
-
-    const {
-      data: post,
-      error,
-      response,
-    } = await getAdminApiClient().fetch.POST(path, {
-      params: { path: { id: data.id } },
-    })
-
-    if (!post)
-      return toFailure(error, response.status, '公開状態の変更に失敗しました。')
-
-    return { ok: true as const, post }
-  })
-
-export const deleteAdminPost = createServerFn({ method: 'POST' })
-  .validator((input: { id: number }) => input)
-  .handler(async ({ data }) => {
-    const { error, response } = await getAdminApiClient().fetch.DELETE(
-      '/api/admin/posts/{id}',
-      { params: { path: { id: data.id } } },
-    )
-
-    if (response.status >= 400) {
-      return toFailure(error, response.status, '記事の削除に失敗しました。')
-    }
-
-    return { ok: true as const }
-  })
-
 export const createAdminTag = createServerFn({ method: 'POST' })
   .validator((input: { name: string; slug: string }) => input)
   .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
     const {
       data: tag,
       error,
       response,
-    } = await getAdminApiClient().fetch.POST('/api/admin/tags', { body: data })
-
+    } = await api.fetch.POST('/api/admin/tags', { body: data })
     if (!tag)
       return toFailure(error, response.status, 'タグの作成に失敗しました。')
 
     return { ok: true as const, tag }
   })
 
-/** 保存時と同じ変換器でプレビュー用の HTML を作る。 */
-export const previewMarkdown = createServerFn({ method: 'POST' })
-  .validator((input: { bodyMd: string }) => input)
+export const listReports = createServerFn({ method: 'GET' })
+  .validator((input: { status: 'open' | 'resolved'; cursor?: string }) => input)
   .handler(async ({ data }) => {
-    const { data: preview } = await getAdminApiClient().fetch.POST(
-      '/api/admin/preview',
-      { body: { bodyMd: data.bodyMd } },
-    )
+    const api = getSessionApiClient()
+    if (!api) throwRead(null, 401, 'ログインが必要です。')
 
-    if (!preview) throw new Error('プレビューの生成に失敗しました。')
+    const {
+      data: page,
+      error,
+      response,
+    } = await api.fetch.GET('/api/admin/reports', {
+      params: { query: { status: data.status, cursor: data.cursor } },
+    })
+    if (!page) throwRead(error, response.status, '通報の取得に失敗しました。')
 
-    return preview
+    return page
+  })
+
+export const dismissReport = createServerFn({ method: 'POST' })
+  .validator((input: { id: string }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const {
+      data: report,
+      error,
+      response,
+    } = await api.fetch.POST('/api/admin/reports/{id}/dismiss', {
+      params: { path: { id: data.id } },
+    })
+    if (!report)
+      return toFailure(error, response.status, '却下に失敗しました。')
+
+    return { ok: true as const, report }
   })

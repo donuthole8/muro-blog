@@ -23,8 +23,8 @@ export function Pagination({ currentPage, totalPages }: Props) {
           search={page === 1 ? {} : { page }}
           className={
             page === currentPage
-              ? 'rounded-md border border-accent bg-accent-soft px-3 py-1 text-sm text-accent'
-              : 'rounded-md border border-border px-3 py-1 text-sm text-text-muted transition-colors hover:border-accent hover:text-accent'
+              ? 'inline-flex min-h-9 items-center rounded-md border border-accent bg-accent-soft px-3 text-sm text-accent'
+              : 'inline-flex min-h-9 items-center rounded-md border border-border px-3 text-sm text-text-muted transition-colors hover:border-accent hover:text-accent'
           }
           aria-current={page === currentPage ? 'page' : undefined}
         >

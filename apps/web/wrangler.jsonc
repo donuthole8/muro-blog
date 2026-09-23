@@ -5,15 +5,15 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
 
-  // 公開しても問題ない値だけをここに書く。
-  // ADMIN_TOKEN は秘密情報なので `wrangler secret put ADMIN_TOKEN` で登録する。
+  // 公開しても問題ない値だけをここに書く（秘密情報は持たない。
+  // ログインのセッションは Cookie に入り、検証は API 側で行う）。
   "vars": {
     // Cloud Run にデプロイしたあと、払い出された URL に差し替える
     "API_BASE_URL": "https://REPLACE-ME.a.run.app",
     "SITE_URL": "https://blog.example.com",
   },
 
-  // 記事本文に貼る画像の置き場。ローカル開発は @cloudflare/vite-plugin が
+  // 投稿に添える画像の置き場。ローカル開発は @cloudflare/vite-plugin が
   // ローカルエミュレーション（.wrangler/state 配下）するため、実際の
   // Cloudflare アカウントなしでそのまま動く。
   // 本番用バケットは `wrangler r2 bucket create blog-images` で作成すること

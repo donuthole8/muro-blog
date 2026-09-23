@@ -1,5 +1,10 @@
 # 個人ブログ 設計書
 
+> **times サービス化により、この設計書は一部が古くなっている。** 変更点は [PLAN.md](PLAN.md) を参照。
+> 主な違い: 記事（Post）は読み取り専用のアーカイブ（ArchivedPost, `/api/archive/*`）になり、
+> 静的化は `/posts/:slug` だけ。認証は `X-Admin-Token` / Cloudflare Access をやめて
+> Google OAuth ＋ セッショントークン（管理者は `role=admin`）にした。
+
 参考: [azukiazusa.dev](https://azukiazusa.dev/) / [pote-chil.com（現 oteto.dev）](https://pote-chil.com/)
 
 ## 1. 技術スタック（確定）

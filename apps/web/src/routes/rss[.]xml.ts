@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { fetchPosts } from '../lib/blog'
+import { fetchArchivedPosts } from '../lib/archive'
 import { site } from '../lib/site'
 
 function escapeXml(value: string): string {
@@ -16,7 +16,7 @@ export const Route = createFileRoute('/rss.xml')({
     handlers: {
       GET: async () => {
         // RSS は最新50件まで
-        const posts = await fetchPosts({ data: { page: 1 } })
+        const posts = await fetchArchivedPosts({ data: { page: 1 } })
 
         const items = posts.items
           .map((post) => {
@@ -36,7 +36,7 @@ ${post.tags.map((tag) => `      <category>${escapeXml(tag.name)}</category>`).jo
         const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${escapeXml(site.title)}</title>
+    <title>${escapeXml(`${site.title}（旧ブログ）`)}</title>
     <link>${escapeXml(site.url)}</link>
     <description>${escapeXml(site.description)}</description>
     <language>ja</language>

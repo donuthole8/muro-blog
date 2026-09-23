@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\TagRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
+/**
+ * トピックタグ。管理者が作成し、投稿者は既存のタグから選んで親投稿に付ける。
+ * 日本語のタグ名から slug を機械的に導出できないため、自由入力のハッシュタグにはしていない。
+ */
 #[ORM\Entity(repositoryClass: TagRepository::class)]
 #[ORM\Table(name: 'tags')]
 class Tag
@@ -30,15 +32,6 @@ class Tag
     #[Assert\NotBlank]
     #[Assert\Regex('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', message: 'slug は英小文字・数字・ハイフンのみ使用できます。')]
     private string $slug = '';
-
-    /** @var Collection<int, Post> */
-    #[ORM\ManyToMany(targetEntity: Post::class, mappedBy: 'tags')]
-    private Collection $posts;
-
-    public function __construct()
-    {
-        $this->posts = new ArrayCollection();
-    }
 
     public function getId(): ?int
     {
@@ -67,11 +60,5 @@ class Tag
         $this->slug = $slug;
 
         return $this;
-    }
-
-    /** @return Collection<int, Post> */
-    public function getPosts(): Collection
-    {
-        return $this->posts;
     }
 }

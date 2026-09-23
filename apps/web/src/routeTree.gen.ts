@@ -12,16 +12,29 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as DevLoginRouteImport } from './routes/dev-login'
+import { Route as FollowingRouteImport } from './routes/following'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as RssDotxmlRouteImport } from './routes/rss[.]xml'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as AtChar123handleChar125IndexRouteImport } from './routes/@{$handle}.index'
+import { Route as AtChar123handleChar125PostIdRouteImport } from './routes/@{$handle}.$postId'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as AdminTagsRouteImport } from './routes/admin.tags'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AuthGoogleRouteImport } from './routes/auth.google'
+import { Route as OrgCompanySlugRouteImport } from './routes/org.$companySlug'
 import { Route as PostsIndexRouteImport } from './routes/posts.index'
 import { Route as PostsSlugRouteImport } from './routes/posts.$slug'
 import { Route as TagsIndexRouteImport } from './routes/tags.index'
 import { Route as TagsSlugRouteImport } from './routes/tags.$slug'
 import { Route as UploadsKeyRouteImport } from './routes/uploads.$key'
-import { Route as AdminPostsNewRouteImport } from './routes/admin.posts.new'
-import { Route as AdminPostsIdEditRouteImport } from './routes/admin.posts.$id.edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -38,6 +51,26 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevLoginRoute = DevLoginRouteImport.update({
+  id: '/dev-login',
+  path: '/dev-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FollowingRoute = FollowingRouteImport.update({
+  id: '/following',
+  path: '/following',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
   id: '/robots.txt',
   path: '/robots.txt',
@@ -48,10 +81,67 @@ const RssDotxmlRoute = RssDotxmlRouteImport.update({
   path: '/rss.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AtChar123handleChar125IndexRoute =
+  AtChar123handleChar125IndexRouteImport.update({
+    id: '/@{$handle}/',
+    path: '/@{$handle}/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AtChar123handleChar125PostIdRoute =
+  AtChar123handleChar125PostIdRouteImport.update({
+    id: '/@{$handle}/$postId',
+    path: '/@{$handle}/$postId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTagsRoute = AdminTagsRouteImport.update({
+  id: '/tags',
+  path: '/tags',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthGoogleRoute = AuthGoogleRouteImport.update({
+  id: '/auth/google',
+  path: '/auth/google',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrgCompanySlugRoute = OrgCompanySlugRouteImport.update({
+  id: '/org/$companySlug',
+  path: '/org/$companySlug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PostsIndexRoute = PostsIndexRouteImport.update({
   id: '/posts/',
@@ -78,61 +168,90 @@ const UploadsKeyRoute = UploadsKeyRouteImport.update({
   path: '/uploads/$key',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminPostsNewRoute = AdminPostsNewRouteImport.update({
-  id: '/posts/new',
-  path: '/posts/new',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPostsIdEditRoute = AdminPostsIdEditRouteImport.update({
-  id: '/posts/$id/edit',
-  path: '/posts/$id/edit',
-  getParentRoute: () => AdminRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
+  '/dev-login': typeof DevLoginRoute
+  '/following': typeof FollowingRoute
+  '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
+  '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
+  '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/tags': typeof AdminTagsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/google': typeof AuthGoogleRoute
+  '/org/$companySlug': typeof OrgCompanySlugRoute
   '/posts/$slug': typeof PostsSlugRoute
   '/tags/$slug': typeof TagsSlugRoute
   '/uploads/$key': typeof UploadsKeyRoute
+  '/@{$handle}/': typeof AtChar123handleChar125IndexRoute
   '/admin/': typeof AdminIndexRoute
   '/posts/': typeof PostsIndexRoute
   '/tags/': typeof TagsIndexRoute
-  '/admin/posts/new': typeof AdminPostsNewRoute
-  '/admin/posts/$id/edit': typeof AdminPostsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/dev-login': typeof DevLoginRoute
+  '/following': typeof FollowingRoute
+  '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
+  '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
+  '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/tags': typeof AdminTagsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/google': typeof AuthGoogleRoute
+  '/org/$companySlug': typeof OrgCompanySlugRoute
   '/posts/$slug': typeof PostsSlugRoute
   '/tags/$slug': typeof TagsSlugRoute
   '/uploads/$key': typeof UploadsKeyRoute
+  '/@{$handle}': typeof AtChar123handleChar125IndexRoute
   '/admin': typeof AdminIndexRoute
   '/posts': typeof PostsIndexRoute
   '/tags': typeof TagsIndexRoute
-  '/admin/posts/new': typeof AdminPostsNewRoute
-  '/admin/posts/$id/edit': typeof AdminPostsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
+  '/dev-login': typeof DevLoginRoute
+  '/following': typeof FollowingRoute
+  '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
+  '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
+  '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/tags': typeof AdminTagsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/google': typeof AuthGoogleRoute
+  '/org/$companySlug': typeof OrgCompanySlugRoute
   '/posts/$slug': typeof PostsSlugRoute
   '/tags/$slug': typeof TagsSlugRoute
   '/uploads/$key': typeof UploadsKeyRoute
+  '/@{$handle}/': typeof AtChar123handleChar125IndexRoute
   '/admin/': typeof AdminIndexRoute
   '/posts/': typeof PostsIndexRoute
   '/tags/': typeof TagsIndexRoute
-  '/admin/posts/new': typeof AdminPostsNewRoute
-  '/admin/posts/$id/edit': typeof AdminPostsIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -140,56 +259,107 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/dev-login'
+    | '/following'
+    | '/notifications'
+    | '/privacy'
     | '/robots.txt'
     | '/rss.xml'
+    | '/settings'
+    | '/terms'
+    | '/welcome'
+    | '/@{$handle}/$postId'
+    | '/admin/reports'
+    | '/admin/tags'
+    | '/admin/users'
+    | '/auth/callback'
+    | '/auth/google'
+    | '/org/$companySlug'
     | '/posts/$slug'
     | '/tags/$slug'
     | '/uploads/$key'
+    | '/@{$handle}/'
     | '/admin/'
     | '/posts/'
     | '/tags/'
-    | '/admin/posts/new'
-    | '/admin/posts/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
+    | '/dev-login'
+    | '/following'
+    | '/notifications'
+    | '/privacy'
     | '/robots.txt'
     | '/rss.xml'
+    | '/settings'
+    | '/terms'
+    | '/welcome'
+    | '/@{$handle}/$postId'
+    | '/admin/reports'
+    | '/admin/tags'
+    | '/admin/users'
+    | '/auth/callback'
+    | '/auth/google'
+    | '/org/$companySlug'
     | '/posts/$slug'
     | '/tags/$slug'
     | '/uploads/$key'
+    | '/@{$handle}'
     | '/admin'
     | '/posts'
     | '/tags'
-    | '/admin/posts/new'
-    | '/admin/posts/$id/edit'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/admin'
+    | '/dev-login'
+    | '/following'
+    | '/notifications'
+    | '/privacy'
     | '/robots.txt'
     | '/rss.xml'
+    | '/settings'
+    | '/terms'
+    | '/welcome'
+    | '/@{$handle}/$postId'
+    | '/admin/reports'
+    | '/admin/tags'
+    | '/admin/users'
+    | '/auth/callback'
+    | '/auth/google'
+    | '/org/$companySlug'
     | '/posts/$slug'
     | '/tags/$slug'
     | '/uploads/$key'
+    | '/@{$handle}/'
     | '/admin/'
     | '/posts/'
     | '/tags/'
-    | '/admin/posts/new'
-    | '/admin/posts/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
+  DevLoginRoute: typeof DevLoginRoute
+  FollowingRoute: typeof FollowingRoute
+  NotificationsRoute: typeof NotificationsRoute
+  PrivacyRoute: typeof PrivacyRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   RssDotxmlRoute: typeof RssDotxmlRoute
+  SettingsRoute: typeof SettingsRoute
+  TermsRoute: typeof TermsRoute
+  WelcomeRoute: typeof WelcomeRoute
+  AtChar123handleChar125PostIdRoute: typeof AtChar123handleChar125PostIdRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthGoogleRoute: typeof AuthGoogleRoute
+  OrgCompanySlugRoute: typeof OrgCompanySlugRoute
   PostsSlugRoute: typeof PostsSlugRoute
   TagsSlugRoute: typeof TagsSlugRoute
   UploadsKeyRoute: typeof UploadsKeyRoute
+  AtChar123handleChar125IndexRoute: typeof AtChar123handleChar125IndexRoute
   PostsIndexRoute: typeof PostsIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
 }
@@ -217,6 +387,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dev-login': {
+      id: '/dev-login'
+      path: '/dev-login'
+      fullPath: '/dev-login'
+      preLoaderRoute: typeof DevLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/following': {
+      id: '/following'
+      path: '/following'
+      fullPath: '/following'
+      preLoaderRoute: typeof FollowingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/robots.txt': {
       id: '/robots.txt'
       path: '/robots.txt'
@@ -231,12 +429,89 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RssDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@{$handle}/': {
+      id: '/@{$handle}/'
+      path: '/@{$handle}'
+      fullPath: '/@{$handle}/'
+      preLoaderRoute: typeof AtChar123handleChar125IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@{$handle}/$postId': {
+      id: '/@{$handle}/$postId'
+      path: '/@{$handle}/$postId'
+      fullPath: '/@{$handle}/$postId'
+      preLoaderRoute: typeof AtChar123handleChar125PostIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/tags': {
+      id: '/admin/tags'
+      path: '/tags'
+      fullPath: '/admin/tags'
+      preLoaderRoute: typeof AdminTagsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/google': {
+      id: '/auth/google'
+      path: '/auth/google'
+      fullPath: '/auth/google'
+      preLoaderRoute: typeof AuthGoogleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/org/$companySlug': {
+      id: '/org/$companySlug'
+      path: '/org/$companySlug'
+      fullPath: '/org/$companySlug'
+      preLoaderRoute: typeof OrgCompanySlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/posts/': {
       id: '/posts/'
@@ -273,33 +548,21 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UploadsKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/posts/new': {
-      id: '/admin/posts/new'
-      path: '/posts/new'
-      fullPath: '/admin/posts/new'
-      preLoaderRoute: typeof AdminPostsNewRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/posts/$id/edit': {
-      id: '/admin/posts/$id/edit'
-      path: '/posts/$id/edit'
-      fullPath: '/admin/posts/$id/edit'
-      preLoaderRoute: typeof AdminPostsIdEditRouteImport
-      parentRoute: typeof AdminRoute
-    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminReportsRoute: typeof AdminReportsRoute
+  AdminTagsRoute: typeof AdminTagsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
-  AdminPostsNewRoute: typeof AdminPostsNewRoute
-  AdminPostsIdEditRoute: typeof AdminPostsIdEditRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminReportsRoute: AdminReportsRoute,
+  AdminTagsRoute: AdminTagsRoute,
+  AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
-  AdminPostsNewRoute: AdminPostsNewRoute,
-  AdminPostsIdEditRoute: AdminPostsIdEditRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -308,11 +571,23 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
+  DevLoginRoute: DevLoginRoute,
+  FollowingRoute: FollowingRoute,
+  NotificationsRoute: NotificationsRoute,
+  PrivacyRoute: PrivacyRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   RssDotxmlRoute: RssDotxmlRoute,
+  SettingsRoute: SettingsRoute,
+  TermsRoute: TermsRoute,
+  WelcomeRoute: WelcomeRoute,
+  AtChar123handleChar125PostIdRoute: AtChar123handleChar125PostIdRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
+  AuthGoogleRoute: AuthGoogleRoute,
+  OrgCompanySlugRoute: OrgCompanySlugRoute,
   PostsSlugRoute: PostsSlugRoute,
   TagsSlugRoute: TagsSlugRoute,
   UploadsKeyRoute: UploadsKeyRoute,
+  AtChar123handleChar125IndexRoute: AtChar123handleChar125IndexRoute,
   PostsIndexRoute: PostsIndexRoute,
   TagsIndexRoute: TagsIndexRoute,
 }
