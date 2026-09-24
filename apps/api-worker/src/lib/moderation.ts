@@ -14,9 +14,9 @@ const MODEL = 'jev-latest'
 const TIMEOUT_MS = 3000
 
 /** この確率以上なら自動で非表示 */
-export const BLOCK_THRESHOLD = 0.9
+export const BLOCK_THRESHOLD = 0.85
 /** この確率以上なら折りたたむ */
-export const SENSITIVE_THRESHOLD = 0.6
+export const SENSITIVE_THRESHOLD = 0.4
 
 export type ModerationLevel = 'ok' | 'sensitive' | 'blocked'
 
@@ -58,9 +58,9 @@ const QUESTIONS = {
   },
   legal: {
     type: 'noul',
-    instructions: 'Does the message create legal risk (promoting illegal acts, exposing personal information, sharing pirated or confidential material, or accusing a real person of a crime without basis)?',
+    instructions: 'Does the message create legal risk (promoting illegal acts, exposing personal information, leaking confidential or unannounced company information, sharing pirated material, or accusing a real person of a crime without basis)?',
     criteria: {
-      true: 'Instructions for crimes, drug dealing, doxxing (addresses, phone numbers, IDs of others), leaking confidential or insider information, piracy links, or baseless criminal accusations.',
+      true: 'Instructions for crimes, drug dealing, doxxing (addresses, phone numbers, IDs of others), unannounced earnings, deals or other internal company information, insider trading tips, piracy links, or baseless criminal accusations.',
       false: 'Discussing laws or news neutrally, sharing public information, or talking about one\'s own work.',
     },
   },

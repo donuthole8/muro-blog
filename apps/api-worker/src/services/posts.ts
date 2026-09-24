@@ -56,6 +56,20 @@ const visibleParents = and(
   isNull(users.deletedAt),
 )
 
+/**
+ * 一覧（ロビー・部屋・タグ）に行として出す親投稿。Jev が自動で非表示にしたものは、
+ * 本文を出さずに「不適切なため非表示にしました」の行として残す（検索・件数からは外したまま）。
+ */
+const shownOrAutoHidden = or(isNull(posts.hiddenAt), eq(posts.moderation, 'blocked'))
+
+const listedParents = and(
+  isNull(posts.parentId),
+  isNull(posts.deletedAt),
+  shownOrAutoHidden,
+  isNull(users.suspendedAt),
+  isNull(users.deletedAt),
+)
+
 async function page(db: Db, where: SQL | undefined, cursor: string | null, limit: number) {
   const rows = await selectPosts(db)
     .where(and(where, cursor ? lt(posts.id, cursor) : undefined))
@@ -67,7 +81,7 @@ async function page(db: Db, where: SQL | undefined, cursor: string | null, limit
 const withId = (row: PostWithAuthor) => Object.assign(row, { id: row.post.id })
 
 export function findLobbyPage(db: Db, cursor: string | null, limit: number) {
-  return page(db, visibleParents, cursor, limit)
+  return page(db, listedParents, cursor, limit)
 }
 
 export function findRoomPage(db: Db, authorId: string, cursor: string | null, limit: number) {
@@ -77,7 +91,7 @@ export function findRoomPage(db: Db, authorId: string, cursor: string | null, li
     and(
       eq(posts.authorId, authorId),
       isNull(posts.parentId),
-      or(and(isNull(posts.deletedAt), isNull(posts.hiddenAt)), gt(posts.replyCount, 0)),
+      or(and(isNull(posts.deletedAt), shownOrAutoHidden), gt(posts.replyCount, 0)),
     ),
     cursor,
     limit,
@@ -88,7 +102,7 @@ export function findTagPage(db: Db, tagId: number, cursor: string | null, limit:
   return page(
     db,
     and(
-      visibleParents,
+      listedParents,
       inArray(posts.id, db.select({ id: postTags.postId }).from(postTags).where(eq(postTags.tagId, tagId))),
     ),
     cursor,

@@ -56,7 +56,9 @@ export function PostItem({
               ? 'この投稿は不適切なため非表示にしました'
               : 'この投稿は表示できません'}
           {variant === 'list' && post.replyCount > 0 && handle && (
-            <ThreadLink handle={handle} threadId={threadId} post={post} />
+            <span className="ml-3">
+              <ThreadLink handle={handle} threadId={threadId} post={post} />
+            </span>
           )}
         </span>
       </article>
