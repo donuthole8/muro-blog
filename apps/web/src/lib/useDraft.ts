@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { ArticleCard } from '@blog/api-client'
 
 export type ComposerDraft = {
   body: string
@@ -7,6 +8,8 @@ export type ComposerDraft = {
   newTags: Array<string>
   /** アップロード済みの画像のキー（プレビューはキーから作り直せる） */
   imageKey: string | null
+  /** 添付する記事（カードの表示に要る分をまるごと持つ） */
+  article: ArticleCard | null
 }
 
 const SAVE_DELAY_MS = 400
@@ -40,17 +43,17 @@ export function useDraft(
     // restore は毎回作り直される関数なので依存に入れない（初回だけ呼べばよい）
   }, [key])
 
-  const { body, tagSlugs, newTags, imageKey } = current
+  const { body, tagSlugs, newTags, imageKey, article } = current
   useEffect(() => {
     // 送信中は書かない。送信に失敗したら入力が戻るので、そのとき改めて保存される
     if (!key || !loaded.current || paused) return
 
     const timer = setTimeout(() => {
-      write(key, { body, tagSlugs, newTags, imageKey })
+      write(key, { body, tagSlugs, newTags, imageKey, article })
     }, SAVE_DELAY_MS)
 
     return () => clearTimeout(timer)
-  }, [key, body, tagSlugs, newTags, imageKey, paused])
+  }, [key, body, tagSlugs, newTags, imageKey, article, paused])
 
   return {
     /** 前回の書きかけを戻したか（「下書きを復元しました」の表示用） */
@@ -72,7 +75,8 @@ function isEmpty(draft: ComposerDraft) {
     draft.body.trim() === '' &&
     draft.tagSlugs.length === 0 &&
     draft.newTags.length === 0 &&
-    draft.imageKey === null
+    draft.imageKey === null &&
+    draft.article === null
   )
 }
 
@@ -90,6 +94,7 @@ function read(key: string): ComposerDraft | null {
         ? value.newTags.filter((s): s is string => typeof s === 'string')
         : [],
       imageKey: typeof value.imageKey === 'string' ? value.imageKey : null,
+      article: isArticleCard(value.article) ? value.article : null,
     }
 
     return isEmpty(draft) ? null : draft
@@ -113,4 +118,14 @@ function remove(key: string) {
   } catch {
     // 同上
   }
+}
+
+function isArticleCard(value: unknown): value is ArticleCard {
+  if (typeof value !== 'object' || value === null) return false
+  const v = value as Partial<ArticleCard>
+  return (
+    typeof v.id === 'number' &&
+    typeof v.slug === 'string' &&
+    typeof v.title === 'string'
+  )
 }

@@ -1,5 +1,6 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 import type {
+  ArticleCard,
   Me,
   PostPage,
   TagSummary,
@@ -167,6 +168,7 @@ export function pendingPost(
     parentId?: string | null
     imageKey?: string | null
     tags?: Array<TagSummary>
+    article?: ArticleCard | null
   },
 ): TimesPost {
   return {
@@ -184,6 +186,7 @@ export function pendingPost(
     reactionCount: 0,
     reactions: [],
     tags: input.tags ?? [],
+    article: input.article ?? null,
     lastReplyAt: null,
     editedAt: null,
     createdAt: new Date().toISOString(),

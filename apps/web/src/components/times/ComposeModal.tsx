@@ -1,26 +1,39 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { Link } from '@tanstack/react-router'
+import type { ArticleCard } from '@blog/api-client'
 import { Composer } from './Composer'
+import { Icon } from '../Icon'
 import { useMe } from '../../lib/queries'
 import { roomName } from '../../lib/site'
 
-const ComposeContext = createContext<() => void>(() => undefined)
+type ComposeOptions = {
+  /** 最初から添付しておく記事（記事を公開した直後の「times で共有する」から） */
+  article?: ArticleCard
+}
 
-/** ヘッダーの「投稿」ボタンから開く投稿モーダル（部屋・スレッド以外の画面用）。 */
+const ComposeContext = createContext<(options?: ComposeOptions) => void>(
+  () => undefined,
+)
+
+/**
+ * ヘッダーの「投稿」ボタンから開く投稿モーダル（部屋・スレッド以外の画面用）。
+ * 長く書きたいときは、ここから記事の編集画面へ移れる。
+ */
 export function ComposeProvider({ children }: { children: React.ReactNode }) {
   const me = useMe()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState<ComposeOptions | null>(null)
 
   useEffect(() => {
     if (!open) return
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') setOpen(null)
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [open])
 
   return (
-    <ComposeContext.Provider value={() => setOpen(true)}>
+    <ComposeContext.Provider value={(options) => setOpen(options ?? {})}>
       {children}
       {open && (
         <div
@@ -29,24 +42,38 @@ export function ComposeProvider({ children }: { children: React.ReactNode }) {
           aria-label="投稿する"
           className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 pt-24"
           onPointerDown={(e) => {
-            if (e.target === e.currentTarget) setOpen(false)
+            if (e.target === e.currentTarget) setOpen(null)
           }}
         >
           <div className="w-full max-w-xl rounded-xl border border-border bg-bg p-4 shadow-xl">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex items-center justify-between gap-2">
               <h2 className="text-sm font-bold">
                 #{me?.handle ? roomName(me.handle) : '自分の部屋'} に投稿
               </h2>
+              {me?.handle && (
+                <Link
+                  to="/articles/new"
+                  onClick={() => setOpen(null)}
+                  className="ml-auto inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-xs text-text-muted transition-colors hover:text-accent"
+                >
+                  <Icon name="article" className="h-4 w-4" />
+                  記事を書く
+                </Link>
+              )}
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => setOpen(null)}
                 aria-label="閉じる"
                 className="-mr-2 flex h-9 w-9 items-center justify-center rounded-md text-text-muted transition-colors hover:text-accent"
               >
                 ×
               </button>
             </div>
-            <Composer autoFocus onSubmitted={() => setOpen(false)} />
+            <Composer
+              autoFocus
+              initialArticle={open.article}
+              onSubmitted={() => setOpen(null)}
+            />
           </div>
         </div>
       )}

@@ -149,7 +149,6 @@ export function PostItem({
           {handle && (
             <span className="font-mono text-xs text-text-muted">@{handle}</span>
           )}
-          <TimeColumn post={post} handle={handle} inline />
           {pending && <span className="text-xs text-text-muted">送信中…</span>}
           {post.editedAt && (
             <span
@@ -204,6 +203,7 @@ export function PostItem({
           {variant === 'list' && handle && !pending && (
             <ThreadLink handle={handle} threadId={threadId} post={post} />
           )}
+          <TimeColumn post={post} handle={handle} inline />
         </div>
       </div>
     </article>
@@ -230,11 +230,11 @@ function TimeColumn({
 }: {
   post: TimesPost
   handle?: string
-  /** 狭い画面で名前の横に出す版。左の列は本文の幅を削るので、sm 未満ではこちらだけを出す */
+  /** 狭い画面で投稿の右下に出す版。左の列は本文の幅を削るので、sm 未満ではこちらだけを出す */
   inline?: boolean
 }) {
   const base = inline
-    ? 'font-mono text-xs tabular-nums text-text-muted sm:hidden'
+    ? 'ml-auto font-mono text-xs tabular-nums text-text-muted sm:hidden'
     : 'hidden w-10 shrink-0 pt-0.5 text-right font-mono text-xs tabular-nums text-text-muted sm:block'
 
   if (isPendingId(post.id)) {

@@ -25,12 +25,12 @@ export const Route = createFileRoute('/posts/')({
   loader: ({ deps }) => fetchArchivedPosts({ data: { page: deps.page } }),
   head: ({ loaderData }) => ({
     meta: [
-      { title: `旧ブログの記事 | ${site.title}` },
+      { title: `ブログ | ${site.title}` },
       {
         name: 'description',
         content: loaderData
-          ? `${site.title} になる前の旧ブログの記事です。全${loaderData.total}件。`
-          : `${site.title} になる前の旧ブログの記事です。`,
+          ? `${site.title} のみんなが書いたブログ記事です。全${loaderData.total}件。`
+          : `${site.title} のみんなが書いたブログ記事です。`,
       },
     ],
   }),
@@ -43,7 +43,7 @@ function PostsIndex() {
 
   return (
     <div>
-      <PageHeader title="旧ブログの記事" description={`${posts.total} 件`} />
+      <PageHeader title="ブログ" description={`${posts.total} 件`} />
 
       {posts.items.length === 0 ? (
         <EmptyState icon="📦" title="記事がありません" />

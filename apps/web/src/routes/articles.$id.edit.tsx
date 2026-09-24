@@ -66,8 +66,9 @@ function EditArticle() {
   const openCompose = useOpenCompose()
 
   const save = useMutation({
-    mutationFn: (input: Parameters<typeof updateArticle>[0]['data']['article']) =>
-      updateArticle({ data: { id: article.id, article: input } }),
+    mutationFn: (
+      input: Parameters<typeof updateArticle>[0]['data']['article'],
+    ) => updateArticle({ data: { id: article.id, article: input } }),
     onSuccess: async (result) => {
       if (!result.ok) return
       void queryClient.invalidateQueries({ queryKey: myArticlesQuery.queryKey })

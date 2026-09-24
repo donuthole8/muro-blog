@@ -71,7 +71,8 @@ async function fetchAllPublishedPosts() {
     }
 
     const body = await res.json()
-    posts.push(...body.items)
+    // 記事ごとの画像を作るのは旧ブログの記事（書き手なし）だけ。ユーザーの記事は共通の画像を使う
+    posts.push(...body.items.filter((item) => !item.author))
     totalPages = body.totalPages
     page += 1
   } while (page <= totalPages)

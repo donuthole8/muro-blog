@@ -162,6 +162,13 @@ function Room() {
               </span>
             )}
             <span>フォロワー {profile.followerCount}</span>
+            <Link
+              to="/@{$handle}/articles"
+              params={{ handle: profile.handle }}
+              className="hover:text-accent"
+            >
+              記事
+            </Link>
             <a
               href={`/@${profile.handle}/rss.xml`}
               className="hover:text-accent"

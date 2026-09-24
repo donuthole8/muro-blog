@@ -12,14 +12,14 @@ const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000'
 const apiBaseUrl = process.env.API_BASE_URL ?? 'http://127.0.0.1:8000'
 
 /**
- * 旧ブログのアーカイブ記事（/posts/:slug）をサイトマップに載せるため、ビルド時に API から
- * 記事の一覧を取ってページを列挙する（ビルド中は API が起動している必要がある）。
+ * ブログ記事（旧ブログの /posts/:slug と、ユーザーの /@handle/articles/:slug）をサイトマップに
+ * 載せるため、ビルド時に API から記事の一覧を取ってページを列挙する（ビルド中は API が起動している必要がある）。
  *
  * ページそのものは静的化せず SSR にする。D1 の本文を書き換えれば再デプロイなしで反映され、
  * 公開 API の応答はエッジでキャッシュされる（lib/edgeCache.ts 参照）。
  */
 async function archivePages() {
-  const slugs: Array<string> = []
+  const paths: Array<string> = []
   let page = 1
   let totalPages = 1
 
@@ -40,16 +40,23 @@ async function archivePages() {
      */
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- 外すと TS18046 になる
     const body = (await res.json()) as {
-      items: Array<{ slug: string }>
+      items: Array<{ slug: string; author?: { handle: string } | null }>
       totalPages: number
     }
-    slugs.push(...body.items.map((item) => item.slug))
+    // apps/web/src/lib/site.ts の articlePath と同じ規則
+    paths.push(
+      ...body.items.map((item) =>
+        item.author
+          ? `/@${item.author.handle}/articles/${item.slug}`
+          : `/posts/${item.slug}`,
+      ),
+    )
     totalPages = body.totalPages
     page += 1
   } while (page <= totalPages)
 
-  return slugs.map((slug) => ({
-    path: `/posts/${slug}`,
+  return paths.map((path) => ({
+    path,
     prerender: { enabled: false },
   }))
 }

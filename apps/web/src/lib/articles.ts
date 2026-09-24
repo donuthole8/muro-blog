@@ -14,15 +14,16 @@ import { throwRead, toFailure, unauthenticated } from './result'
 export const fetchUserArticles = createServerFn({ method: 'GET' })
   .validator((input: { handle: string; page?: number }) => input)
   .handler(async ({ data }) => {
-    const { data: result, error, response } = await getApiClient().fetch.GET(
-      '/api/users/{handle}/articles',
-      {
-        params: {
-          path: { handle: data.handle },
-          query: { page: data.page ?? 1, perPage: POSTS_PER_PAGE },
-        },
+    const {
+      data: result,
+      error,
+      response,
+    } = await getApiClient().fetch.GET('/api/users/{handle}/articles', {
+      params: {
+        path: { handle: data.handle },
+        query: { page: data.page ?? 1, perPage: POSTS_PER_PAGE },
       },
-    )
+    })
     if (response.status === 404) throw notFound()
     if (!result)
       throwRead(error, response.status, '記事一覧の取得に失敗しました。')
@@ -33,12 +34,16 @@ export const fetchUserArticles = createServerFn({ method: 'GET' })
 export const fetchUserArticle = createServerFn({ method: 'GET' })
   .validator((input: { handle: string; slug: string }) => input)
   .handler(async ({ data }) => {
-    const { data: article, error, response } = await getApiClient().fetch.GET(
-      '/api/users/{handle}/articles/{slug}',
-      { params: { path: { handle: data.handle, slug: data.slug } } },
-    )
+    const {
+      data: article,
+      error,
+      response,
+    } = await getApiClient().fetch.GET('/api/users/{handle}/articles/{slug}', {
+      params: { path: { handle: data.handle, slug: data.slug } },
+    })
     if (response.status === 404) throw notFound()
-    if (!article) throwRead(error, response.status, '記事の取得に失敗しました。')
+    if (!article)
+      throwRead(error, response.status, '記事の取得に失敗しました。')
 
     return article
   })

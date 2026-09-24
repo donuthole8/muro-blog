@@ -76,11 +76,7 @@ function MyArticles() {
       ) : (
         <ul className="divide-y divide-border">
           {items.map((article) => (
-            <Row
-              key={article.id}
-              article={article}
-              handle={me.handle}
-            />
+            <Row key={article.id} article={article} handle={me.handle} />
           ))}
         </ul>
       )}
@@ -122,7 +118,9 @@ function Row({ article, handle }: { article: MyArticle; handle: string }) {
           <span className={published ? 'text-accent' : undefined}>
             {published ? '公開中' : '下書き'}
           </span>
-          <span className="font-mono">{formatDate(article.updatedAt)} 更新</span>
+          <span className="font-mono">
+            {formatDate(article.updatedAt)} 更新
+          </span>
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1 text-xs">

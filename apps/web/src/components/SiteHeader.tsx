@@ -53,7 +53,11 @@ export function SiteHeader() {
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0 sm:gap-3">
             {me?.handle && (
               <>
-                <Button size="sm" onClick={openCompose} aria-label="投稿する">
+                <Button
+                  size="sm"
+                  onClick={() => openCompose()}
+                  aria-label="投稿する"
+                >
                   <Icon name="pencil" className="h-4 w-4 sm:hidden" />
                   <span className="hidden sm:inline">投稿</span>
                 </Button>
@@ -171,6 +175,11 @@ function AccountMenu() {
           ) : (
             <Link to="/welcome" className={itemClass}>
               handle を決める
+            </Link>
+          )}
+          {me.handle && (
+            <Link to="/articles" className={itemClass}>
+              自分の記事
             </Link>
           )}
           <Link to="/settings" className={itemClass}>

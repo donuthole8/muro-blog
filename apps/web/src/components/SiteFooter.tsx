@@ -13,7 +13,7 @@ export function SiteFooter() {
             {site.title} について
           </Link>
           <Link to="/posts" className="transition-colors hover:text-accent">
-            旧ブログ
+            ブログ
           </Link>
         </nav>
       </div>

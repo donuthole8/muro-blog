@@ -172,7 +172,8 @@ cd packages/api-client && pnpm exec tsx scripts/smoke.ts
 | GET | `/api/posts/{id}`（親投稿＋返信） | 15 秒 |
 | GET | `/api/tags` / `/api/tags/{slug}/posts?cursor=` | 5 分 / 15 秒 |
 | GET | `/api/orgs/{slug}/users` | 5 分 |
-| GET | `/api/archive/posts` / `/api/archive/posts/{slug}` / `/api/archive/tags` | 1 時間 |
+| GET | `/api/archive/posts`（全員のブログ記事）/ `/api/archive/posts/{slug}`（旧ブログの記事）/ `/api/archive/tags` | 60 秒 |
+| GET | `/api/users/{handle}/articles` / `/api/users/{handle}/articles/{slug}` | 15 秒 |
 
 ### ログインが必要（`Authorization: Bearer <セッショントークン>`）
 
@@ -180,13 +181,16 @@ cd packages/api-client && pnpm exec tsx scripts/smoke.ts
 |---|---|
 | GET / PUT / DELETE | `/api/me`（DELETE は退会） |
 | GET | `/api/me/viewer-state?postIds=&handle=` |
-| POST | `/api/posts`（`parentId` を付ければ返信） |
+| POST | `/api/posts`（`parentId` を付ければ返信、`articleId` で記事を添付） |
 | GET | `/api/posts/{id}/source`（編集用の Markdown。本人のみ） |
 | PUT / DELETE | `/api/posts/{id}` |
 | PUT / DELETE | `/api/posts/{id}/reactions/{emoji}` |
 | PUT / DELETE | `/api/follows/{handle}` |
 | POST | `/api/follows/{handle}/read` |
 | GET | `/api/following` |
+| GET / POST | `/api/me/articles`（自分の記事。下書きを含む） |
+| GET / PUT / DELETE | `/api/me/articles/{id}` |
+| POST | `/api/me/articles/preview` |
 | GET | `/api/notifications?cursor=` |
 | POST | `/api/notifications/read` |
 

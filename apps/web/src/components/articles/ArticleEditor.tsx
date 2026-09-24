@@ -135,15 +135,15 @@ export function ArticleEditor({
         </span>
         <TagPicker
           tags={tags.data ?? []}
-          tagSlugs={form.tagSlugs ?? []}
-          newTags={form.newTags ?? []}
+          tagSlugs={form.tagSlugs}
+          newTags={form.newTags}
           onChange={(tagSlugs, newTags) =>
             setForm((prev) => ({ ...prev, tagSlugs, newTags }))
           }
         />
         {(errors.tagSlugs || errors.newTags) && (
           <span className="mt-1 block text-xs text-danger">
-            {errors.tagSlugs ?? errors.newTags}
+            {errors.tagSlugs || errors.newTags}
           </span>
         )}
       </div>

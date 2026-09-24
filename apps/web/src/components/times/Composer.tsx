@@ -1,10 +1,17 @@
 import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import type { TagWithCount, TimesPost } from '@blog/api-client'
+import type {
+  ArticleCard as ArticleCardData,
+  TagWithCount,
+  TimesPost,
+} from '@blog/api-client'
 import { Button } from '../Button'
 import { Icon } from '../Icon'
+import { ArticleCard } from '../articles/ArticleCard'
+import { Popover } from './Popover'
 import { createPost, uploadPostImage } from '../../lib/account'
+import { DEFAULT_EMOJI } from '../../lib/emoji'
 import { imageUrl, prepareImage } from '../../lib/image'
 import {
   appendReply,
@@ -13,7 +20,7 @@ import {
   replacePost,
   updatePostEverywhere,
 } from '../../lib/postCache'
-import { tagsQuery, useMe } from '../../lib/queries'
+import { myArticlesQuery, tagsQuery, useMe } from '../../lib/queries'
 import { loginUrl } from '../../lib/site'
 import { draftKey, useDraft } from '../../lib/useDraft'
 import { TagPicker } from './TagPicker'
@@ -24,6 +31,8 @@ type Props = {
   /** 指定すると、そのスレッドへの返信になる */
   parentId?: string
   autoFocus?: boolean
+  /** 最初から添付しておく記事 */
+  initialArticle?: ArticleCardData
   /** 投稿を受け付けた（楽観的に画面へ出した）ときに呼ばれる */
   onSubmitted?: () => void
 }
@@ -34,7 +43,12 @@ type Props = {
  * 送信したら応答を待たずに一覧へ仮の投稿を差し込み（楽観的更新）、
  * 保存できたら本物に置き換える。失敗したら仮の投稿を消して入力を戻す。
  */
-export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
+export function Composer({
+  parentId,
+  autoFocus,
+  initialArticle,
+  onSubmitted,
+}: Props) {
   const me = useMe()
   const queryClient = useQueryClient()
   const isReply = parentId !== undefined
@@ -44,6 +58,9 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
   const [newTags, setNewTags] = useState<Array<string>>([])
   const [image, setImage] = useState<{ key: string; preview: string } | null>(
     null,
+  )
+  const [article, setArticle] = useState<ArticleCardData | null>(
+    initialArticle ?? null,
   )
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -58,6 +75,7 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
     tagSlugs: Array<string>
     newTags: Array<string>
     image: { key: string; preview: string } | null
+    article: ArticleCardData | null
   }
 
   /** 送信を取り消して、仮の投稿を消し入力を元に戻す。 */
@@ -73,12 +91,13 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
     setTagSlugs(draft.tagSlugs)
     setNewTags(draft.newTags)
     setImage(draft.image)
+    setArticle(draft.article)
     setError(message)
   }
 
   const saved = useDraft(
     me?.handle ? draftKey(me.handle, parentId) : null,
-    { body, tagSlugs, newTags, imageKey: image?.key ?? null },
+    { body, tagSlugs, newTags, imageKey: image?.key ?? null, article },
     (draft) => {
       setBody(draft.body)
       setTagSlugs(draft.tagSlugs)
@@ -88,6 +107,8 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
           ? { key: draft.imageKey, preview: imageUrl(draft.imageKey) }
           : null,
       )
+      // 共有するつもりで開いた記事は、書きかけの下書きより優先する
+      setArticle(initialArticle ?? draft.article)
     },
     { paused: sending },
   )
@@ -102,6 +123,7 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
           imageKey: draft.image?.key ?? null,
           tagSlugs: isReply ? [] : draft.tagSlugs,
           newTags: isReply ? [] : draft.newTags,
+          articleId: draft.article?.id ?? null,
         },
       }),
     onMutate: ({ pending }) => {
@@ -115,6 +137,7 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
       setTagSlugs([])
       setNewTags([])
       setImage(null)
+      setArticle(null)
       setError(null)
       saved.dismissRestored()
       onSubmitted?.()
@@ -177,7 +200,10 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
 
   const trimmed = body.trim()
   const tooLong = body.length > MAX_LENGTH
-  const canSubmit = (trimmed !== '' || image !== null) && !tooLong && !uploading
+  const canSubmit =
+    (trimmed !== '' || image !== null || article !== null) &&
+    !tooLong &&
+    !uploading
 
   const send = () => {
     if (!canSubmit) return
@@ -190,12 +216,13 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
     ]
 
     submit.mutate({
-      draft: { body, tagSlugs, newTags, image },
+      draft: { body, tagSlugs, newTags, image, article },
       pending: pendingPost(me, {
         bodyMarkdown: trimmed,
         parentId: parentId ?? null,
         imageKey: image?.key ?? null,
         tags: selectedTags,
+        article,
       }),
     })
   }
@@ -278,6 +305,10 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
         </div>
       )}
 
+      {article && (
+        <ArticleCard article={article} onRemove={() => setArticle(null)} />
+      )}
+
       {!isReply && (
         <TagPicker
           tags={tags.data ?? []}
@@ -311,6 +342,10 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
           <Icon name="image" className="h-4 w-4" />
           {uploading ? '画像を処理中…' : '画像'}
         </button>
+        <ArticlePicker
+          disabled={article !== null}
+          onPick={(picked) => setArticle(picked)}
+        />
 
         {error && <span className="text-xs text-danger">{error}</span>}
         {!error && saved.restored && (
@@ -324,6 +359,7 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
                 setTagSlugs([])
                 setNewTags([])
                 setImage(null)
+                setArticle(null)
               }}
               className="underline hover:text-accent"
             >
@@ -347,5 +383,110 @@ export function Composer({ parentId, autoFocus, onSubmitted }: Props) {
         </Button>
       </div>
     </form>
+  )
+}
+
+/**
+ * 自分の公開済みの記事から1つ選んで添付する。
+ * 候補はパネルを開いたときに取りに行く（Popover は開くまで中身を描かない）。
+ */
+function ArticlePicker({
+  disabled,
+  onPick,
+}: {
+  disabled: boolean
+  onPick: (article: ArticleCardData) => void
+}) {
+  return (
+    <Popover
+      trigger={({ toggle }) => (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={toggle}
+          aria-label="記事を添付"
+          className="inline-flex min-h-9 items-center gap-1 rounded-md px-1 text-xs text-text-muted transition-colors hover:text-accent disabled:opacity-40"
+        >
+          <Icon name="article" className="h-4 w-4" />
+          記事
+        </button>
+      )}
+    >
+      {(close) => (
+        <ArticlePickerPanel
+          onPick={(article) => {
+            onPick(article)
+            close()
+          }}
+          onClose={close}
+        />
+      )}
+    </Popover>
+  )
+}
+
+function ArticlePickerPanel({
+  onPick,
+  onClose,
+}: {
+  onPick: (article: ArticleCardData) => void
+  onClose: () => void
+}) {
+  const me = useMe()
+  const articles = useQuery(myArticlesQuery)
+  const published = (articles.data ?? []).filter(
+    (article) => article.status === 'published',
+  )
+
+  return (
+    <div className="w-72 overflow-hidden rounded-xl border border-border bg-surface shadow-lg">
+      <p className="border-b border-border px-3 py-2 text-xs font-bold text-text-muted">
+        添付する記事を選ぶ
+      </p>
+      <div className="max-h-64 overflow-y-auto py-1">
+        {articles.isPending ? (
+          <p className="px-3 py-2 text-xs text-text-muted">読み込み中…</p>
+        ) : published.length === 0 ? (
+          <p className="px-3 py-2 text-xs text-text-muted">
+            公開中の記事がありません。
+          </p>
+        ) : (
+          published.map((article) => (
+            <button
+              key={article.id}
+              type="button"
+              onClick={() =>
+                onPick({
+                  id: article.id,
+                  slug: article.slug,
+                  title: article.title,
+                  emoji: article.emoji,
+                  excerpt: article.excerpt,
+                  author: me?.handle
+                    ? {
+                        handle: me.handle,
+                        displayName: me.displayName,
+                        avatarUrl: me.avatarUrl,
+                      }
+                    : null,
+                })
+              }
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent-soft"
+            >
+              <span aria-hidden>{article.emoji || DEFAULT_EMOJI}</span>
+              <span className="min-w-0 flex-1 truncate">{article.title}</span>
+            </button>
+          ))
+        )}
+      </div>
+      <Link
+        to="/articles/new"
+        onClick={onClose}
+        className="flex items-center gap-1 border-t border-border px-3 py-2 text-xs text-accent hover:bg-accent-soft"
+      >
+        <Icon name="plus" className="h-3.5 w-3.5" />
+        新しく記事を書く
+      </Link>
+    </div>
   )
 }
