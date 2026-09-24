@@ -1,18 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { fetchArchivedPost } from '../lib/archive'
 import { ArticleView } from '../components/articles/ArticleView'
+import { fetchUserArticle } from '../lib/articles'
 import { site } from '../lib/site'
 
-export const Route = createFileRoute('/posts/$slug')({
-  loader: ({ params }) => fetchArchivedPost({ data: { slug: params.slug } }),
+export const Route = createFileRoute('/@{$handle}/articles/$slug')({
+  loader: ({ params }) =>
+    fetchUserArticle({ data: { handle: params.handle, slug: params.slug } }),
   head: ({ loaderData, params }) => {
     if (!loaderData) return { meta: [] }
 
     const description = loaderData.excerpt ?? site.description
-    const url = `${site.url}/posts/${params.slug}`
-    // 公開時のビルドで生成される記事ごとの画像。生成前（開発中など）は
-    // 存在しなくても404になるだけなので、常にこのパスを指してよい
-    const ogImage = `${site.url}/og/${params.slug}.png`
+    const url = `${site.url}/@${params.handle}/articles/${params.slug}`
+    // ユーザーの記事は記事ごとの画像を作らない（旧ブログの記事だけビルド時に生成している）
+    const ogImage = `${site.url}${site.ogImage}`
 
     return {
       meta: [
@@ -40,10 +40,10 @@ export const Route = createFileRoute('/posts/$slug')({
       links: [{ rel: 'canonical', href: url }],
     }
   },
-  component: PostDetailPage,
+  component: UserArticlePage,
 })
 
-function PostDetailPage() {
+function UserArticlePage() {
   const post = Route.useLoaderData()
 
   return <ArticleView post={post} />

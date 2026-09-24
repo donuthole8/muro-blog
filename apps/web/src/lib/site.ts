@@ -47,3 +47,13 @@ export function safeReturnTo(value: string | null | undefined): string {
   }
   return value
 }
+
+/** 記事の公開 URL のパス。書き手のいない記事は旧ブログの記事（/posts/:slug）。 */
+export function articlePath(article: {
+  slug: string
+  author?: { handle: string } | null
+}) {
+  return article.author
+    ? `/@${article.author.handle}/articles/${article.slug}`
+    : `/posts/${article.slug}`
+}

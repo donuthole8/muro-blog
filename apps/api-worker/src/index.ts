@@ -6,6 +6,7 @@ import { authenticate } from './lib/auth'
 import { ApiError, errorBody } from './lib/http'
 import { admin } from './routes/admin'
 import { archive } from './routes/archive'
+import { articles } from './routes/articles'
 import { auth } from './routes/auth'
 import { dev } from './routes/dev'
 import { discover } from './routes/discover'
@@ -30,6 +31,7 @@ app.use(authenticate)
 
 app.route('/', discover)
 app.route('/', social)
+app.route('/', articles)
 app.route('/posts', postRoutes)
 app.route('/me', me)
 app.route('/auth', auth)

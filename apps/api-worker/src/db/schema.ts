@@ -82,6 +82,10 @@ export const posts = sqliteTable(
     bodyMarkdown: text('body_markdown').notNull(),
     bodyHtml: text('body_html').notNull(),
     imageKey: text('image_key'),
+    /** 添付したブログ記事（archived_posts）。記事が消えたら外れる */
+    articleId: integer('article_id').references((): any => archivedPosts.id, {
+      onDelete: 'set null',
+    }),
     replyCount: integer('reply_count').notNull().default(0),
     reactionCount: integer('reaction_count').notNull().default(0),
     lastReplyAt: integer('last_reply_at', { mode: 'timestamp' }),
@@ -239,13 +243,23 @@ export const rateLimits = sqliteTable('rate_limits', {
   expiresAt: integer('expires_at').notNull(),
 })
 
-// ---------- 旧ブログ（読み取り専用のアーカイブ） ----------
+// ---------- ブログ記事 ----------
 
+/**
+ * ブログ記事。テーブル名は旧ブログ（読み取り専用のアーカイブ）時代のまま。
+ *
+ * - authorId が null の行は旧ブログの記事（/posts/:slug）。本文 HTML は旧ブログで変換済み
+ * - authorId がある行は各ユーザーの記事（/@handle/articles/:slug）。生 HTML は通さずに変換する
+ * - slug は旧ブログの中、ユーザーの記事は書き手ごとに一意
+ */
 export const archivedPosts = sqliteTable(
   'archived_posts',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    slug: text('slug').notNull().unique(),
+    authorId: text('author_id').references(() => users.id, {
+      onDelete: 'cascade',
+    }),
+    slug: text('slug').notNull(),
     title: text('title').notNull(),
     emoji: text('emoji'),
     bodyMd: text('body_md').notNull(),
@@ -258,6 +272,12 @@ export const archivedPosts = sqliteTable(
   },
   (t) => [
     index('idx_archived_posts_published').on(t.status, t.publishedAt),
+    // SQLite の一意制約は NULL 同士を別物とみなすので、旧ブログの slug は部分インデックスで守る
+    uniqueIndex('uniq_archived_posts_author_slug').on(t.authorId, t.slug),
+    uniqueIndex('uniq_archived_posts_legacy_slug')
+      .on(t.slug)
+      .where(sql`${t.authorId} IS NULL`),
+    index('idx_archived_posts_author').on(t.authorId, t.updatedAt),
   ],
 )
 

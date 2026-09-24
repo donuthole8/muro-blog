@@ -30,6 +30,10 @@ export type ReportInput = Schemas["ReportInput"];
 export type ArchivedPostSummary = Schemas["ArchivedPostSummary"];
 export type ArchivedPostDetail = Schemas["ArchivedPostDetail"];
 export type PaginatedArchivedPosts = Schemas["PaginatedArchivedPosts"];
+export type ArticleCard = Schemas["ArticleCard"];
+export type MyArticle = Schemas["MyArticle"];
+export type ArticleSource = Schemas["ArticleSource"];
+export type ArticleInput = Schemas["ArticleInput"];
 export type ValidationError = Schemas["ValidationError"];
 
 export type ApiClientOptions = {

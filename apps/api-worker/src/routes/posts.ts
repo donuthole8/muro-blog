@@ -115,6 +115,7 @@ postRoutes.post('/', async (c) => {
   const imageKey = input.optionalString('imageKey', { max: 128 })
   const tagSlugs = input.stringList('tagSlugs', tagRule)
   const newTags = input.stringList('newTags', newTagRule)
+  const articleId = input.optionalId('articleId')
   input.assertValid()
 
   const created = await createPost(writerContext(c), user, {
@@ -123,6 +124,7 @@ postRoutes.post('/', async (c) => {
     imageKey,
     tagSlugs,
     newTags,
+    articleId,
   })
   const [post] = await toPosts(c.var.db, [created])
   return c.json(post, 201, privateCache)

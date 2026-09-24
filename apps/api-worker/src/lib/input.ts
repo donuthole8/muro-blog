@@ -48,6 +48,17 @@ export class Input {
     return this.string(field, rule)
   }
 
+  /** 省略可（null 可）の正の整数（ID など）。 */
+  optionalId(field: string): number | null {
+    const value = this.body[field]
+    if (value === undefined || value === null) return null
+    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
+      this.fail(field, 'ID が不正です。')
+      return null
+    }
+    return value
+  }
+
   /** 文字列の配列。 */
   stringList(
     field: string,

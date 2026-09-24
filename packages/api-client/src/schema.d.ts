@@ -686,6 +686,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users/{handle}/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_users_articles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{handle}/articles/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_users_articles_show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_me_articles"];
+        put?: never;
+        post: operations["post_api_me_articles"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/articles/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_me_articles_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/articles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_me_articles_show"];
+        put: operations["put_api_me_articles_update"];
+        post?: never;
+        delete: operations["delete_api_me_articles_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -764,6 +844,8 @@ export interface components {
              *     ]
              */
             newTags: string[];
+            /** @description 添付する公開中のブログ記事の ID */
+            articleId?: number | null;
         };
         PostUpdateInput: {
             /**
@@ -875,6 +957,8 @@ export interface components {
              */
             publishedAt?: string | null;
             tags: components["schemas"]["TagSummary"][];
+            /** @description 書き手。旧ブログの記事なら null（/posts/{slug} で公開される） */
+            author?: components["schemas"]["UserSummary"] | null;
         };
         PaginatedArchivedPosts: {
             items: components["schemas"]["ArchivedPostSummary"][];
@@ -901,6 +985,8 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             tags: components["schemas"]["TagSummary"][];
+            /** @description 書き手。旧ブログの記事なら null（/posts/{slug} で公開される） */
+            author?: components["schemas"]["UserSummary"] | null;
         };
         TagWithCount: {
             /** @example JavaScript */
@@ -988,6 +1074,8 @@ export interface components {
             editedAt?: string | null;
             /** Format: date-time */
             createdAt: string;
+            /** @description 添付したブログ記事。非公開・削除になったら null */
+            article?: components["schemas"]["ArticleCard"] | null;
         };
         PostPage: {
             items: components["schemas"]["TimesPost"][];
@@ -1100,6 +1188,72 @@ export interface components {
             suspended: boolean;
             /** Format: date-time */
             createdAt: string;
+        };
+        /** @description 投稿に添付されたブログ記事（公開中のものだけ） */
+        ArticleCard: {
+            id: number;
+            slug: string;
+            title: string;
+            emoji?: string | null;
+            excerpt?: string | null;
+            /** @description 書き手。旧ブログの記事なら null（/posts/{slug} で公開される） */
+            author?: components["schemas"]["UserSummary"] | null;
+        };
+        MyArticle: {
+            id: number;
+            /** @example hello-world */
+            slug: string;
+            title: string;
+            emoji?: string | null;
+            /** @description 本文から自動で作る抜粋 */
+            excerpt?: string | null;
+            /** @enum {string} */
+            status: "draft" | "published";
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            tags: components["schemas"]["TagSummary"][];
+        };
+        MyArticleList: {
+            items: components["schemas"]["MyArticle"][];
+        };
+        ArticleSource: {
+            id: number;
+            /** @example hello-world */
+            slug: string;
+            title: string;
+            emoji?: string | null;
+            /** @description 本文から自動で作る抜粋 */
+            excerpt?: string | null;
+            /** @enum {string} */
+            status: "draft" | "published";
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            tags: components["schemas"]["TagSummary"][];
+            /** @description Markdown 原文 */
+            bodyMd: string;
+        };
+        ArticleInput: {
+            title: string;
+            /** @description URL に使う（英小文字・数字・ハイフン）。空なら自動で付ける */
+            slug?: string | null;
+            emoji?: string | null;
+            bodyMd: string;
+            /** @enum {string} */
+            status: "draft" | "published";
+            /** @default [] */
+            tagSlugs: string[];
+            /** @default [] */
+            newTags: string[];
+        };
+        ArticlePreviewInput: {
+            bodyMd: string;
+        };
+        ArticlePreview: {
+            bodyHtml: string;
         };
     };
     responses: never;
@@ -2553,6 +2707,255 @@ export interface operations {
                 };
             };
             /** @description 部屋が存在しない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_users_articles: {
+        parameters: {
+            query?: {
+                /** @description 1 始まりのページ番号 */
+                page?: number;
+                /** @description 1ページあたりの件数 */
+                perPage?: number;
+            };
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description その人の公開済みの記事（新しい順） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedArchivedPosts"];
+                };
+            };
+            /** @description ユーザーがいない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_users_articles_show: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 公開済みの記事 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchivedPostDetail"];
+                };
+            };
+            /** @description 記事がないか非公開 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_me_articles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 自分の記事（下書きを含む。更新の新しい順） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyArticleList"];
+                };
+            };
+        };
+    };
+    post_api_me_articles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleInput"];
+            };
+        };
+        responses: {
+            /** @description 作った記事 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleSource"];
+                };
+            };
+            /** @description 入力値が不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    post_api_me_articles_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticlePreviewInput"];
+            };
+        };
+        responses: {
+            /** @description 変換した HTML（保存はしない） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticlePreview"];
+                };
+            };
+        };
+    };
+    get_api_me_articles_show: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 編集用の記事 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleSource"];
+                };
+            };
+            /** @description 記事がないか自分の記事ではない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    put_api_me_articles_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleInput"];
+            };
+        };
+        responses: {
+            /** @description 保存した記事 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleSource"];
+                };
+            };
+            /** @description 記事がないか自分の記事ではない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 入力値が不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_me_articles_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 削除した */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 記事がないか自分の記事ではない */
             404: {
                 headers: {
                     [name: string]: unknown;

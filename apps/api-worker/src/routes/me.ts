@@ -2,7 +2,7 @@ import { and, asc, count, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import type { BatchItem } from 'drizzle-orm/batch'
 import { Hono } from 'hono'
 import type { Db, User } from '../db/client'
-import { blocks, follows, notifications, posts, reactions, sessions, users } from '../db/schema'
+import { archivedPosts, blocks, follows, notifications, posts, reactions, sessions, users } from '../db/schema'
 import type { AppEnv } from '../env'
 import { activeUser, currentUser } from '../lib/auth'
 import { ApiError, invalid, isUlid, now, privateCache } from '../lib/http'
@@ -85,6 +85,7 @@ me.put('/', async (c) => {
  * 退会（データ削除）。仕様は docs/PLAN.md §11「退会したユーザーの投稿の扱い」。
  *
  * - 投稿はすべて論理削除して本文・画像を消す。親投稿の行は残し、他人の返信は残す
+ * - ブログ記事は行ごと消す
  * - 付けたリアクション・フォロー・ブロック・通知・セッションは行ごと消す
  * - 退会者が出した通報は、管理上の記録として残す
  * - ユーザーの行は残すが、Google の ID・handle・プロフィールは消す
@@ -109,6 +110,8 @@ me.delete('/', async (c) => {
 
   const statements: BatchItem<'sqlite'>[] = own.flatMap((p) => deletePostStatements(db, p))
   statements.push(
+    // ブログ記事は行ごと消す（添付していた投稿からは ON DELETE SET NULL で外れる）
+    db.delete(archivedPosts).where(eq(archivedPosts.authorId, user.id)),
     db.delete(reactions).where(eq(reactions.userId, user.id)),
     db.delete(notifications).where(or(eq(notifications.userId, user.id), eq(notifications.actorId, user.id))),
     db.delete(follows).where(or(eq(follows.followerId, user.id), eq(follows.followeeId, user.id))),

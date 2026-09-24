@@ -1,7 +1,7 @@
 import { and, count, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { BatchItem } from 'drizzle-orm/batch'
 import type { Db, Post, User } from '../db/client'
-import { notifications, postTags, posts, tags } from '../db/schema'
+import { archivedPosts, notifications, postTags, posts, tags } from '../db/schema'
 import { forbidden, invalid, newId, notFound, now } from '../lib/http'
 import { embedLinkCards, hasBareLink } from '../lib/linkCards'
 import { mentionCandidates, renderPostBody } from '../lib/markdown'
@@ -40,6 +40,8 @@ export type PostInput = {
   tagSlugs: string[]
   /** 新しく作るタグの名前（既にあればそれを使う） */
   newTags?: string[]
+  /** 添付する公開中のブログ記事 */
+  articleId?: number | null
 }
 
 export async function createPost(
@@ -49,8 +51,9 @@ export async function createPost(
 ): Promise<PostWithAuthor> {
   const { db } = ctx
   const body = input.bodyMarkdown.trim()
-  if (body === '' && input.imageKey === null) {
-    throw invalid('bodyMarkdown', '本文か画像のどちらかは必要です。')
+  const articleId = input.articleId ?? null
+  if (body === '' && input.imageKey === null && articleId === null) {
+    throw invalid('bodyMarkdown', '本文・画像・記事のどれかは必要です。')
   }
 
   let parent: PostWithAuthor | undefined
@@ -72,6 +75,7 @@ export async function createPost(
   }
 
   const imageKey = validImageKey(author, input.imageKey)
+  if (articleId !== null) await assertAttachableArticle(db, articleId)
   const tagIds = await resolveTags(db, input.tagSlugs, input.newTags ?? [])
 
   // 入力の検証を通ったものだけを数える（打ち間違いで枠を減らさない）
@@ -86,6 +90,7 @@ export async function createPost(
     bodyMarkdown: body,
     bodyHtml: rendered.html,
     imageKey,
+    articleId,
     replyCount: 0,
     reactionCount: 0,
     lastReplyAt: null,
@@ -161,7 +166,7 @@ export function deletePostStatements(db: Db, post: Post): Batch {
   const statements: Batch = [
     db
       .update(posts)
-      .set({ deletedAt: post.deletedAt ?? now(), bodyMarkdown: '', bodyHtml: '', imageKey: null })
+      .set({ deletedAt: post.deletedAt ?? now(), bodyMarkdown: '', bodyHtml: '', imageKey: null, articleId: null })
       .where(eq(posts.id, post.id)),
     db.delete(postTags).where(eq(postTags.postId, post.id)),
   ]
@@ -203,7 +208,17 @@ function validImageKey(author: User, key: string | null): string | null {
   return key
 }
 
-async function resolveTags(db: Db, slugs: string[], newNames: string[]): Promise<number[]> {
+/** 添付できるのは公開中の記事だけ（他人の記事でもよい）。 */
+async function assertAttachableArticle(db: Db, id: number) {
+  const article = await db
+    .select({ id: archivedPosts.id })
+    .from(archivedPosts)
+    .where(and(eq(archivedPosts.id, id), eq(archivedPosts.status, 'published')))
+    .get()
+  if (!article) throw invalid('articleId', '記事が見つからないか、公開されていません。')
+}
+
+export async function resolveTags(db: Db, slugs: string[], newNames: string[]): Promise<number[]> {
   const unique = [...new Set(slugs)]
   const ids: number[] = []
   if (unique.length > 0) {

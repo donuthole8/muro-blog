@@ -11,6 +11,7 @@ import { ApiError } from './http'
  */
 const LIMITS = {
   post: { label: '投稿', window: 10 * 60, limit: 30, newLimit: 10 },
+  article: { label: '記事の作成', window: 60 * 60, limit: 20, newLimit: 5 },
   image_upload: { label: '画像のアップロード', window: 60 * 60, limit: 30, newLimit: 5 },
   reaction: { label: 'リアクション', window: 10 * 60, limit: 120, newLimit: 40 },
   report: { label: '通報', window: 24 * 60 * 60, limit: 20, newLimit: 5 },

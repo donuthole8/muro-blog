@@ -1,49 +1,26 @@
-import { and, asc, count, desc, eq, inArray, isNotNull } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { Hono } from 'hono'
-import type { Db } from '../db/client'
-import { archivedPostTags, archivedPosts, tags } from '../db/schema'
+import { archivedPostTags, archivedPosts, tags, users } from '../db/schema'
 import type { AppEnv } from '../env'
-import { CacheFor, iso, notFound, publicCache } from '../lib/http'
+import { CacheFor, notFound, publicCache } from '../lib/http'
+import {
+  countArticles,
+  publishedArticle,
+  selectArticles,
+  tagsByArticle,
+  toArticleDetail,
+  toArticleSummary,
+} from '../services/articles'
 import type { Schemas } from '../services/mapper'
 
 /**
- * 旧ブログの記事（読み取り専用のアーカイブ）。/posts/:slug はビルド時に静的化される。
+ * ブログ記事の一覧（旧ブログの記事とユーザーの記事を合わせて新しい順）と、旧ブログの記事の本文。
+ * ユーザーの記事の本文は routes/articles.ts（/users/:handle/articles/:slug）で返す。
  */
 export const archive = new Hono<AppEnv>()
 
 const DEFAULT_PER_PAGE = 10
 const MAX_PER_PAGE = 50
-
-const published = and(eq(archivedPosts.status, 'published'), isNotNull(archivedPosts.publishedAt))
-
-type ArchivedPost = typeof archivedPosts.$inferSelect
-
-async function tagsByPost(db: Db, ids: number[]) {
-  const map = new Map<number, Schemas['TagSummary'][]>()
-  if (ids.length === 0) return map
-  const rows = await db
-    .select({ id: archivedPostTags.archivedPostId, name: tags.name, slug: tags.slug })
-    .from(archivedPostTags)
-    .innerJoin(tags, eq(tags.id, archivedPostTags.tagId))
-    .where(inArray(archivedPostTags.archivedPostId, ids))
-    .orderBy(asc(tags.name))
-  for (const { id, name, slug } of rows) {
-    map.set(id, [...(map.get(id) ?? []), { name, slug }])
-  }
-  return map
-}
-
-function toSummary(post: ArchivedPost, tagList: Schemas['TagSummary'][]): Schemas['ArchivedPostSummary'] {
-  return {
-    id: post.id,
-    slug: post.slug,
-    title: post.title,
-    emoji: post.emoji,
-    excerpt: post.excerpt,
-    publishedAt: iso(post.publishedAt),
-    tags: tagList,
-  }
-}
 
 const intParam = (value: string | undefined, fallback: number) => {
   const n = Number.parseInt(value ?? '', 10)
@@ -58,7 +35,7 @@ archive.get('/posts', async (c) => {
 
   const where = tagSlug
     ? and(
-        published,
+        publishedArticle,
         inArray(
           archivedPosts.id,
           db
@@ -68,24 +45,21 @@ archive.get('/posts', async (c) => {
             .where(eq(tags.slug, tagSlug)),
         ),
       )
-    : published
+    : publishedArticle
 
-  const [items, total] = await Promise.all([
-    db
-      .select()
-      .from(archivedPosts)
+  const [rows, totalCount] = await Promise.all([
+    selectArticles(db)
       .where(where)
       .orderBy(desc(archivedPosts.publishedAt), desc(archivedPosts.id))
       .limit(perPage)
       .offset((page - 1) * perPage),
-    db.select({ n: count() }).from(archivedPosts).where(where).get(),
+    countArticles(db, where),
   ])
-  const tagMap = await tagsByPost(db, items.map((p) => p.id))
-  const totalCount = total?.n ?? 0
+  const tagMap = await tagsByArticle(db, rows.map((r) => r.article.id))
 
   return c.json(
     {
-      items: items.map((p) => toSummary(p, tagMap.get(p.id) ?? [])),
+      items: rows.map((r) => toArticleSummary(r, tagMap.get(r.article.id) ?? [])),
       total: totalCount,
       page,
       perPage,
@@ -96,27 +70,22 @@ archive.get('/posts', async (c) => {
   )
 })
 
+/** 旧ブログの記事（書き手なし）。 */
 archive.get('/posts/:slug', async (c) => {
   const db = c.var.db
   const slug = c.req.param('slug')
-  const post = /^[a-z0-9-]+$/.test(slug)
-    ? await db.select().from(archivedPosts).where(and(published, eq(archivedPosts.slug, slug))).get()
+  const row = /^[a-z0-9-]+$/.test(slug)
+    ? await selectArticles(db)
+        .where(and(publishedArticle, isNull(archivedPosts.authorId), eq(archivedPosts.slug, slug)))
+        .get()
     : undefined
-  if (!post) throw notFound('記事が見つかりません。')
+  if (!row) throw notFound('記事が見つかりません。')
 
-  const tagList = (await tagsByPost(db, [post.id])).get(post.id) ?? []
-  return c.json(
-    {
-      ...toSummary(post, tagList),
-      bodyHtml: post.bodyHtml,
-      updatedAt: iso(post.updatedAt),
-    } satisfies Schemas['ArchivedPostDetail'],
-    200,
-    publicCache(CacheFor.ARCHIVE),
-  )
+  const tagList = (await tagsByArticle(db, [row.article.id])).get(row.article.id) ?? []
+  return c.json(toArticleDetail(row, tagList), 200, publicCache(CacheFor.ARCHIVE))
 })
 
-/** アーカイブ記事を持つタグを、記事数の多い順に。 */
+/** 記事を持つタグを、記事数の多い順に。 */
 archive.get('/tags', async (c) => {
   const db = c.var.db
   const n = count(archivedPosts.id)
@@ -125,7 +94,8 @@ archive.get('/tags', async (c) => {
     .from(tags)
     .innerJoin(archivedPostTags, eq(archivedPostTags.tagId, tags.id))
     .innerJoin(archivedPosts, eq(archivedPosts.id, archivedPostTags.archivedPostId))
-    .where(eq(archivedPosts.status, 'published'))
+    .leftJoin(users, eq(users.id, archivedPosts.authorId))
+    .where(publishedArticle)
     .groupBy(tags.id)
     .orderBy(desc(n), asc(tags.name))
 

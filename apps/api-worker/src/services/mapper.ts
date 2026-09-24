@@ -30,6 +30,7 @@ export function toUserSummary(user: User): Schemas['UserSummary'] | null {
 export type PostExtras = {
   reactions?: Schemas['ReactionCount'][]
   tags?: Schemas['TagSummary'][]
+  article?: Schemas['ArticleCard']
 }
 
 export function toPost(row: PostWithAuthor, extras: PostExtras = {}): Schemas['TimesPost'] {
@@ -48,6 +49,7 @@ export function toPost(row: PostWithAuthor, extras: PostExtras = {}): Schemas['T
     reactionCount: visible ? post.reactionCount : 0,
     reactions: visible ? (extras.reactions ?? []) : [],
     tags: visible ? (extras.tags ?? []) : [],
+    article: visible ? (extras.article ?? null) : null,
     lastReplyAt: iso(post.lastReplyAt),
     editedAt: visible ? iso(post.editedAt) : null,
     createdAt: iso(post.createdAt),

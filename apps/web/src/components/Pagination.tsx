@@ -18,8 +18,9 @@ export function Pagination({ currentPage, totalPages }: Props) {
       {pages.map((page) => (
         <Link
           key={page}
-          to="/posts"
-          // 1 ページ目はクエリを付けず、正規 URL を /posts に揃える
+          // 今いる一覧（/posts や /@handle/articles）のまま、ページだけ変える。
+          // 1 ページ目はクエリを付けず、正規 URL をクエリなしに揃える
+          to="."
           search={page === 1 ? {} : { page }}
           className={
             page === currentPage

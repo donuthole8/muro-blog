@@ -2042,6 +2042,364 @@
                     }
                 }
             }
+        },
+        "/api/users/{handle}/articles": {
+            "get": {
+                "tags": [
+                    "articles"
+                ],
+                "operationId": "get_api_users_articles",
+                "parameters": [
+                    {
+                        "name": "handle",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "1 \u59cb\u307e\u308a\u306e\u30da\u30fc\u30b8\u756a\u53f7",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "perPage",
+                        "in": "query",
+                        "description": "1\u30da\u30fc\u30b8\u3042\u305f\u308a\u306e\u4ef6\u6570",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "maximum": 50,
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u305d\u306e\u4eba\u306e\u516c\u958b\u6e08\u307f\u306e\u8a18\u4e8b\uff08\u65b0\u3057\u3044\u9806\uff09",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedArchivedPosts"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "\u30e6\u30fc\u30b6\u30fc\u304c\u3044\u306a\u3044",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/{handle}/articles/{slug}": {
+            "get": {
+                "tags": [
+                    "articles"
+                ],
+                "operationId": "get_api_users_articles_show",
+                "parameters": [
+                    {
+                        "name": "handle",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u516c\u958b\u6e08\u307f\u306e\u8a18\u4e8b",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArchivedPostDetail"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "\u8a18\u4e8b\u304c\u306a\u3044\u304b\u975e\u516c\u958b",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me/articles": {
+            "get": {
+                "tags": [
+                    "articles"
+                ],
+                "operationId": "get_api_me_articles",
+                "responses": {
+                    "200": {
+                        "description": "\u81ea\u5206\u306e\u8a18\u4e8b\uff08\u4e0b\u66f8\u304d\u3092\u542b\u3080\u3002\u66f4\u65b0\u306e\u65b0\u3057\u3044\u9806\uff09",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MyArticleList"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionToken": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "articles"
+                ],
+                "operationId": "post_api_me_articles",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArticleInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "\u4f5c\u3063\u305f\u8a18\u4e8b",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArticleSource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "\u5165\u529b\u5024\u304c\u4e0d\u6b63",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionToken": []
+                    }
+                ]
+            }
+        },
+        "/api/me/articles/preview": {
+            "post": {
+                "tags": [
+                    "articles"
+                ],
+                "operationId": "post_api_me_articles_preview",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArticlePreviewInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "\u5909\u63db\u3057\u305f HTML\uff08\u4fdd\u5b58\u306f\u3057\u306a\u3044\uff09",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArticlePreview"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionToken": []
+                    }
+                ]
+            }
+        },
+        "/api/me/articles/{id}": {
+            "get": {
+                "tags": [
+                    "articles"
+                ],
+                "operationId": "get_api_me_articles_show",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u7de8\u96c6\u7528\u306e\u8a18\u4e8b",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArticleSource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "\u8a18\u4e8b\u304c\u306a\u3044\u304b\u81ea\u5206\u306e\u8a18\u4e8b\u3067\u306f\u306a\u3044",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionToken": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "articles"
+                ],
+                "operationId": "put_api_me_articles_update",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArticleInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "\u4fdd\u5b58\u3057\u305f\u8a18\u4e8b",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArticleSource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "\u8a18\u4e8b\u304c\u306a\u3044\u304b\u81ea\u5206\u306e\u8a18\u4e8b\u3067\u306f\u306a\u3044",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "\u5165\u529b\u5024\u304c\u4e0d\u6b63",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionToken": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "articles"
+                ],
+                "operationId": "delete_api_me_articles_delete",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "\u524a\u9664\u3057\u305f"
+                    },
+                    "404": {
+                        "description": "\u8a18\u4e8b\u304c\u306a\u3044\u304b\u81ea\u5206\u306e\u8a18\u4e8b\u3067\u306f\u306a\u3044",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionToken": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -2177,6 +2535,11 @@
                         ],
                         "default": [],
                         "maxItems": 3
+                    },
+                    "articleId": {
+                        "description": "\u6dfb\u4ed8\u3059\u308b\u516c\u958b\u4e2d\u306e\u30d6\u30ed\u30b0\u8a18\u4e8b\u306e ID",
+                        "type": "integer",
+                        "nullable": true
                     }
                 },
                 "type": "object"
@@ -2503,6 +2866,15 @@
                         "items": {
                             "$ref": "#/components/schemas/TagSummary"
                         }
+                    },
+                    "author": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/UserSummary"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "\u66f8\u304d\u624b\u3002\u65e7\u30d6\u30ed\u30b0\u306e\u8a18\u4e8b\u306a\u3089 null\uff08/posts/{slug} \u3067\u516c\u958b\u3055\u308c\u308b\uff09"
                     }
                 },
                 "type": "object"
@@ -2585,6 +2957,15 @@
                         "items": {
                             "$ref": "#/components/schemas/TagSummary"
                         }
+                    },
+                    "author": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/UserSummary"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "\u66f8\u304d\u624b\u3002\u65e7\u30d6\u30ed\u30b0\u306e\u8a18\u4e8b\u306a\u3089 null\uff08/posts/{slug} \u3067\u516c\u958b\u3055\u308c\u308b\uff09"
                     }
                 },
                 "type": "object"
@@ -2815,6 +3196,15 @@
                     "createdAt": {
                         "type": "string",
                         "format": "date-time"
+                    },
+                    "article": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ArticleCard"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "\u6dfb\u4ed8\u3057\u305f\u30d6\u30ed\u30b0\u8a18\u4e8b\u3002\u975e\u516c\u958b\u30fb\u524a\u9664\u306b\u306a\u3063\u305f\u3089 null"
                     }
                 },
                 "type": "object"
@@ -3193,6 +3583,245 @@
                     "createdAt": {
                         "type": "string",
                         "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ArticleCard": {
+                "required": [
+                    "id",
+                    "slug",
+                    "title"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "emoji": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "excerpt": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "author": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/UserSummary"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "\u66f8\u304d\u624b\u3002\u65e7\u30d6\u30ed\u30b0\u306e\u8a18\u4e8b\u306a\u3089 null\uff08/posts/{slug} \u3067\u516c\u958b\u3055\u308c\u308b\uff09"
+                    }
+                },
+                "type": "object",
+                "description": "\u6295\u7a3f\u306b\u6dfb\u4ed8\u3055\u308c\u305f\u30d6\u30ed\u30b0\u8a18\u4e8b\uff08\u516c\u958b\u4e2d\u306e\u3082\u306e\u3060\u3051\uff09"
+            },
+            "MyArticle": {
+                "required": [
+                    "id",
+                    "slug",
+                    "title",
+                    "status",
+                    "updatedAt",
+                    "tags"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "hello-world"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "emoji": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "excerpt": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "\u672c\u6587\u304b\u3089\u81ea\u52d5\u3067\u4f5c\u308b\u629c\u7c8b"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "draft",
+                            "published"
+                        ]
+                    },
+                    "publishedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TagSummary"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "MyArticleList": {
+                "required": [
+                    "items"
+                ],
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MyArticle"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ArticleSource": {
+                "required": [
+                    "id",
+                    "slug",
+                    "title",
+                    "status",
+                    "updatedAt",
+                    "tags",
+                    "bodyMd"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "hello-world"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "emoji": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "excerpt": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "\u672c\u6587\u304b\u3089\u81ea\u52d5\u3067\u4f5c\u308b\u629c\u7c8b"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "draft",
+                            "published"
+                        ]
+                    },
+                    "publishedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TagSummary"
+                        }
+                    },
+                    "bodyMd": {
+                        "type": "string",
+                        "description": "Markdown \u539f\u6587"
+                    }
+                },
+                "type": "object"
+            },
+            "ArticleInput": {
+                "required": [
+                    "title",
+                    "bodyMd",
+                    "status"
+                ],
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "slug": {
+                        "type": "string",
+                        "description": "URL \u306b\u4f7f\u3046\uff08\u82f1\u5c0f\u6587\u5b57\u30fb\u6570\u5b57\u30fb\u30cf\u30a4\u30d5\u30f3\uff09\u3002\u7a7a\u306a\u3089\u81ea\u52d5\u3067\u4ed8\u3051\u308b",
+                        "maxLength": 100,
+                        "nullable": true
+                    },
+                    "emoji": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "bodyMd": {
+                        "type": "string",
+                        "maxLength": 50000
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "draft",
+                            "published"
+                        ]
+                    },
+                    "tagSlugs": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "default": [],
+                        "maxItems": 3
+                    },
+                    "newTags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 32
+                        },
+                        "default": [],
+                        "maxItems": 3
+                    }
+                },
+                "type": "object"
+            },
+            "ArticlePreviewInput": {
+                "required": [
+                    "bodyMd"
+                ],
+                "properties": {
+                    "bodyMd": {
+                        "type": "string",
+                        "maxLength": 50000
+                    }
+                },
+                "type": "object"
+            },
+            "ArticlePreview": {
+                "required": [
+                    "bodyHtml"
+                ],
+                "properties": {
+                    "bodyHtml": {
+                        "type": "string"
                     }
                 },
                 "type": "object"

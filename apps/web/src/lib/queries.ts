@@ -15,6 +15,7 @@ import {
   fetchTags,
   fetchThread,
 } from './times'
+import { fetchMyArticles } from './articles'
 import {
   fetchBlocks,
   fetchFollowing,
@@ -126,6 +127,13 @@ export const followingQuery = queryOptions({
 export const blocksQuery = queryOptions({
   queryKey: ['blocks'],
   queryFn: () => fetchBlocks(),
+  staleTime: 0,
+})
+
+/** 自分の記事（下書きを含む）。記事の管理画面と、投稿に記事を添付するときの候補に使う。 */
+export const myArticlesQuery = queryOptions({
+  queryKey: ['my-articles'],
+  queryFn: () => fetchMyArticles(),
   staleTime: 0,
 })
 

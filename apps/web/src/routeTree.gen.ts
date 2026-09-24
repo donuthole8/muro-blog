@@ -28,6 +28,8 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminTagsRouteImport } from './routes/admin.tags'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as ArticlesIndexRouteImport } from './routes/articles.index'
+import { Route as ArticlesNewRouteImport } from './routes/articles.new'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthGoogleRouteImport } from './routes/auth.google'
 import { Route as OrgCompanySlugRouteImport } from './routes/org.$companySlug'
@@ -36,6 +38,9 @@ import { Route as PostsSlugRouteImport } from './routes/posts.$slug'
 import { Route as TagsIndexRouteImport } from './routes/tags.index'
 import { Route as TagsSlugRouteImport } from './routes/tags.$slug'
 import { Route as UploadsKeyRouteImport } from './routes/uploads.$key'
+import { Route as AtChar123handleChar125ArticlesIndexRouteImport } from './routes/@{$handle}.articles.index'
+import { Route as AtChar123handleChar125ArticlesSlugRouteImport } from './routes/@{$handle}.articles.$slug'
+import { Route as ArticlesIdEditRouteImport } from './routes/articles.$id.edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -135,6 +140,16 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
+const ArticlesIndexRoute = ArticlesIndexRouteImport.update({
+  id: '/articles/',
+  path: '/articles/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArticlesNewRoute = ArticlesNewRouteImport.update({
+  id: '/articles/new',
+  path: '/articles/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -175,6 +190,23 @@ const UploadsKeyRoute = UploadsKeyRouteImport.update({
   path: '/uploads/$key',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AtChar123handleChar125ArticlesIndexRoute =
+  AtChar123handleChar125ArticlesIndexRouteImport.update({
+    id: '/@{$handle}/articles/',
+    path: '/@{$handle}/articles/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AtChar123handleChar125ArticlesSlugRoute =
+  AtChar123handleChar125ArticlesSlugRouteImport.update({
+    id: '/@{$handle}/articles/$slug',
+    path: '/@{$handle}/articles/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ArticlesIdEditRoute = ArticlesIdEditRouteImport.update({
+  id: '/articles/$id/edit',
+  path: '/articles/$id/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -194,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tags': typeof AdminTagsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/articles/new': typeof ArticlesNewRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/google': typeof AuthGoogleRoute
   '/org/$companySlug': typeof OrgCompanySlugRoute
@@ -202,8 +235,12 @@ export interface FileRoutesByFullPath {
   '/uploads/$key': typeof UploadsKeyRoute
   '/@{$handle}/': typeof AtChar123handleChar125IndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/articles/': typeof ArticlesIndexRoute
   '/posts/': typeof PostsIndexRoute
   '/tags/': typeof TagsIndexRoute
+  '/@{$handle}/articles/$slug': typeof AtChar123handleChar125ArticlesSlugRoute
+  '/articles/$id/edit': typeof ArticlesIdEditRoute
+  '/@{$handle}/articles/': typeof AtChar123handleChar125ArticlesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -222,6 +259,7 @@ export interface FileRoutesByTo {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tags': typeof AdminTagsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/articles/new': typeof ArticlesNewRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/google': typeof AuthGoogleRoute
   '/org/$companySlug': typeof OrgCompanySlugRoute
@@ -230,8 +268,12 @@ export interface FileRoutesByTo {
   '/uploads/$key': typeof UploadsKeyRoute
   '/@{$handle}': typeof AtChar123handleChar125IndexRoute
   '/admin': typeof AdminIndexRoute
+  '/articles': typeof ArticlesIndexRoute
   '/posts': typeof PostsIndexRoute
   '/tags': typeof TagsIndexRoute
+  '/@{$handle}/articles/$slug': typeof AtChar123handleChar125ArticlesSlugRoute
+  '/articles/$id/edit': typeof ArticlesIdEditRoute
+  '/@{$handle}/articles': typeof AtChar123handleChar125ArticlesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -252,6 +294,7 @@ export interface FileRoutesById {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tags': typeof AdminTagsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/articles/new': typeof ArticlesNewRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/google': typeof AuthGoogleRoute
   '/org/$companySlug': typeof OrgCompanySlugRoute
@@ -260,8 +303,12 @@ export interface FileRoutesById {
   '/uploads/$key': typeof UploadsKeyRoute
   '/@{$handle}/': typeof AtChar123handleChar125IndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/articles/': typeof ArticlesIndexRoute
   '/posts/': typeof PostsIndexRoute
   '/tags/': typeof TagsIndexRoute
+  '/@{$handle}/articles/$slug': typeof AtChar123handleChar125ArticlesSlugRoute
+  '/articles/$id/edit': typeof ArticlesIdEditRoute
+  '/@{$handle}/articles/': typeof AtChar123handleChar125ArticlesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -283,6 +330,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/tags'
     | '/admin/users'
+    | '/articles/new'
     | '/auth/callback'
     | '/auth/google'
     | '/org/$companySlug'
@@ -291,8 +339,12 @@ export interface FileRouteTypes {
     | '/uploads/$key'
     | '/@{$handle}/'
     | '/admin/'
+    | '/articles/'
     | '/posts/'
     | '/tags/'
+    | '/@{$handle}/articles/$slug'
+    | '/articles/$id/edit'
+    | '/@{$handle}/articles/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -311,6 +363,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/tags'
     | '/admin/users'
+    | '/articles/new'
     | '/auth/callback'
     | '/auth/google'
     | '/org/$companySlug'
@@ -319,8 +372,12 @@ export interface FileRouteTypes {
     | '/uploads/$key'
     | '/@{$handle}'
     | '/admin'
+    | '/articles'
     | '/posts'
     | '/tags'
+    | '/@{$handle}/articles/$slug'
+    | '/articles/$id/edit'
+    | '/@{$handle}/articles'
   id:
     | '__root__'
     | '/'
@@ -340,6 +397,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/tags'
     | '/admin/users'
+    | '/articles/new'
     | '/auth/callback'
     | '/auth/google'
     | '/org/$companySlug'
@@ -348,8 +406,12 @@ export interface FileRouteTypes {
     | '/uploads/$key'
     | '/@{$handle}/'
     | '/admin/'
+    | '/articles/'
     | '/posts/'
     | '/tags/'
+    | '/@{$handle}/articles/$slug'
+    | '/articles/$id/edit'
+    | '/@{$handle}/articles/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -367,6 +429,7 @@ export interface RootRouteChildren {
   WelcomeRoute: typeof WelcomeRoute
   AtChar123handleChar125PostIdRoute: typeof AtChar123handleChar125PostIdRoute
   AtChar123handleChar125RssDotxmlRoute: typeof AtChar123handleChar125RssDotxmlRoute
+  ArticlesNewRoute: typeof ArticlesNewRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthGoogleRoute: typeof AuthGoogleRoute
   OrgCompanySlugRoute: typeof OrgCompanySlugRoute
@@ -374,8 +437,12 @@ export interface RootRouteChildren {
   TagsSlugRoute: typeof TagsSlugRoute
   UploadsKeyRoute: typeof UploadsKeyRoute
   AtChar123handleChar125IndexRoute: typeof AtChar123handleChar125IndexRoute
+  ArticlesIndexRoute: typeof ArticlesIndexRoute
   PostsIndexRoute: typeof PostsIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
+  AtChar123handleChar125ArticlesSlugRoute: typeof AtChar123handleChar125ArticlesSlugRoute
+  ArticlesIdEditRoute: typeof ArticlesIdEditRoute
+  AtChar123handleChar125ArticlesIndexRoute: typeof AtChar123handleChar125ArticlesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -513,6 +580,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/articles/': {
+      id: '/articles/'
+      path: '/articles'
+      fullPath: '/articles/'
+      preLoaderRoute: typeof ArticlesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/articles/new': {
+      id: '/articles/new'
+      path: '/articles/new'
+      fullPath: '/articles/new'
+      preLoaderRoute: typeof ArticlesNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/auth/callback'
@@ -569,6 +650,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UploadsKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/@{$handle}/articles/': {
+      id: '/@{$handle}/articles/'
+      path: '/@{$handle}/articles'
+      fullPath: '/@{$handle}/articles/'
+      preLoaderRoute: typeof AtChar123handleChar125ArticlesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@{$handle}/articles/$slug': {
+      id: '/@{$handle}/articles/$slug'
+      path: '/@{$handle}/articles/$slug'
+      fullPath: '/@{$handle}/articles/$slug'
+      preLoaderRoute: typeof AtChar123handleChar125ArticlesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/articles/$id/edit': {
+      id: '/articles/$id/edit'
+      path: '/articles/$id/edit'
+      fullPath: '/articles/$id/edit'
+      preLoaderRoute: typeof ArticlesIdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -603,6 +705,7 @@ const rootRouteChildren: RootRouteChildren = {
   WelcomeRoute: WelcomeRoute,
   AtChar123handleChar125PostIdRoute: AtChar123handleChar125PostIdRoute,
   AtChar123handleChar125RssDotxmlRoute: AtChar123handleChar125RssDotxmlRoute,
+  ArticlesNewRoute: ArticlesNewRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthGoogleRoute: AuthGoogleRoute,
   OrgCompanySlugRoute: OrgCompanySlugRoute,
@@ -610,8 +713,14 @@ const rootRouteChildren: RootRouteChildren = {
   TagsSlugRoute: TagsSlugRoute,
   UploadsKeyRoute: UploadsKeyRoute,
   AtChar123handleChar125IndexRoute: AtChar123handleChar125IndexRoute,
+  ArticlesIndexRoute: ArticlesIndexRoute,
   PostsIndexRoute: PostsIndexRoute,
   TagsIndexRoute: TagsIndexRoute,
+  AtChar123handleChar125ArticlesSlugRoute:
+    AtChar123handleChar125ArticlesSlugRoute,
+  ArticlesIdEditRoute: ArticlesIdEditRoute,
+  AtChar123handleChar125ArticlesIndexRoute:
+    AtChar123handleChar125ArticlesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

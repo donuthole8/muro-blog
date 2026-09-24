@@ -15,6 +15,13 @@
       "when": 1790171298893,
       "tag": "0001_email_login",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790230664128,
+      "tag": "0002_articles",
+      "breakpoints": true
     }
   ]
 }

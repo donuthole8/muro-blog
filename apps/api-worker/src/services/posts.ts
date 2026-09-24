@@ -14,6 +14,7 @@ import {
 import type { Db } from '../db/client'
 import { postTags, posts, reactions, tags, users } from '../db/schema'
 import { likePattern, toPage } from '../lib/http'
+import { findArticleCards } from './articles'
 import {
   isPostVisible,
   toPost,
@@ -206,15 +207,19 @@ export async function toPosts(db: Db, rows: PostWithAuthor[]): Promise<Schemas['
   const visibleIds = visible.map((r) => r.post.id)
   const parentIds = visible.filter((r) => r.post.parentId === null).map((r) => r.post.id)
 
-  const [reactionCounts, tagsByPost] = await Promise.all([
+  const articleIds = visible.flatMap((r) => (r.post.articleId !== null ? [r.post.articleId] : []))
+
+  const [reactionCounts, tagsByPost, articleCards] = await Promise.all([
     countReactionsByPosts(db, visibleIds),
     findTagsByPosts(db, parentIds),
+    findArticleCards(db, articleIds),
   ])
 
   return rows.map((row) =>
     toPost(row, {
       reactions: reactionCounts.get(row.post.id),
       tags: tagsByPost.get(row.post.id),
+      article: row.post.articleId !== null ? articleCards.get(row.post.articleId) : undefined,
     }),
   )
 }
