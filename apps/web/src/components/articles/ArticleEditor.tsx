@@ -8,6 +8,8 @@ import { MarkdownEditor } from './MarkdownEditor'
 import { uploadPostImage } from '../../lib/account'
 import { previewArticle } from '../../lib/articles'
 import { imageUrl, prepareImage } from '../../lib/image'
+import { ogCardKey, uploadOgImage } from '../../lib/ogImage'
+import type { OgCard } from '../../lib/ogImage'
 import { tagsQuery } from '../../lib/queries'
 import { useDebounced } from '../../lib/useDebounced'
 
@@ -33,6 +35,12 @@ type Props = {
   errors: Record<string, string>
   isSaving: boolean
   onSave: (form: ArticleForm, status: Status) => void
+  /** 書き手の handle（共有カード画像に入れる） */
+  handle: string
+  /** 今の共有カード画像。無ければ公開時に描く */
+  ogImageKey?: string | null
+  /** 管理者に非表示にされている */
+  hidden?: boolean
   /** 保存ボタンの横に置く操作（削除など） */
   children?: React.ReactNode
 }
@@ -46,9 +54,14 @@ export function ArticleEditor({
   errors,
   isSaving,
   onSave,
+  handle,
+  ogImageKey,
+  hidden = false,
   children,
 }: Props) {
   const [form, setForm] = useState<ArticleForm>(initial)
+  const [preparing, setPreparing] = useState(false)
+  const busy = isSaving || preparing
   // エディタ自体が整形済みの見た目になるので、変換結果の確認は必要なときだけ
   const [showPreview, setShowPreview] = useState(false)
   const tags = useQuery(tagsQuery)
@@ -78,11 +91,40 @@ export function ArticleEditor({
 
   const published = status === 'published'
 
+  const cardOf = (values: ArticleForm): OgCard => ({
+    title: values.title,
+    emoji: values.emoji ?? null,
+    tags: [
+      ...(tags.data ?? [])
+        .filter((tag) => values.tagSlugs.includes(tag.slug))
+        .map((tag) => tag.name),
+      ...values.newTags,
+    ],
+    handle,
+  })
+
+  /**
+   * 公開するときは共有カード画像を用意する。画像に出る内容（タイトル・絵文字・タグ）が
+   * 変わっていなければ今の画像を使い続ける。描けなくても保存は続ける。
+   */
+  const save = async (next: Status) => {
+    let ogImage: string | undefined
+    if (
+      next === 'published' &&
+      (!ogImageKey || ogCardKey(cardOf(form)) !== ogCardKey(cardOf(initial)))
+    ) {
+      setPreparing(true)
+      ogImage = (await uploadOgImage(cardOf(form))) ?? undefined
+      setPreparing(false)
+    }
+    onSave(ogImage ? { ...form, ogImageKey: ogImage } : form, next)
+  }
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault()
-        onSave(form, status)
+        void save(status)
       }}
       className="space-y-5"
     >
@@ -202,14 +244,14 @@ export function ArticleEditor({
       <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
         {published ? (
           <>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? '保存中…' : '更新する'}
+            <Button type="submit" disabled={busy}>
+              {busy ? '保存中…' : '更新する'}
             </Button>
             <Button
               type="button"
               variant="ghost"
-              disabled={isSaving}
-              onClick={() => onSave(form, 'draft')}
+              disabled={busy}
+              onClick={() => void save('draft')}
             >
               下書きに戻す
             </Button>
@@ -218,18 +260,26 @@ export function ArticleEditor({
           <>
             <Button
               type="button"
-              disabled={isSaving}
-              onClick={() => onSave(form, 'published')}
+              disabled={busy}
+              onClick={() => void save('published')}
             >
-              {isSaving ? '保存中…' : '公開する'}
+              {busy ? '保存中…' : '公開する'}
             </Button>
-            <Button type="submit" variant="ghost" disabled={isSaving}>
+            <Button type="submit" variant="ghost" disabled={busy}>
               下書き保存
             </Button>
           </>
         )}
         <span className="text-xs text-text-muted">
-          {published ? '公開中' : '下書き（自分にしか見えません）'}
+          {hidden ? (
+            <span className="text-danger">
+              管理者により非表示になっています（自分にしか見えません）
+            </span>
+          ) : published ? (
+            '公開中'
+          ) : (
+            '下書き（自分にしか見えません）'
+          )}
           {dirty && '・未保存の変更があります'}
         </span>
         {children}

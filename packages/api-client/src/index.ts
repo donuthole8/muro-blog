@@ -34,6 +34,7 @@ export type ArticleCard = Schemas["ArticleCard"];
 export type MyArticle = Schemas["MyArticle"];
 export type ArticleSource = Schemas["ArticleSource"];
 export type ArticleInput = Schemas["ArticleInput"];
+export type AdminArticle = Schemas["AdminArticle"];
 export type ValidationError = Schemas["ValidationError"];
 
 export type ApiClientOptions = {

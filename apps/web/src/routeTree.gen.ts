@@ -25,6 +25,7 @@ import { Route as AtChar123handleChar125IndexRouteImport } from './routes/@{$han
 import { Route as AtChar123handleChar125PostIdRouteImport } from './routes/@{$handle}.$postId'
 import { Route as AtChar123handleChar125RssDotxmlRouteImport } from './routes/@{$handle}.rss[.]xml'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminArticlesRouteImport } from './routes/admin.articles'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminTagsRouteImport } from './routes/admin.tags'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -125,6 +126,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminArticlesRoute = AdminArticlesRouteImport.update({
+  id: '/articles',
+  path: '/articles',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminReportsRoute = AdminReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -223,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/welcome': typeof WelcomeRoute
   '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
   '/@{$handle}/rss.xml': typeof AtChar123handleChar125RssDotxmlRoute
+  '/admin/articles': typeof AdminArticlesRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tags': typeof AdminTagsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -256,6 +263,7 @@ export interface FileRoutesByTo {
   '/welcome': typeof WelcomeRoute
   '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
   '/@{$handle}/rss.xml': typeof AtChar123handleChar125RssDotxmlRoute
+  '/admin/articles': typeof AdminArticlesRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tags': typeof AdminTagsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -291,6 +299,7 @@ export interface FileRoutesById {
   '/welcome': typeof WelcomeRoute
   '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
   '/@{$handle}/rss.xml': typeof AtChar123handleChar125RssDotxmlRoute
+  '/admin/articles': typeof AdminArticlesRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tags': typeof AdminTagsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -327,6 +336,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/@{$handle}/$postId'
     | '/@{$handle}/rss.xml'
+    | '/admin/articles'
     | '/admin/reports'
     | '/admin/tags'
     | '/admin/users'
@@ -360,6 +370,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/@{$handle}/$postId'
     | '/@{$handle}/rss.xml'
+    | '/admin/articles'
     | '/admin/reports'
     | '/admin/tags'
     | '/admin/users'
@@ -394,6 +405,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/@{$handle}/$postId'
     | '/@{$handle}/rss.xml'
+    | '/admin/articles'
     | '/admin/reports'
     | '/admin/tags'
     | '/admin/users'
@@ -559,6 +571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/articles': {
+      id: '/admin/articles'
+      path: '/articles'
+      fullPath: '/admin/articles'
+      preLoaderRoute: typeof AdminArticlesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/reports': {
       id: '/admin/reports'
       path: '/reports'
@@ -675,6 +694,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminArticlesRoute: typeof AdminArticlesRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminTagsRoute: typeof AdminTagsRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -682,6 +702,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminArticlesRoute: AdminArticlesRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminTagsRoute: AdminTagsRoute,
   AdminUsersRoute: AdminUsersRoute,

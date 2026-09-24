@@ -2380,11 +2380,198 @@
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "\u524a\u9664\u3057\u305f"
+                    "200": {
+                        "description": "\u524a\u9664\u3057\u305f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArticleDeleted"
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "description": "\u8a18\u4e8b\u304c\u306a\u3044\u304b\u81ea\u5206\u306e\u8a18\u4e8b\u3067\u306f\u306a\u3044",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionToken": []
+                    }
+                ]
+            }
+        },
+        "/api/admin/articles": {
+            "get": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "get_api_admin_articles",
+                "parameters": [
+                    {
+                        "name": "cursor",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u76f4\u524d\u306e\u30da\u30fc\u30b8\u306e\u6700\u5f8c\u306e\u8a18\u4e8b ID"
+                    },
+                    {
+                        "name": "handle",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u66f8\u304d\u624b\u3067\u7d5e\u308a\u8fbc\u3080"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u8a18\u4e8b\uff08\u4e0b\u66f8\u304d\u30fb\u975e\u8868\u793a\u3092\u542b\u3080\u3002\u65b0\u3057\u3044\u9806\uff09",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminArticlePage"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionToken": []
+                    }
+                ]
+            }
+        },
+        "/api/admin/articles/{id}/hide": {
+            "post": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "post_api_admin_articles_hide",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u975e\u8868\u793a\u306b\u3057\u305f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminArticle"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "\u8a18\u4e8b\u304c\u306a\u3044",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionToken": []
+                    }
+                ]
+            }
+        },
+        "/api/admin/articles/{id}/unhide": {
+            "post": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "post_api_admin_articles_unhide",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u975e\u8868\u793a\u3092\u89e3\u9664\u3057\u305f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminArticle"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "\u8a18\u4e8b\u304c\u306a\u3044",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionToken": []
+                    }
+                ]
+            }
+        },
+        "/api/admin/articles/{id}": {
+            "delete": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "delete_api_admin_articles_delete",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u524a\u9664\u3057\u305f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArticleDeleted"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "\u8a18\u4e8b\u304c\u306a\u3044",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2966,6 +3153,11 @@
                         ],
                         "nullable": true,
                         "description": "\u66f8\u304d\u624b\u3002\u65e7\u30d6\u30ed\u30b0\u306e\u8a18\u4e8b\u306a\u3089 null\uff08/posts/{slug} \u3067\u516c\u958b\u3055\u308c\u308b\uff09"
+                    },
+                    "ogImageKey": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "\u5171\u6709\u30ab\u30fc\u30c9\u7528\u306e\u753b\u50cf\u306e\u30ad\u30fc\uff08/uploads/{key} \u3067\u914d\u4fe1\u3055\u308c\u308b\uff09"
                     }
                 },
                 "type": "object"
@@ -3674,6 +3866,17 @@
                         "items": {
                             "$ref": "#/components/schemas/TagSummary"
                         }
+                    },
+                    "ogImageKey": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "\u5171\u6709\u30ab\u30fc\u30c9\u7528\u306e\u753b\u50cf\u306e\u30ad\u30fc\uff08/uploads/{key} \u3067\u914d\u4fe1\u3055\u308c\u308b\uff09"
+                    },
+                    "hiddenAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "\u7ba1\u7406\u8005\u304c\u975e\u8868\u793a\u306b\u3057\u305f\u65e5\u6642\u3002\u975e\u8868\u793a\u306e\u9593\u306f\u672c\u4eba\u306b\u3057\u304b\u898b\u3048\u306a\u3044"
                     }
                 },
                 "type": "object"
@@ -3747,6 +3950,17 @@
                     "bodyMd": {
                         "type": "string",
                         "description": "Markdown \u539f\u6587"
+                    },
+                    "ogImageKey": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "\u5171\u6709\u30ab\u30fc\u30c9\u7528\u306e\u753b\u50cf\u306e\u30ad\u30fc\uff08/uploads/{key} \u3067\u914d\u4fe1\u3055\u308c\u308b\uff09"
+                    },
+                    "hiddenAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "\u7ba1\u7406\u8005\u304c\u975e\u8868\u793a\u306b\u3057\u305f\u65e5\u6642\u3002\u975e\u8868\u793a\u306e\u9593\u306f\u672c\u4eba\u306b\u3057\u304b\u898b\u3048\u306a\u3044"
                     }
                 },
                 "type": "object"
@@ -3799,6 +4013,12 @@
                         },
                         "default": [],
                         "maxItems": 3
+                    },
+                    "ogImageKey": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "\u5171\u6709\u30ab\u30fc\u30c9\u7528\u306e\u753b\u50cf\u3002\u66f8\u304d\u624b\u672c\u4eba\u304c\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u3057\u305f\u3082\u306e\u3057\u304b\u6307\u5b9a\u3067\u304d\u306a\u3044",
+                        "maxLength": 128
                     }
                 },
                 "type": "object"
@@ -3822,6 +4042,93 @@
                 "properties": {
                     "bodyHtml": {
                         "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "ArticleDeleted": {
+                "properties": {
+                    "imageKey": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "\u6d88\u3048\u305f\u5171\u6709\u30ab\u30fc\u30c9\u753b\u50cf\u306e\u30ad\u30fc\uff08web \u306e Worker \u304c KV \u304b\u3089\u6d88\u3059\uff09"
+                    }
+                },
+                "type": "object"
+            },
+            "AdminArticle": {
+                "required": [
+                    "id",
+                    "slug",
+                    "title",
+                    "status",
+                    "updatedAt"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "emoji": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "excerpt": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "draft",
+                            "published"
+                        ]
+                    },
+                    "author": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AdminUser"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "\u65e7\u30d6\u30ed\u30b0\u306e\u8a18\u4e8b\u306a\u3089 null"
+                    },
+                    "hiddenAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "publishedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "AdminArticlePage": {
+                "required": [
+                    "items"
+                ],
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AdminArticle"
+                        }
+                    },
+                    "nextCursor": {
+                        "type": "string",
+                        "nullable": true
                     }
                 },
                 "type": "object"

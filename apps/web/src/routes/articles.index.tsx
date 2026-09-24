@@ -115,16 +115,20 @@ function Row({ article, handle }: { article: MyArticle; handle: string }) {
           {article.title}
         </Link>
         <p className="mt-0.5 flex flex-wrap gap-x-2 text-xs text-text-muted">
-          <span className={published ? 'text-accent' : undefined}>
-            {published ? '公開中' : '下書き'}
-          </span>
+          {article.hiddenAt ? (
+            <span className="text-danger">管理者により非表示</span>
+          ) : (
+            <span className={published ? 'text-accent' : undefined}>
+              {published ? '公開中' : '下書き'}
+            </span>
+          )}
           <span className="font-mono">
             {formatDate(article.updatedAt)} 更新
           </span>
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1 text-xs">
-        {published && (
+        {published && !article.hiddenAt && (
           <ArticleLink
             article={{ slug: article.slug, author: { handle } }}
             className="inline-flex min-h-8 items-center rounded-md px-1.5 text-text-muted hover:text-accent"

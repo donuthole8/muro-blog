@@ -36,6 +36,13 @@ function AdminLayout() {
           投稿
         </Link>
         <Link
+          to="/admin/articles"
+          className={tab}
+          activeProps={{ className: 'text-accent' }}
+        >
+          記事
+        </Link>
+        <Link
           to="/admin/reports"
           className={tab}
           activeProps={{ className: 'text-accent' }}

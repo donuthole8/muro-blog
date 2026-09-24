@@ -14,6 +14,8 @@ export const Route = createFileRoute('/articles/new')({
     if (!me)
       throw redirect({ href: loginUrl('/articles/new'), reloadDocument: true })
     if (!me.handle) throw redirect({ to: '/welcome' })
+
+    return { handle: me.handle }
   },
   head: () => ({
     meta: [
@@ -34,6 +36,7 @@ const emptyArticle: ArticleForm = {
 }
 
 function NewArticle() {
+  const { handle } = Route.useRouteContext()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -70,6 +73,7 @@ function NewArticle() {
         errors={failure?.errors ?? {}}
         isSaving={create.isPending}
         onSave={(form, status) => create.mutate({ ...form, status })}
+        handle={handle}
       />
     </div>
   )

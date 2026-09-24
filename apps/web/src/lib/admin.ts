@@ -4,7 +4,7 @@ import { toFailure, throwRead, unauthenticated } from './result'
 import { deleteImages } from './uploads'
 
 /**
- * 管理画面（投稿の非表示・削除、ユーザーの停止、タグの作成）。
+ * 管理画面（投稿・記事の非表示・削除、ユーザーの停止、タグの作成）。
  * 権限は API 側が role=admin で判定する。ここはログイン中の本人として叩くだけ。
  */
 
@@ -178,4 +178,69 @@ export const dismissReport = createServerFn({ method: 'POST' })
       return toFailure(error, response.status, '却下に失敗しました。')
 
     return { ok: true as const, report }
+  })
+
+/* ------------------------------------------------------------------ */
+/* ブログ記事                                                           */
+/* ------------------------------------------------------------------ */
+
+export const listModerationArticles = createServerFn({ method: 'GET' })
+  .validator((input: { cursor?: string; handle?: string }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) throwRead(null, 401, 'ログインが必要です。')
+
+    const {
+      data: page,
+      error,
+      response,
+    } = await api.fetch.GET('/api/admin/articles', {
+      params: { query: { cursor: data.cursor, handle: data.handle } },
+    })
+    if (!page) throwRead(error, response.status, '記事の取得に失敗しました。')
+
+    return page
+  })
+
+export const setArticleHidden = createServerFn({ method: 'POST' })
+  .validator((input: { id: number; hidden: boolean }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const path = data.hidden
+      ? ('/api/admin/articles/{id}/hide' as const)
+      : ('/api/admin/articles/{id}/unhide' as const)
+    const {
+      data: article,
+      error,
+      response,
+    } = await api.fetch.POST(path, {
+      params: { path: { id: data.id } },
+    })
+    if (!article)
+      return toFailure(error, response.status, '変更に失敗しました。')
+
+    return { ok: true as const, article }
+  })
+
+export const deleteArticleAsAdmin = createServerFn({ method: 'POST' })
+  .validator((input: { id: number }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const {
+      data: deleted,
+      error,
+      response,
+    } = await api.fetch.DELETE('/api/admin/articles/{id}', {
+      params: { path: { id: data.id } },
+    })
+    if (!deleted)
+      return toFailure(error, response.status, '削除に失敗しました。')
+
+    if (deleted.imageKey) await deleteImages([deleted.imageKey])
+
+    return { ok: true as const }
   })

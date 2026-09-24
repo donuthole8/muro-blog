@@ -265,7 +265,11 @@ export const archivedPosts = sqliteTable(
     bodyMd: text('body_md').notNull(),
     bodyHtml: text('body_html').notNull(),
     excerpt: text('excerpt'),
+    /** 共有カード用の画像（書き手のブラウザが公開時に描いて KV に置いたもの）。旧ブログの記事はビルド時に作る */
+    ogImageKey: text('og_image_key'),
     status: text('status', { enum: ['draft', 'published'] }).notNull(),
+    /** 管理者が非表示にした日時。非表示の記事は書き手本人にしか見えない */
+    hiddenAt: integer('hidden_at', { mode: 'timestamp' }),
     publishedAt: integer('published_at', { mode: 'timestamp' }),
     createdAt: createdAt(),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),

@@ -2,7 +2,7 @@ import { and, asc, count, desc, eq, inArray, isNotNull, isNull, lt } from 'drizz
 import { alias } from 'drizzle-orm/sqlite-core'
 import { Hono, type Context } from 'hono'
 import type { Db } from '../db/client'
-import { posts, reports, tags, users } from '../db/schema'
+import { archivedPosts, posts, reports, tags, users } from '../db/schema'
 import type { AppEnv } from '../env'
 import { requireAdmin, revokeAllSessions } from '../lib/auth'
 import { ApiError, isUlid, iso, notFound, now, parseCursor, privateCache, toPage } from '../lib/http'
@@ -14,6 +14,7 @@ import {
   type PostWithAuthor,
   type Schemas,
 } from '../services/mapper'
+import { selectArticles } from '../services/articles'
 import { findForModeration, findPostById } from '../services/posts'
 import { findUserByHandle, findUserById, searchUsersForAdmin } from '../services/users'
 import { deletePost } from '../services/writer'
@@ -84,6 +85,88 @@ admin.delete('/posts/:id', async (c) => {
   const imageKey = await deletePost(db, row.post)
   await resolveReportsFor(db, row.post.id)
   return c.json({ imageKey } satisfies Schemas['PostDeleted'], 200, privateCache)
+})
+
+// ---------- ブログ記事 ----------
+
+type ArticleRow = { article: typeof archivedPosts.$inferSelect; author: typeof users.$inferSelect | null }
+
+function toAdminArticle({ article, author }: ArticleRow): Schemas['AdminArticle'] {
+  return {
+    id: article.id,
+    slug: article.slug,
+    title: article.title,
+    emoji: article.emoji,
+    excerpt: article.excerpt,
+    status: article.status,
+    author: author ? toAdminUser(author) : null,
+    hiddenAt: iso(article.hiddenAt),
+    publishedAt: iso(article.publishedAt),
+    updatedAt: iso(article.updatedAt),
+  }
+}
+
+function articleIdParam(c: Context<AppEnv>): number {
+  const id = Number(c.req.param('id'))
+  if (!Number.isSafeInteger(id) || id <= 0) throw notFound('記事が見つかりません。')
+  return id
+}
+
+async function findArticleOr404(c: Context<AppEnv>): Promise<ArticleRow> {
+  const row = await selectArticles(c.var.db).where(eq(archivedPosts.id, articleIdParam(c))).get()
+  if (!row) throw notFound('記事が見つかりません。')
+  return row
+}
+
+/** 記事（下書き・非表示を含む）を新しい順に。cursor は直前のページの最後の記事 ID。 */
+admin.get('/articles', async (c) => {
+  const db = c.var.db
+  const cursor = Number(c.req.query('cursor') ?? '')
+  const handle = c.req.query('handle')
+  let authorId: string | null = null
+  if (handle) {
+    const author = await findUserByHandle(db, handle)
+    if (!author) {
+      return c.json({ items: [], nextCursor: null } satisfies Schemas['AdminArticlePage'], 200, privateCache)
+    }
+    authorId = author.id
+  }
+
+  const rows = await selectArticles(db)
+    .where(
+      and(
+        Number.isSafeInteger(cursor) && cursor > 0 ? lt(archivedPosts.id, cursor) : undefined,
+        authorId ? eq(archivedPosts.authorId, authorId) : undefined,
+      ),
+    )
+    .orderBy(desc(archivedPosts.id))
+    .limit(ADMIN_PAGE_SIZE + 1)
+  const items = rows.slice(0, ADMIN_PAGE_SIZE)
+
+  return c.json(
+    {
+      items: items.map(toAdminArticle),
+      nextCursor: rows.length > ADMIN_PAGE_SIZE ? String(items[items.length - 1].article.id) : null,
+    } satisfies Schemas['AdminArticlePage'],
+    200,
+    privateCache,
+  )
+})
+
+async function toggleArticleHidden(c: Context<AppEnv>, hidden: boolean) {
+  const row = await findArticleOr404(c)
+  const hiddenAt = hidden ? (row.article.hiddenAt ?? now()) : null
+  await c.var.db.update(archivedPosts).set({ hiddenAt }).where(eq(archivedPosts.id, row.article.id))
+  return c.json(toAdminArticle({ ...row, article: { ...row.article, hiddenAt } }), 200, privateCache)
+}
+
+admin.post('/articles/:id/hide', (c) => toggleArticleHidden(c, true))
+admin.post('/articles/:id/unhide', (c) => toggleArticleHidden(c, false))
+
+admin.delete('/articles/:id', async (c) => {
+  const row = await findArticleOr404(c)
+  await c.var.db.delete(archivedPosts).where(eq(archivedPosts.id, row.article.id))
+  return c.json({ imageKey: row.article.ogImageKey } satisfies Schemas['ArticleDeleted'], 200, privateCache)
 })
 
 // ---------- ユーザー ----------

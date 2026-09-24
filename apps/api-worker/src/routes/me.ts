@@ -100,7 +100,14 @@ me.delete('/', async (c) => {
     .select()
     .from(posts)
     .where(and(eq(posts.authorId, user.id), isNull(posts.deletedAt)))
-  const imageKeys = own.flatMap((p) => (p.imageKey ? [p.imageKey] : []))
+  const ownArticles = await db
+    .select({ ogImageKey: archivedPosts.ogImageKey })
+    .from(archivedPosts)
+    .where(eq(archivedPosts.authorId, user.id))
+  const imageKeys = [
+    ...own.flatMap((p) => (p.imageKey ? [p.imageKey] : [])),
+    ...ownArticles.flatMap((a) => (a.ogImageKey ? [a.ogImageKey] : [])),
+  ]
 
   // リアクションを消す投稿の件数を先に控えておき、消した後で数え直す
   const reacted = await db

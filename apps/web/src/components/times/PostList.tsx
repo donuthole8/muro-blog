@@ -170,7 +170,7 @@ function DaySeparator({ iso }: { iso: string }) {
   return (
     <div className="flex items-center gap-3 px-1 pt-6 pb-2 first:pt-0">
       <span
-        className="font-mono text-xs font-bold tracking-wider text-text-muted"
+        className="font-mono text-xs font-bold tracking-tight text-text-muted"
         suppressHydrationWarning
       >
         {formatDayLabel(iso)}

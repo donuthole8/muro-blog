@@ -143,9 +143,20 @@ async function readArticleInput(c: Context<AppEnv>): Promise<ArticleInput> {
     pattern: new RegExp(`^(?=.*\\S)[^\\p{Cc}]{1,${MAX_TAG_NAME_LENGTH}}$`, 'u'),
     patternMessage: `タグ名は ${MAX_TAG_NAME_LENGTH} 文字までです。`,
   })
+  // 送られてこなければ今の画像のまま（null を送れば外す）
+  const ogImageKey = input.has('ogImageKey') ? input.optionalString('ogImageKey', { max: 128 }) : undefined
   input.assertValid()
 
-  return { title, slug, emoji, bodyMd, status: status as ArticleInput['status'], tagSlugs, newTags }
+  return {
+    title,
+    slug,
+    emoji,
+    bodyMd,
+    status: status as ArticleInput['status'],
+    tagSlugs,
+    newTags,
+    ogImageKey,
+  }
 }
 
 articles.get('/me/articles', async (c) => {
@@ -207,9 +218,12 @@ articles.put('/me/articles/:id', async (c) => {
   return c.json(toArticleSource(saved, tagList), 200, privateCache)
 })
 
-/** 削除。添付していた投稿からは外れる（posts.article_id は ON DELETE SET NULL）。 */
+/**
+ * 削除。添付していた投稿からは外れる（posts.article_id は ON DELETE SET NULL）。
+ * 共有カード画像のキーを返す（KV からの削除は web の Worker が行う）。
+ */
 articles.delete('/me/articles/:id', async (c) => {
   const article = await findOwnOr404(c)
   await c.var.db.delete(archivedPosts).where(eq(archivedPosts.id, article.id))
-  return c.body(null, 204)
+  return c.json({ imageKey: article.ogImageKey } satisfies Schemas['ArticleDeleted'], 200, privateCache)
 })

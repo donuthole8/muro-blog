@@ -3,6 +3,7 @@ import { notFound } from '@tanstack/react-router'
 import type { ArticleInput } from '@blog/api-client'
 import { POSTS_PER_PAGE, getApiClient, getSessionApiClient } from './api'
 import { throwRead, toFailure, unauthenticated } from './result'
+import { deleteImages } from './uploads'
 
 /**
  * ユーザーのブログ記事。公開ページは /@handle/articles/:slug、書くのは /articles/new。
@@ -99,6 +100,10 @@ export const updateArticle = createServerFn({ method: 'POST' })
     const api = getSessionApiClient()
     if (!api) return unauthenticated
 
+    // 共有カード画像を描き直したら、古い画像は KV から消す（API は KV に触れないので）
+    const { data: before } = await api.fetch.GET('/api/me/articles/{id}', {
+      params: { path: { id: data.id } },
+    })
     const {
       data: article,
       error,
@@ -110,6 +115,10 @@ export const updateArticle = createServerFn({ method: 'POST' })
     if (!article)
       return toFailure(error, response.status, '保存に失敗しました。')
 
+    if (before?.ogImageKey && before.ogImageKey !== article.ogImageKey) {
+      await deleteImages([before.ogImageKey])
+    }
+
     return { ok: true as const, article }
   })
 
@@ -119,12 +128,17 @@ export const deleteArticle = createServerFn({ method: 'POST' })
     const api = getSessionApiClient()
     if (!api) return unauthenticated
 
-    const { error, response } = await api.fetch.DELETE(
-      '/api/me/articles/{id}',
-      { params: { path: { id: data.id } } },
-    )
-    if (response.status >= 400)
+    const {
+      data: deleted,
+      error,
+      response,
+    } = await api.fetch.DELETE('/api/me/articles/{id}', {
+      params: { path: { id: data.id } },
+    })
+    if (!deleted)
       return toFailure(error, response.status, '削除に失敗しました。')
+
+    if (deleted.imageKey) await deleteImages([deleted.imageKey])
 
     return { ok: true as const }
   })

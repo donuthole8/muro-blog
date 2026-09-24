@@ -234,8 +234,8 @@ function TimeColumn({
   inline?: boolean
 }) {
   const base = inline
-    ? 'ml-auto font-mono text-xs tabular-nums text-text-muted sm:hidden'
-    : 'hidden w-10 shrink-0 pt-0.5 text-right font-mono text-xs tabular-nums text-text-muted sm:block'
+    ? 'ml-auto font-mono text-xs tracking-tight text-text-muted sm:hidden'
+    : 'hidden w-10 shrink-0 pt-0.5 text-right font-mono text-xs tracking-tight text-text-muted sm:block'
 
   if (isPendingId(post.id)) {
     return <span className={base}>··:··</span>

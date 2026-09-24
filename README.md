@@ -129,6 +129,7 @@ Cloudflare のエッジでキャッシュする（`apps/web/src/lib/edgeCache.ts
 `http://localhost:3100/admin`（`role=admin` のユーザーだけが開ける）
 
 - 投稿の非表示・非表示の解除・削除（非表示の投稿も本文ごと見える）
+- ブログ記事の非表示・非表示の解除・削除（下書きも並ぶ。非表示の記事は書き手本人にだけ見える）
 - ユーザーの停止・停止の解除（停止すると全端末からログアウトし、投稿は一覧から消える）
 - トピックタグの作成
 
@@ -199,6 +200,9 @@ cd packages/api-client && pnpm exec tsx scripts/smoke.ts
 | メソッド | パス |
 |---|---|
 | GET | `/api/admin/posts?cursor=&handle=` |
+| GET | `/api/admin/articles?cursor=&handle=` |
+| POST | `/api/admin/articles/{id}/hide` / `/unhide` |
+| DELETE | `/api/admin/articles/{id}` |
 | POST | `/api/admin/posts/{id}/hide` / `/unhide` |
 | DELETE | `/api/admin/posts/{id}` |
 | GET | `/api/admin/users?q=` |

@@ -77,6 +77,11 @@ export class Input {
     return value as string[]
   }
 
+  /** そのフィールドが送られてきたか（null を明示したのと省略したのを区別したいとき）。 */
+  has(field: string): boolean {
+    return field in this.body
+  }
+
   fail(field: string, message: string) {
     this.errors[field] ??= message
   }

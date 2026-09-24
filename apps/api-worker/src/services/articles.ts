@@ -5,7 +5,7 @@ import { invalid, iso, newId, now } from '../lib/http'
 import { renderArticleBody } from '../lib/markdown'
 import { excerpt, toUserSummary, type Schemas } from './mapper'
 import { inChunks } from './posts'
-import { resolveTags } from './writer'
+import { resolveTags, validImageKey } from './writer'
 
 /**
  * ブログ記事の読み書き。テーブルは旧ブログ時代の archived_posts をそのまま使う
@@ -32,6 +32,7 @@ export function selectArticles(db: Db) {
 export const publishedArticle = and(
   eq(archivedPosts.status, 'published'),
   isNotNull(archivedPosts.publishedAt),
+  isNull(archivedPosts.hiddenAt),
   or(
     isNull(archivedPosts.authorId),
     and(isNull(users.suspendedAt), isNull(users.deletedAt)),
@@ -91,6 +92,7 @@ export function toArticleDetail(
   return {
     ...toArticleSummary(row, tagList),
     bodyHtml: row.article.bodyHtml,
+    ogImageKey: row.article.ogImageKey,
     updatedAt: iso(row.article.updatedAt),
   }
 }
@@ -106,6 +108,8 @@ export function toMyArticle(article: Article, tagList: Schemas['TagSummary'][]):
     publishedAt: iso(article.publishedAt),
     updatedAt: iso(article.updatedAt),
     tags: tagList,
+    ogImageKey: article.ogImageKey,
+    hiddenAt: iso(article.hiddenAt),
   }
 }
 
@@ -152,6 +156,8 @@ export type ArticleInput = {
   status: 'draft' | 'published'
   tagSlugs: string[]
   newTags: string[]
+  /** 省略（undefined）なら今の画像のまま */
+  ogImageKey?: string | null
 }
 
 /**
@@ -179,6 +185,10 @@ export async function saveArticle(
     throw invalid('slug', 'この slug は別の記事で使っています。')
   }
 
+  const ogImageKey =
+    input.ogImageKey === undefined
+      ? (existing?.ogImageKey ?? null)
+      : validImageKey(author, input.ogImageKey, 'ogImageKey')
   const tagIds = await resolveTags(db, input.tagSlugs, input.newTags)
   const bodyMd = input.bodyMd.trim()
   const bodyHtml = renderArticleBody(bodyMd, siteHost)
@@ -190,6 +200,7 @@ export async function saveArticle(
     bodyMd,
     bodyHtml,
     excerpt: excerpt(bodyHtml, EXCERPT_LENGTH) || null,
+    ogImageKey,
     status: input.status,
     // 一度公開した日時は、下書きに戻して再公開しても変えない
     publishedAt: existing?.publishedAt ?? (input.status === 'published' ? updatedAt : null),

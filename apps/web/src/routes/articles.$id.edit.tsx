@@ -149,6 +149,9 @@ function EditArticle() {
         errors={failure?.errors ?? {}}
         isSaving={save.isPending}
         onSave={(form, status) => save.mutate({ ...form, status })}
+        handle={handle}
+        ogImageKey={article.ogImageKey}
+        hidden={article.hiddenAt != null}
       >
         <button
           type="button"

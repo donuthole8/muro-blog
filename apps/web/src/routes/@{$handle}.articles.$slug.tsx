@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ArticleView } from '../components/articles/ArticleView'
 import { fetchUserArticle } from '../lib/articles'
+import { imageUrl } from '../lib/image'
 import { site } from '../lib/site'
 
 export const Route = createFileRoute('/@{$handle}/articles/$slug')({
@@ -11,8 +12,10 @@ export const Route = createFileRoute('/@{$handle}/articles/$slug')({
 
     const description = loaderData.excerpt ?? site.description
     const url = `${site.url}/@${params.handle}/articles/${params.slug}`
-    // ユーザーの記事は記事ごとの画像を作らない（旧ブログの記事だけビルド時に生成している）
-    const ogImage = `${site.url}${site.ogImage}`
+    // 共有カード画像は書き手のブラウザが公開時に描いたもの（lib/ogImage.ts）。無ければ共通の画像
+    const ogImage = loaderData.ogImageKey
+      ? `${site.url}${imageUrl(loaderData.ogImageKey)}`
+      : `${site.url}${site.ogImage}`
 
     return {
       meta: [

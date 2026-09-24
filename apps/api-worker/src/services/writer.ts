@@ -198,12 +198,12 @@ function assertOwner(user: User, post: Post) {
   if (post.authorId !== user.id) throw forbidden('自分の投稿しか編集・削除できません。')
 }
 
-function validImageKey(author: User, key: string | null): string | null {
+export function validImageKey(author: User, key: string | null, field = 'imageKey'): string | null {
   if (key === null || key === '') return null
   // 他人のアップロードを自分の投稿に付けられないよう、キーに埋めた投稿者 ID を照合する
   const m = IMAGE_KEY_PATTERN.exec(key)
   if (!m || m[1] !== author.id) {
-    throw invalid('imageKey', '画像の指定が不正です。アップロードし直してください。')
+    throw invalid(field, '画像の指定が不正です。アップロードし直してください。')
   }
   return key
 }
@@ -213,7 +213,7 @@ async function assertAttachableArticle(db: Db, id: number) {
   const article = await db
     .select({ id: archivedPosts.id })
     .from(archivedPosts)
-    .where(and(eq(archivedPosts.id, id), eq(archivedPosts.status, 'published')))
+    .where(and(eq(archivedPosts.id, id), eq(archivedPosts.status, 'published'), isNull(archivedPosts.hiddenAt)))
     .get()
   if (!article) throw invalid('articleId', '記事が見つからないか、公開されていません。')
 }

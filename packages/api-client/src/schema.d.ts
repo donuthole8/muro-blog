@@ -766,6 +766,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_admin_articles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/articles/{id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_admin_articles_hide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/articles/{id}/unhide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_admin_articles_unhide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/articles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_api_admin_articles_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -987,6 +1051,8 @@ export interface components {
             tags: components["schemas"]["TagSummary"][];
             /** @description 書き手。旧ブログの記事なら null（/posts/{slug} で公開される） */
             author?: components["schemas"]["UserSummary"] | null;
+            /** @description 共有カード用の画像のキー（/uploads/{key} で配信される） */
+            ogImageKey?: string | null;
         };
         TagWithCount: {
             /** @example JavaScript */
@@ -1214,6 +1280,13 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             tags: components["schemas"]["TagSummary"][];
+            /** @description 共有カード用の画像のキー（/uploads/{key} で配信される） */
+            ogImageKey?: string | null;
+            /**
+             * Format: date-time
+             * @description 管理者が非表示にした日時。非表示の間は本人にしか見えない
+             */
+            hiddenAt?: string | null;
         };
         MyArticleList: {
             items: components["schemas"]["MyArticle"][];
@@ -1235,6 +1308,13 @@ export interface components {
             tags: components["schemas"]["TagSummary"][];
             /** @description Markdown 原文 */
             bodyMd: string;
+            /** @description 共有カード用の画像のキー（/uploads/{key} で配信される） */
+            ogImageKey?: string | null;
+            /**
+             * Format: date-time
+             * @description 管理者が非表示にした日時。非表示の間は本人にしか見えない
+             */
+            hiddenAt?: string | null;
         };
         ArticleInput: {
             title: string;
@@ -1248,12 +1328,39 @@ export interface components {
             tagSlugs: string[];
             /** @default [] */
             newTags: string[];
+            /** @description 共有カード用の画像。書き手本人がアップロードしたものしか指定できない */
+            ogImageKey?: string | null;
         };
         ArticlePreviewInput: {
             bodyMd: string;
         };
         ArticlePreview: {
             bodyHtml: string;
+        };
+        ArticleDeleted: {
+            /** @description 消えた共有カード画像のキー（web の Worker が KV から消す） */
+            imageKey?: string | null;
+        };
+        AdminArticle: {
+            id: number;
+            slug: string;
+            title: string;
+            emoji?: string | null;
+            excerpt?: string | null;
+            /** @enum {string} */
+            status: "draft" | "published";
+            /** @description 旧ブログの記事なら null */
+            author?: components["schemas"]["AdminUser"] | null;
+            /** Format: date-time */
+            hiddenAt?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AdminArticlePage: {
+            items: components["schemas"]["AdminArticle"][];
+            nextCursor?: string | null;
         };
     };
     responses: never;
@@ -2949,13 +3056,133 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description 削除した */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ArticleDeleted"];
+                };
             };
             /** @description 記事がないか自分の記事ではない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_admin_articles: {
+        parameters: {
+            query?: {
+                /** @description 直前のページの最後の記事 ID */
+                cursor?: string;
+                /** @description 書き手で絞り込む */
+                handle?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 記事（下書き・非表示を含む。新しい順） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminArticlePage"];
+                };
+            };
+        };
+    };
+    post_api_admin_articles_hide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 非表示にした */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminArticle"];
+                };
+            };
+            /** @description 記事がない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    post_api_admin_articles_unhide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 非表示を解除した */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminArticle"];
+                };
+            };
+            /** @description 記事がない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_admin_articles_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 削除した */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleDeleted"];
+                };
+            };
+            /** @description 記事がない */
             404: {
                 headers: {
                     [name: string]: unknown;
