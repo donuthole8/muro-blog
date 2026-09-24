@@ -12,14 +12,11 @@ const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000'
 const apiBaseUrl = process.env.API_BASE_URL ?? 'http://127.0.0.1:8000'
 
 /**
- * 静的化するのは旧ブログのアーカイブ記事（/posts/:slug）だけ。
+ * 旧ブログのアーカイブ記事（/posts/:slug）をサイトマップに載せるため、ビルド時に API から
+ * 記事の一覧を取ってページを列挙する（ビルド中は API が起動している必要がある）。
  *
- * times の画面（ロビー・部屋・スレッドなど）は数秒単位で中身が変わるので SSR にし、
- * 公開 API の応答をエッジでキャッシュすることで、API の Worker と D1 の無料枠を節約する
- * （lib/edgeCache.ts 参照）。
- *
- * アーカイブは更新されないので、ビルド時に API から記事の一覧を取って
- * ページを列挙する（ビルド中は API が起動している必要がある）。
+ * ページそのものは静的化せず SSR にする。D1 の本文を書き換えれば再デプロイなしで反映され、
+ * 公開 API の応答はエッジでキャッシュされる（lib/edgeCache.ts 参照）。
  */
 async function archivePages() {
   const slugs: Array<string> = []
@@ -53,12 +50,12 @@ async function archivePages() {
 
   return slugs.map((slug) => ({
     path: `/posts/${slug}`,
-    prerender: { enabled: true },
+    prerender: { enabled: false },
   }))
 }
 
 /**
- * フィードと robots.txt も静的化するが、サイトマップにページとしては載せない。
+ * 静的化するのはフィードと robots.txt だけ。サイトマップにページとしては載せない。
  */
 const feedPages = [
   {
@@ -88,9 +85,7 @@ export default defineConfig(async ({ command }) => ({
         concurrency: 4,
         // 記事の取得に失敗したまま空の HTML を公開しないよう、失敗はビルドを止める
         failOnError: true,
-        filter: (page) =>
-          page.path.startsWith('/posts/') ||
-          feedPages.some((feed) => feed.path === page.path),
+        filter: (page) => feedPages.some((feed) => feed.path === page.path),
       },
       sitemap: {
         enabled: true,

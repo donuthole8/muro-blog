@@ -117,10 +117,10 @@ cd apps/web
 pnpm build
 ```
 
-静的化（プリレンダリング）するのは旧ブログのアーカイブ記事（`/posts/:slug`）と
-`rss.xml`・`robots.txt` だけ。times の画面はすべて SSR で、公開 API の応答を
+静的化（プリレンダリング）するのは `rss.xml`・`robots.txt` だけ。旧ブログのアーカイブ記事
+（`/posts/:slug`）も times の画面もすべて SSR で、公開 API の応答を
 Cloudflare のエッジでキャッシュする（`apps/web/src/lib/edgeCache.ts`）。
-**ビルド中は API が起動している必要がある**（アーカイブ記事の一覧を取るため）。
+**ビルド中は API が起動している必要がある**（サイトマップと OGP 画像のためにアーカイブ記事の一覧を取る）。
 
 環境変数は `apps/web/.env.example` を参照。
 

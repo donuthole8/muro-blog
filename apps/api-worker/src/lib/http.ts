@@ -35,8 +35,8 @@ export const CacheFor = {
   FRESH: 15,
   /** 人気の部屋・会社。集計が重く、数分の遅れは問題にならない */
   AGGREGATE: 300,
-  /** 旧ブログのアーカイブ。更新されない */
-  ARCHIVE: 3600,
+  /** 旧ブログのアーカイブ。D1 を直接書き換えることがあるので長くは置かない */
+  ARCHIVE: 60,
 } as const
 
 export const publicCache = (seconds: number) => ({

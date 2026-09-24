@@ -7,7 +7,7 @@
 ```
 [閲覧]       → web Worker（SSR）─ 公開 API の応答はエッジでキャッシュ ─┐
 [ログイン中] → web Worker ─ Cookie を Bearer に載せ替え ─────────────┴→ (Service Binding) → api Worker (Hono) → D1
-[旧ブログ]   → web Worker（/posts/:slug はビルド時に静的化）
+[旧ブログ]   → web Worker（/posts/:slug も SSR）
 [画像]       → web Worker → Workers KV
 ```
 
@@ -15,6 +15,26 @@
 |---|---|---|
 | `teatimes-api` | `apps/api-worker` | Hono + Drizzle ORM。D1（SQLite）を読み書きする |
 | `teatimes` | `apps/web` | TanStack Start。API は Service Binding（`env.API`）で呼ぶ |
+
+## 自動デプロイ（main に push）
+
+`main` に push すると GitHub Actions（`.github/workflows/deploy.yml`）が次の順に実行する。
+Actions のタブから手動で流すこともできる（Run workflow）。
+
+1. 型チェック（`pnpm typecheck`）。落ちたらデプロイしない
+2. D1 のマイグレーション適用（`pnpm db:migrate:remote`）
+3. API の Worker をデプロイ
+4. web の Worker をビルドしてデプロイ（ビルド用の `API_BASE_URL`・`SITE_URL` はワークフローに書いてある）
+
+初回だけ、GitHub のリポジトリの Settings → Secrets and variables → Actions に次を登録する。
+
+| Secret | 値 |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare ダッシュボード → My Profile → API Tokens →「Edit Cloudflare Workers」テンプレートで作り、権限に **D1: Edit** を足す |
+| `CLOUDFLARE_ACCOUNT_ID` | Workers & Pages の画面の右側に出ているアカウント ID |
+
+`GOOGLE_CLIENT_SECRET` などの Worker のシークレットは `wrangler secret put` で入れたものがそのまま残るので、
+GitHub に置く必要はない。以下の手順は初回の構築と、手元から直接デプロイしたいとき用。
 
 ## 0. 事前に必要なもの
 
@@ -30,10 +50,10 @@
 !pnpm --filter @blog/api-worker exec wrangler login
 ```
 
-独自ドメインは**必須ではない**（`*.workers.dev` のままで公開できる）。ただし公開 API のエッジキャッシュ
-（`apps/web/src/lib/edgeCache.ts`）は Cache API を使うため独自ドメインでしか効かず、
-workers.dev のままだと閲覧のたびに API の Worker と D1 まで届く。無料枠（後述）には十分収まるが、
-アクセスが増えてきたら独自ドメインを割り当てる。
+独自ドメインは**必須ではない**（`*.workers.dev` のままで公開できる）。公開 API のエッジキャッシュ
+（`apps/web/src/lib/edgeCache.ts`）は Service Binding への GET を Cache API に置くので、
+workers.dev のままでも効く。キャッシュに残った古い応答を捨てたいときは、同じファイルの
+`CACHE_VERSION` を上げて web を再デプロイする（Cache API にはエントリを消す手段が無い）。
 
 ## 1. D1（データベース）
 
@@ -126,6 +146,18 @@ pnpm exec wrangler kv namespace create blog-images
 pnpm run deploy
 ```
 
+`.env` を開発用（ローカルの API）のままにしてデプロイしたいときは、値を環境変数で渡す。
+プリレンダリングはローカルの Worker で動き、既定では `.env` しか読まないので、
+`CLOUDFLARE_INCLUDE_PROCESS_ENV=true` を付けてその Worker にも渡す。
+付け忘れると、ローカルの DB に無い記事で `Failed to fetch /posts/...: Not Found` になる。
+
+```sh
+CLOUDFLARE_INCLUDE_PROCESS_ENV=true \
+API_BASE_URL=https://teatimes-api.muronaga.workers.dev \
+SITE_URL=https://teatimes.muronaga.workers.dev \
+pnpm run deploy
+```
+
 独自ドメインを使う場合は、Cloudflare にドメインを追加してから、Worker の設定画面で
 カスタムドメインを割り当てる。
 
@@ -157,11 +189,15 @@ Cloudflare のダッシュボード（Workers & Pages → 各 Worker / D1 → Me
 
 ## 6. 旧ブログの記事を直したとき
 
-アーカイブ（`/posts/:slug`）はビルド時に静的化しているので、再デプロイで反映される。
+アーカイブ（`/posts/:slug`）は SSR なので、D1 の `archived_posts` を書き換えれば再デプロイなしで反映される
+（公開 API のエッジキャッシュが切れるまで最大 1 分）。
 
 ```sh
-cd apps/web && pnpm run deploy
+cd apps/api-worker
+pnpm exec wrangler d1 execute blog --remote --command "UPDATE archived_posts SET body_md = '...', body_html = '...', updated_at = unixepoch() WHERE slug = '...'"
 ```
+
+タイトルを変えたときは OGP 画像（ビルド時に生成）を作り直すために再デプロイする。
 
 ## チェックリスト
 
