@@ -60,6 +60,32 @@
                 ]
             }
         },
+        "/api/admin/posts/moderate": {
+            "post": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "post_api_admin_posts_moderate",
+                "description": "\u672a\u5224\u5b9a\u306e\u6295\u7a3f\u3092 Jev \u3067\u307e\u3068\u3081\u3066\u5224\u5b9a\u3059\u308b\uff081\u56de\u306b\u6700\u5927 20 \u4ef6\uff09\u3002remaining \u304c 0 \u306b\u306a\u308b\u307e\u3067\u7e70\u308a\u8fd4\u3057\u547c\u3076\u3002TYPESAFE_API_KEY \u304c\u672a\u8a2d\u5b9a\u306a\u3089 422",
+                "responses": {
+                    "200": {
+                        "description": "\u5224\u5b9a\u3057\u305f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ModerationBackfill"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionToken": []
+                    }
+                ]
+            }
+        },
         "/api/admin/posts/{id}/hide": {
             "post": {
                 "tags": [
@@ -2858,6 +2884,25 @@
                         "format": "date-time",
                         "nullable": true
                     },
+                    "moderation": {
+                        "description": "Jev \u306e\u5224\u5b9a\u3002null \u306f\u554f\u984c\u306a\u3057\u30fb\u672a\u5224\u5b9a",
+                        "type": "string",
+                        "enum": [
+                            "sensitive",
+                            "blocked"
+                        ],
+                        "nullable": true
+                    },
+                    "moderationCategory": {
+                        "description": "\u6700\u3082\u78ba\u7387\u304c\u9ad8\u304b\u3063\u305f\u30ab\u30c6\u30b4\u30ea\uff08sexual / violence / harassment / legal\uff09\u3002\u672a\u5224\u5b9a\u306a\u3089 null",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "moderationScore": {
+                        "description": "\u305d\u306e\u30ab\u30c6\u30b4\u30ea\u306e\u78ba\u7387\uff080\u301c1\uff09\u3002\u672a\u5224\u5b9a\u306a\u3089 null",
+                        "type": "number",
+                        "nullable": true
+                    },
                     "createdAt": {
                         "type": "string",
                         "format": "date-time"
@@ -3316,7 +3361,8 @@
                     "reactionCount",
                     "reactions",
                     "tags",
-                    "createdAt"
+                    "createdAt",
+                    "moderation"
                 ],
                 "properties": {
                     "id": {
@@ -3397,6 +3443,15 @@
                         ],
                         "nullable": true,
                         "description": "\u6dfb\u4ed8\u3057\u305f\u30d6\u30ed\u30b0\u8a18\u4e8b\u3002\u975e\u516c\u958b\u30fb\u524a\u9664\u306b\u306a\u3063\u305f\u3089 null"
+                    },
+                    "moderation": {
+                        "description": "Jev \u306b\u3088\u308b\u5224\u5b9a\u3002sensitive: \u4e0d\u9069\u5207\u306a\u53ef\u80fd\u6027\u304c\u3042\u308b\u306e\u3067\u6298\u308a\u305f\u305f\u3093\u3067\u51fa\u3059\uff08state \u306f visible\uff09/ blocked: \u4e0d\u9069\u5207\u306a\u305f\u3081\u81ea\u52d5\u3067\u975e\u8868\u793a\u306b\u3057\u305f\uff08state \u306f hidden\uff09",
+                        "type": "string",
+                        "enum": [
+                            "sensitive",
+                            "blocked"
+                        ],
+                        "nullable": true
                     }
                 },
                 "type": "object"
@@ -4129,6 +4184,38 @@
                     "nextCursor": {
                         "type": "string",
                         "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ModerationBackfill": {
+                "required": [
+                    "processed",
+                    "blocked",
+                    "sensitive",
+                    "remaining",
+                    "stopped"
+                ],
+                "properties": {
+                    "processed": {
+                        "description": "\u4eca\u56de\u5224\u5b9a\u3057\u305f\u4ef6\u6570",
+                        "type": "integer"
+                    },
+                    "blocked": {
+                        "description": "\u305d\u306e\u3046\u3061\u81ea\u52d5\u3067\u975e\u8868\u793a\u306b\u3057\u305f\u4ef6\u6570",
+                        "type": "integer"
+                    },
+                    "sensitive": {
+                        "description": "\u305d\u306e\u3046\u3061\u6298\u308a\u305f\u305f\u307f\u306b\u3057\u305f\u4ef6\u6570",
+                        "type": "integer"
+                    },
+                    "remaining": {
+                        "description": "\u307e\u3060\u672a\u5224\u5b9a\u306e\u4ef6\u6570",
+                        "type": "integer"
+                    },
+                    "stopped": {
+                        "description": "Jev \u306e\u547c\u3073\u51fa\u3057\u306b\u5931\u6557\u3057\u3066\u9014\u4e2d\u3067\u6b62\u3081\u305f\uff08\u30af\u30ec\u30b8\u30c3\u30c8\u5207\u308c\u306a\u3069\uff09",
+                        "type": "boolean"
                     }
                 },
                 "type": "object"

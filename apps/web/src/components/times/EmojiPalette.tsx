@@ -47,7 +47,7 @@ export function EmojiPalette({ onPick }: Props) {
         ) : (
           emojiCategories.map((category) => (
             <div key={category.label} className="mb-3 last:mb-0">
-              <p className="mb-1 px-1 text-[0.65rem] font-bold text-text-muted">
+              <p className="mb-1 px-1 text-xs font-bold text-text-muted">
                 {category.label}
               </p>
               <EmojiGrid emojis={category.emojis} onPick={pick} />

@@ -22,6 +22,7 @@ export type ReactionCount = Schemas["ReactionCount"];
 export type TagSummary = Schemas["TagSummary"];
 export type TagWithCount = Schemas["TagWithCount"];
 export type AdminPost = Schemas["AdminPost"];
+export type ModerationBackfill = Schemas["ModerationBackfill"];
 export type AdminUser = Schemas["AdminUser"];
 export type AdminReport = Schemas["AdminReport"];
 export type AdminReportPage = Schemas["AdminReportPage"];

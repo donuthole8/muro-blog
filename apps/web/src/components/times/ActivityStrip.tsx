@@ -42,7 +42,7 @@ export function ActivityStrip({ posts }: { posts: Array<TimesPost> }) {
           />
         ))}
       </div>
-      <p className="mt-1.5 font-mono text-[0.65rem] text-text-muted">
+      <p className="mt-1.5 font-mono text-xs text-text-muted">
         直近 {DAYS} 日の記録
       </p>
     </div>

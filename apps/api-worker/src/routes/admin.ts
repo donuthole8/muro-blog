@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, isNotNull, isNull, lt } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, lt, ne } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/sqlite-core'
 import { Hono, type Context } from 'hono'
 import type { Db } from '../db/client'
@@ -7,6 +7,7 @@ import type { AppEnv } from '../env'
 import { requireAdmin, revokeAllSessions } from '../lib/auth'
 import { ApiError, isUlid, iso, notFound, now, parseCursor, privateCache, toPage } from '../lib/http'
 import { Input, SLUG_PATTERN } from '../lib/input'
+import { moderateText } from '../lib/moderation'
 import {
   postState,
   toAdminPost,
@@ -17,7 +18,7 @@ import {
 import { selectArticles } from '../services/articles'
 import { findForModeration, findPostById } from '../services/posts'
 import { findUserByHandle, findUserById, searchUsersForAdmin } from '../services/users'
-import { deletePost } from '../services/writer'
+import { deletePost, moderationFields } from '../services/writer'
 
 /** 管理画面（/admin）の API。role=admin のユーザーだけが使える。 */
 export const admin = new Hono<AppEnv>()
@@ -68,14 +69,66 @@ async function toggleHidden(c: Context<AppEnv>, hidden: boolean) {
   if (!row || row.post.deletedAt) throw notFound('投稿が見つかりません。')
 
   const hiddenAt = hidden ? (row.post.hiddenAt ?? now()) : null
-  await db.update(posts).set({ hiddenAt }).where(eq(posts.id, row.post.id))
+  // 非表示を解除したら、Jev の判定（自動非表示・折りたたみ）も管理者の判断で取り消す
+  const moderation = hidden ? row.post.moderation : null
+  await db.update(posts).set({ hiddenAt, moderation }).where(eq(posts.id, row.post.id))
   if (hidden) await resolveReportsFor(db, row.post.id)
 
-  return c.json(toAdminPost({ ...row, post: { ...row.post, hiddenAt } }), 200, privateCache)
+  return c.json(toAdminPost({ ...row, post: { ...row.post, hiddenAt, moderation } }), 200, privateCache)
 }
 
 admin.post('/posts/:id/hide', (c) => toggleHidden(c, true))
 admin.post('/posts/:id/unhide', (c) => toggleHidden(c, false))
+
+/**
+ * 未判定の投稿（Jev 導入前のもの・判定に失敗したもの）をまとめて判定する。
+ * Workers の1リクエストのサブリクエスト上限に収まるよう、1回に BACKFILL_BATCH 件ずつ。
+ * 管理画面が remaining が 0 になるまで繰り返し呼ぶ。Jev が失敗したら（クレジット切れなど）そこで止める。
+ */
+const BACKFILL_BATCH = 20
+
+function unmoderated() {
+  return and(isNull(posts.deletedAt), isNull(posts.moderationScore), ne(posts.bodyMarkdown, ''))
+}
+
+admin.post('/posts/moderate', async (c) => {
+  const db = c.var.db
+  const apiKey = c.env.TYPESAFE_API_KEY
+  if (!apiKey) throw new ApiError(422, 'TYPESAFE_API_KEY が設定されていません。')
+
+  const rows = await db
+    .select({ id: posts.id, bodyMarkdown: posts.bodyMarkdown, hiddenAt: posts.hiddenAt })
+    .from(posts)
+    .where(unmoderated())
+    .orderBy(desc(posts.id))
+    .limit(BACKFILL_BATCH)
+
+  let processed = 0
+  let blocked = 0
+  let sensitive = 0
+  let stopped = false
+  for (const row of rows) {
+    const verdict = await moderateText(apiKey, row.bodyMarkdown)
+    if (!verdict) {
+      stopped = true
+      break
+    }
+    const fields = moderationFields(verdict, now())
+    // 管理者が既に非表示にしていたものは、その日時を残す
+    if (row.hiddenAt) delete fields.hiddenAt
+    await db.update(posts).set(fields).where(eq(posts.id, row.id))
+    processed++
+    if (verdict.level === 'blocked') blocked++
+    if (verdict.level === 'sensitive') sensitive++
+  }
+
+  const left = await db.select({ n: count() }).from(posts).where(unmoderated()).get()
+  return c.json(
+    { processed, blocked, sensitive, remaining: left?.n ?? 0, stopped } satisfies Schemas['ModerationBackfill'],
+    200,
+    privateCache,
+  )
+})
 
 admin.delete('/posts/:id', async (c) => {
   const db = c.var.db

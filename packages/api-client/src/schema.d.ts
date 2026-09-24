@@ -20,6 +20,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/posts/moderate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 未判定の投稿を Jev でまとめて判定する（1回に最大 20 件）。remaining が 0 になるまで繰り返し呼ぶ。TYPESAFE_API_KEY が未設定なら 422 */
+        post: operations["post_api_admin_posts_moderate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/posts/{id}/hide": {
         parameters: {
             query?: never;
@@ -955,6 +972,15 @@ export interface components {
             imageKey?: string | null;
             /** Format: date-time */
             hiddenAt?: string | null;
+            /**
+             * @description Jev の判定。null は問題なし・未判定
+             * @enum {string|null}
+             */
+            moderation?: "sensitive" | "blocked" | null;
+            /** @description 最も確率が高かったカテゴリ（sexual / violence / harassment / legal）。未判定なら null */
+            moderationCategory?: string | null;
+            /** @description そのカテゴリの確率（0〜1）。未判定なら null */
+            moderationScore?: number | null;
             /** Format: date-time */
             createdAt: string;
         };
@@ -1142,6 +1168,11 @@ export interface components {
             createdAt: string;
             /** @description 添付したブログ記事。非公開・削除になったら null */
             article?: components["schemas"]["ArticleCard"] | null;
+            /**
+             * @description Jev による判定。sensitive: 不適切な可能性があるので折りたたんで出す（state は visible）/ blocked: 不適切なため自動で非表示にした（state は hidden）
+             * @enum {string|null}
+             */
+            moderation: "sensitive" | "blocked" | null;
         };
         PostPage: {
             items: components["schemas"]["TimesPost"][];
@@ -1362,6 +1393,18 @@ export interface components {
             items: components["schemas"]["AdminArticle"][];
             nextCursor?: string | null;
         };
+        ModerationBackfill: {
+            /** @description 今回判定した件数 */
+            processed: number;
+            /** @description そのうち自動で非表示にした件数 */
+            blocked: number;
+            /** @description そのうち折りたたみにした件数 */
+            sensitive: number;
+            /** @description まだ未判定の件数 */
+            remaining: number;
+            /** @description Jev の呼び出しに失敗して途中で止めた（クレジット切れなど） */
+            stopped: boolean;
+        };
     };
     responses: never;
     parameters: never;
@@ -1391,6 +1434,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminPostPage"];
+                };
+            };
+        };
+    };
+    post_api_admin_posts_moderate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 判定した */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModerationBackfill"];
                 };
             };
         };

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { EditorState } from '@codemirror/state'
+import { EditorState, Prec } from '@codemirror/state'
 import type { Extension, Range } from '@codemirror/state'
 import {
   Decoration,
@@ -21,6 +21,17 @@ import {
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { tags as t } from '@lezer/highlight'
 import type { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
+import { MarkdownToolbar } from '../MarkdownToolbar'
+import {
+  formatMarkdown,
+  insertTable,
+  pasteAsLink,
+} from '../../lib/markdownFormat'
+import type {
+  FormatCommand,
+  Selection,
+  TextChange,
+} from '../../lib/markdownFormat'
 
 type Props = {
   value: string
@@ -73,6 +84,16 @@ export function MarkdownEditor({
           }),
           EditorView.domEventHandlers({
             paste(event, editorView) {
+              const text = event.clipboardData?.getData('text/plain') ?? ''
+              if (
+                applyChange(editorView, (doc, sel) =>
+                  pasteAsLink(doc, sel, text),
+                )
+              ) {
+                event.preventDefault()
+                return true
+              }
+
               const handler = onImageDropRef.current
               const file = imageFileFrom(event.clipboardData)
               if (!handler || !file) return false
@@ -123,12 +144,49 @@ export function MarkdownEditor({
     view.dispatch({ changes: { from: 0, to: current.length, insert: value } })
   }, [value])
 
+  const format = (compute: (doc: string, sel: Selection) => TextChange) => {
+    const view = viewRef.current
+    if (view) applyChange(view, compute)
+  }
+
   return (
-    <div
-      ref={containerRef}
-      className="min-h-96 min-w-0 rounded-md border border-border bg-surface transition-colors focus-within:border-accent"
-    />
+    <div className="min-w-0 rounded-md border border-border bg-surface transition-colors focus-within:border-accent">
+      {/* 長い記事でも押せるよう、サイトのヘッダー（h-14）の下に貼り付ける */}
+      <MarkdownToolbar
+        blocks
+        onFormat={(command) =>
+          format((doc, sel) => formatMarkdown(doc, sel, command))
+        }
+        onInsertTable={(cols, rows) =>
+          format((doc, sel) => insertTable(doc, sel, cols, rows))
+        }
+        className="sticky top-14 z-10 rounded-t-md border-b border-border bg-surface"
+      />
+      <div ref={containerRef} className="min-h-96" />
+    </div>
   )
+}
+
+/** markdownFormat の書き換えをエディタに反映する。書き換えなかったら false。 */
+function applyChange(
+  view: EditorView,
+  compute: (doc: string, sel: Selection) => TextChange | null,
+): boolean {
+  const { main } = view.state.selection
+  const change = compute(view.state.doc.toString(), {
+    from: main.from,
+    to: main.to,
+  })
+  if (!change) return false
+
+  view.dispatch({
+    changes: { from: change.from, to: change.to, insert: change.insert },
+    selection: { anchor: change.selection.from, head: change.selection.to },
+    scrollIntoView: true,
+    userEvent: 'input.format',
+  })
+  view.focus()
+  return true
 }
 
 /* ------------------------------------------------------------------ */
@@ -569,7 +627,29 @@ const editorTheme = EditorView.theme({
   },
 })
 
+/**
+ * 書式のショートカット（textarea 側は markdownFormat の shortcutCommand）。
+ * 既定のキーマップの Mod-i（構文単位の選択）より優先させる。
+ */
+const formatKeymap = Prec.high(
+  keymap.of(
+    (
+      [
+        ['Mod-b', 'bold'],
+        ['Mod-i', 'italic'],
+        ['Mod-Shift-x', 'strike'],
+        ['Mod-k', 'link'],
+      ] as const
+    ).map(([key, command]: readonly [string, FormatCommand]) => ({
+      key,
+      run: (view: EditorView) =>
+        applyChange(view, (doc, sel) => formatMarkdown(doc, sel, command)),
+    })),
+  ),
+)
+
 const editorExtensions: Extension = [
+  formatKeymap,
   history(),
   drawSelection(),
   dropCursor(),

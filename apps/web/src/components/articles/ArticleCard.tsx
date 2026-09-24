@@ -24,7 +24,7 @@ export function ArticleCard({ article, onRemove }: Props) {
           {article.emoji || DEFAULT_EMOJI}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[0.65rem] font-bold tracking-wider text-text-muted">
+          <span className="block text-xs font-bold text-text-muted">
             記事
             {article.author && (
               <span className="ml-1.5 font-mono font-normal">

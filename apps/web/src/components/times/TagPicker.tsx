@@ -102,7 +102,7 @@ export function TagPicker({
           className={`${chip} border-accent bg-accent-soft text-accent`}
         >
           #{item.name}
-          {item.isNew && <span className="text-[0.6rem] opacity-70">new</span>}
+          {item.isNew && <span className="text-[0.7rem] opacity-70">new</span>}
           <Icon name="x" className="h-3 w-3" />
         </button>
       ))}

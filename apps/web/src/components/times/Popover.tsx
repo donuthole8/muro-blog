@@ -4,10 +4,17 @@ type Props = {
   trigger: (props: { open: boolean; toggle: () => void }) => React.ReactNode
   children: (close: () => void) => React.ReactNode
   align?: 'left' | 'right'
+  /** 画面下に固定した入力欄など、下に開く余地がないところでは 'top' にする */
+  side?: 'top' | 'bottom'
 }
 
-/** ボタンの下に開くパネル。外側のクリックと Esc で閉じる。 */
-export function Popover({ trigger, children, align = 'left' }: Props) {
+/** ボタンの下（または上）に開くパネル。外側のクリックと Esc で閉じる。 */
+export function Popover({
+  trigger,
+  children,
+  align = 'left',
+  side = 'bottom',
+}: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -35,7 +42,7 @@ export function Popover({ trigger, children, align = 'left' }: Props) {
       {open && (
         <div
           data-popover
-          className={`absolute z-30 mt-1 ${align === 'right' ? 'right-0' : 'left-0'}`}
+          className={`absolute z-30 ${side === 'top' ? 'bottom-full mb-1' : 'mt-1'} ${align === 'right' ? 'right-0' : 'left-0'}`}
         >
           {children(() => setOpen(false))}
         </div>

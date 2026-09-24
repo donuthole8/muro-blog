@@ -9,6 +9,8 @@ export type Bindings = {
   GOOGLE_CLIENT_SECRET?: string
   GOOGLE_REDIRECT_URI: string
   DEV_LOGIN_ENABLED?: string
+  /** TypeSafe（Jev）の API キー。無ければ投稿の不適切さを判定しない */
+  TYPESAFE_API_KEY?: string
 }
 
 export type AppEnv = {

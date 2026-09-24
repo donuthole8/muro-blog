@@ -31,8 +31,10 @@ export const Route = createFileRoute('/@{$handle}/$postId')({
 
     const { post } = thread
     const author = post.author
-    const excerpt =
-      post.state === 'visible' ? htmlExcerpt(post.bodyHtml, 120) : ''
+    // 不適切な可能性がある投稿（畳んで出すもの）は、共有カードに本文も画像も出さない
+    const shareable =
+      post.state === 'visible' && post.moderation !== 'sensitive'
+    const excerpt = shareable ? htmlExcerpt(post.bodyHtml, 120) : ''
     const title = author
       ? `${author.displayName}: ${excerpt.slice(0, 40) || 'スレッド'} | ${site.title}`
       : `スレッド | ${site.title}`
@@ -41,7 +43,7 @@ export const Route = createFileRoute('/@{$handle}/$postId')({
     // （スレッドごとの共有カードは、Worker の無料枠では日本語フォント込みの画像生成が収まらないので描かない）
     const image =
       post.state === 'visible' && author
-        ? post.imageKey
+        ? post.imageKey && shareable
           ? `${site.url}/uploads/${post.imageKey}`
           : `${site.url}${site.ogImage}`
         : undefined
@@ -115,7 +117,7 @@ function ThreadPage() {
         />
       </div>
 
-      <h2 className="mt-6 text-xs font-bold tracking-wider text-text-muted">
+      <h2 className="mt-6 text-xs font-bold text-text-muted">
         {thread.replies.length > 0
           ? `${thread.replies.length}件の返信`
           : 'まだ返信はありません'}

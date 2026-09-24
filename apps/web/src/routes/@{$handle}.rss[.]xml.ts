@@ -31,7 +31,10 @@ export const Route = createFileRoute('/@{$handle}/rss.xml')({
 
         const roomUrl = `${site.url}/@${handle}`
         const items = page.items
-          .filter((post) => post.state === 'visible')
+          .filter(
+            (post) =>
+              post.state === 'visible' && post.moderation !== 'sensitive',
+          )
           .map((post) => {
             const url = `${roomUrl}/${post.id}`
             const title = htmlExcerpt(post.bodyHtml, 60) || '（画像の投稿）'

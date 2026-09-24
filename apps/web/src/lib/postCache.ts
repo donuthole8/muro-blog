@@ -187,6 +187,7 @@ export function pendingPost(
     reactions: [],
     tags: input.tags ?? [],
     article: input.article ?? null,
+    moderation: null,
     lastReplyAt: null,
     editedAt: null,
     createdAt: new Date().toISOString(),

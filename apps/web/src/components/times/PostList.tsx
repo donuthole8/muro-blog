@@ -168,7 +168,7 @@ export function PostList({
 /** 日付の変わり目。ログを日単位の塊として読めるようにする。 */
 function DaySeparator({ iso }: { iso: string }) {
   return (
-    <div className="flex items-center gap-3 px-1 pt-6 pb-2 first:pt-0">
+    <div className="flex items-center gap-3 px-1 pt-6 pb-2 first:pt-0 sm:px-2">
       <span
         className="font-mono text-xs font-bold tracking-tight text-text-muted"
         suppressHydrationWarning
@@ -186,16 +186,14 @@ function DaySeparator({ iso }: { iso: string }) {
  */
 function GapMarker({ minutes }: { minutes: number }) {
   return (
-    <div className="flex items-center gap-2 py-1 pl-1 sm:gap-3">
+    <div className="flex items-center gap-2 py-1 pl-1 sm:gap-3 sm:pl-2">
       <span
         aria-hidden
         className="w-10 shrink-0 text-right font-mono text-[0.65rem] text-text-muted opacity-60"
       >
         ┊
       </span>
-      <span className="text-[0.65rem] text-text-muted opacity-60">
-        {formatGap(minutes)}
-      </span>
+      <span className="text-xs text-text-muted">{formatGap(minutes)}</span>
     </div>
   )
 }

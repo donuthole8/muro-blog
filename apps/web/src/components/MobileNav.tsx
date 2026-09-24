@@ -129,7 +129,7 @@ export function MobileNav({
                 >
                   通知
                   {me.unreadNotificationCount > 0 && (
-                    <span className="ml-auto rounded-full bg-danger px-1.5 text-[0.65rem] leading-4 font-bold text-bg">
+                    <span className="ml-auto rounded-full bg-danger px-1.5 text-[0.7rem] leading-4 font-bold text-bg">
                       {me.unreadNotificationCount > 99
                         ? '99+'
                         : me.unreadNotificationCount}

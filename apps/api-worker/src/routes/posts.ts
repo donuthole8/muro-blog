@@ -38,6 +38,7 @@ function writerContext(c: Context<AppEnv>): WriterContext {
   return {
     db: c.var.db,
     siteHost: c.env.SITE_HOST,
+    typesafeApiKey: c.env.TYPESAFE_API_KEY,
     waitUntil: (p) => c.executionCtx.waitUntil(p),
   }
 }

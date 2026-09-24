@@ -92,6 +92,7 @@ pnpm exec wrangler d1 execute blog --remote --file archive.sql
 
 ```sh
 pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET
+pnpm exec wrangler secret put TYPESAFE_API_KEY   # 任意。投稿の不適切さの判定（Jev）に使う
 pnpm run deploy
 ```
 

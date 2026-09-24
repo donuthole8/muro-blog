@@ -80,9 +80,7 @@ function SearchPage() {
         <>
           {users.length > 0 && (
             <section className="mb-8">
-              <h2 className="text-xs font-bold tracking-wider text-text-muted">
-                部屋
-              </h2>
+              <h2 className="text-xs font-bold text-text-muted">部屋</h2>
               <ul className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {users.map((user) => (
                   <li key={user.handle}>
@@ -106,9 +104,7 @@ function SearchPage() {
           )}
 
           <section>
-            <h2 className="text-xs font-bold tracking-wider text-text-muted">
-              投稿
-            </h2>
+            <h2 className="text-xs font-bold text-text-muted">投稿</h2>
             <PostList
               order="feed"
               posts={posts}

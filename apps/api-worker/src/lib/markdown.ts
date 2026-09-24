@@ -32,7 +32,7 @@ function createRenderer(siteHost: string) {
   const md = new MarkdownIt('default', {
     html: false,
     linkify: true,
-    breaks: false,
+    breaks: true,
     maxNesting: 20,
   })
   // 「example.com」のようなスキームなしの文字列までリンクにしない（GFM の自動リンクに寄せる）
@@ -121,7 +121,7 @@ function createArticleRenderer(siteHost: string) {
   const md = new MarkdownIt('default', {
     html: false,
     linkify: true,
-    breaks: false,
+    breaks: true,
     maxNesting: 20,
   })
   md.linkify.set({ fuzzyLink: false, fuzzyEmail: false })

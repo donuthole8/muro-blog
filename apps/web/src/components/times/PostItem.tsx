@@ -7,6 +7,7 @@ import { PostMenu } from './PostMenu'
 import { ReactionBar } from './ReactionBar'
 import { Button } from '../Button'
 import { Icon } from '../Icon'
+import { MarkdownTextarea } from '../MarkdownTextarea'
 import { TagChip } from '../TagChip'
 import { ArticleCard } from '../articles/ArticleCard'
 import { fetchPostSource } from '../../lib/account'
@@ -45,13 +46,15 @@ export function PostItem({
 
   if (post.state !== 'visible') {
     return (
-      <article className="flex gap-2 border-b border-border px-1 py-3 text-sm text-text-muted italic sm:gap-3">
+      <article className="flex gap-2 border-b border-border px-1 sm:px-2 py-3 text-sm text-text-muted italic sm:gap-3">
         {/* 時刻カラムぶんの幅を空け、ログの縦の並びを崩さない */}
         <span aria-hidden className="w-10 shrink-0" />
         <span>
           {post.state === 'deleted'
             ? 'この投稿は削除されました'
-            : 'この投稿は表示できません'}
+            : post.moderation === 'blocked'
+              ? 'この投稿は不適切なため非表示にしました'
+              : 'この投稿は表示できません'}
           {variant === 'list' && post.replyCount > 0 && handle && (
             <ThreadLink handle={handle} threadId={threadId} post={post} />
           )}
@@ -60,15 +63,18 @@ export function PostItem({
     )
   }
 
-  if (blocked && !revealed) {
+  // ブロック中の人の投稿と、Jev が「不適切な可能性がある」とした投稿は、押すまで畳んでおく
+  if ((blocked || post.moderation === 'sensitive') && !revealed) {
     return (
       <article
         id={variant === 'reply' ? `reply-${post.id}` : undefined}
-        className="flex gap-2 border-b border-border px-1 py-3 text-xs text-text-muted sm:gap-3"
+        className="flex gap-2 border-b border-border px-1 sm:px-2 py-3 text-xs text-text-muted sm:gap-3"
       >
         <span aria-hidden className="w-10 shrink-0" />
         <span>
-          ブロック中のユーザーの投稿です。{' '}
+          {blocked
+            ? 'ブロック中のユーザーの投稿です。'
+            : 'この投稿は不適切な可能性があります。'}{' '}
           <button
             type="button"
             onClick={() => setRevealed(true)}
@@ -117,7 +123,7 @@ export function PostItem({
     <article
       id={variant === 'reply' ? `reply-${post.id}` : undefined}
       onClick={openDetail}
-      className={`flex gap-2 border-b border-border px-1 py-2.5 sm:gap-3 ${pending ? 'opacity-60' : ''} ${openDetail ? 'cursor-pointer transition-colors hover:bg-accent-soft/40' : ''}`}
+      className={`flex gap-2 border-b border-border px-1 sm:px-2 py-2.5 sm:gap-3 ${pending ? 'opacity-60' : ''} ${openDetail ? 'cursor-pointer transition-colors hover:bg-accent-soft/40' : ''}`}
     >
       {/*
         分報は作業ログなので、時刻を左端の等幅カラムに固定して縦に揃える。
@@ -516,14 +522,14 @@ function EditFields({
         )
       }}
     >
-      <textarea
+      <MarkdownTextarea
         value={body}
         autoFocus
-        onChange={(e) => setBody(e.target.value)}
+        onChange={setBody}
         onKeyDown={(e) => {
           if (e.key === 'Escape') onDone()
         }}
-        className="field-sizing-content min-h-20 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
+        className="field-sizing-content min-h-20"
       />
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={edit.isPending}>

@@ -74,6 +74,18 @@ Google ログインをローカルで試すときは、Google Cloud Console で 
 承認済みのリダイレクト URI に `http://localhost:3100/auth/callback` を登録して、
 `apps/api-worker/.dev.vars` の `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` を埋める。
 
+### 不適切な投稿の判定（Jev）
+
+投稿・編集のたびに、本文を TypeSafe の [Jev](https://docs.typesafe.ai/api) に渡して
+性的・暴力的・誹謗中傷・法的リスクの4つを判定する（`apps/api-worker/src/lib/moderation.ts`）。
+いちばん高い確率が 0.9 以上なら自動で非表示（「この投稿は不適切なため非表示にしました」）、
+0.6 以上なら畳んで出す（「この投稿は不適切な可能性があります」→ 押すと見える）。
+
+`TYPESAFE_API_KEY`（[コンソール](https://console.typesafe.ai/) で発行）が無いとき、
+Jev がエラーを返したとき（クレジット切れなど）は何もせず、そのまま投稿できる。
+判定できなかった投稿と導入前の投稿は、管理画面の「未判定の投稿を判定する」で遡って判定できる。
+管理者が非表示を解除すると、判定も取り消される。画像は判定しない。
+
 ### 個別に起動したい場合
 
 ```sh

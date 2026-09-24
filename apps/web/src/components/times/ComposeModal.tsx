@@ -122,7 +122,7 @@ export function BottomComposer({ parentId }: { parentId?: string }) {
       >
         {/* pb-safe は iPhone のホームバーぶんを空ける（styles.css） */}
         <div className="pb-safe mx-auto max-w-3xl px-4 pt-3 sm:px-5">
-          <Composer parentId={parentId} />
+          <Composer parentId={parentId} popoverSide="top" />
         </div>
       </div>
     </>

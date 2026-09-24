@@ -8,6 +8,7 @@ import type {
 } from '@blog/api-client'
 import { Button } from '../Button'
 import { Icon } from '../Icon'
+import { MarkdownTextarea } from '../MarkdownTextarea'
 import { ArticleCard } from '../articles/ArticleCard'
 import { Popover } from './Popover'
 import { createPost, uploadPostImage } from '../../lib/account'
@@ -35,6 +36,8 @@ type Props = {
   initialArticle?: ArticleCardData
   /** 投稿を受け付けた（楽観的に画面へ出した）ときに呼ばれる */
   onSubmitted?: () => void
+  /** 表や記事を選ぶパネルを開く向き。画面下に固定したときは 'top' にする */
+  popoverSide?: 'top' | 'bottom'
 }
 
 /**
@@ -48,6 +51,7 @@ export function Composer({
   autoFocus,
   initialArticle,
   onSubmitted,
+  popoverSide = 'bottom',
 }: Props) {
   const me = useMe()
   const queryClient = useQueryClient()
@@ -258,10 +262,10 @@ export function Composer({
       }}
       className="space-y-2"
     >
-      <textarea
+      <MarkdownTextarea
         value={body}
         autoFocus={autoFocus}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={setBody}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
             e.preventDefault()
@@ -284,7 +288,8 @@ export function Composer({
             : 'いまなにしてる？（Markdown）'
         }
         aria-label={isReply ? '返信' : '投稿'}
-        className="field-sizing-content max-h-72 min-h-16 w-full resize-none rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-accent"
+        popoverSide={popoverSide}
+        className="field-sizing-content max-h-72 min-h-16"
       />
 
       {image && (
@@ -343,6 +348,7 @@ export function Composer({
           {uploading ? '画像を処理中…' : '画像'}
         </button>
         <ArticlePicker
+          side={popoverSide}
           disabled={article !== null}
           onPick={(picked) => setArticle(picked)}
         />
@@ -391,14 +397,17 @@ export function Composer({
  * 候補はパネルを開いたときに取りに行く（Popover は開くまで中身を描かない）。
  */
 function ArticlePicker({
+  side,
   disabled,
   onPick,
 }: {
+  side: 'top' | 'bottom'
   disabled: boolean
   onPick: (article: ArticleCardData) => void
 }) {
   return (
     <Popover
+      side={side}
       trigger={({ toggle }) => (
         <button
           type="button"

@@ -50,10 +50,21 @@ export function toPost(row: PostWithAuthor, extras: PostExtras = {}): Schemas['T
     reactions: visible ? (extras.reactions ?? []) : [],
     tags: visible ? (extras.tags ?? []) : [],
     article: visible ? (extras.article ?? null) : null,
+    moderation: moderationOf(row, state),
     lastReplyAt: iso(post.lastReplyAt),
     editedAt: visible ? iso(post.editedAt) : null,
     createdAt: iso(post.createdAt),
   }
+}
+
+/**
+ * 表示中なら sensitive（折りたたむ）、非表示なら Jev が非表示にしたもの（blocked）だけを出す。
+ * 管理者が手で非表示にしたもの・投稿者の停止で見えないものは null のまま。
+ */
+function moderationOf({ post, author }: PostWithAuthor, state: PostState): Schemas['TimesPost']['moderation'] {
+  if (state === 'visible') return post.moderation === 'sensitive' ? 'sensitive' : null
+  if (state === 'hidden' && post.moderation === 'blocked' && !author.suspendedAt && !author.deletedAt) return 'blocked'
+  return null
 }
 
 export function toProfile(user: User, followerCount: number): Schemas['UserProfile'] {
@@ -121,6 +132,9 @@ export function toAdminPost({ post, author }: PostWithAuthor): Schemas['AdminPos
     bodyMarkdown: post.bodyMarkdown,
     imageKey: post.imageKey,
     hiddenAt: iso(post.hiddenAt),
+    moderation: post.moderation,
+    moderationCategory: post.moderationCategory,
+    moderationScore: post.moderationScore,
     createdAt: iso(post.createdAt),
   }
 }

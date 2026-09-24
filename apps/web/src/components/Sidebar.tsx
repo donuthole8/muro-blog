@@ -40,7 +40,7 @@ export function ChannelNav() {
       </div>
 
       <section>
-        <h2 className="mb-1 px-2 text-xs font-bold tracking-wider text-text-muted">
+        <h2 className="mb-1 px-2 text-xs font-bold text-text-muted">
           フォロー中
         </h2>
         <div className="space-y-0.5">
@@ -106,7 +106,7 @@ function ChannelLink({
       <span className="w-4 text-center text-accent">#</span>
       <span className="min-w-0 flex-1 truncate">{roomName(handle)}</span>
       {unread > 0 && (
-        <span className="shrink-0 rounded-full bg-accent px-1.5 text-[0.65rem] leading-4 font-bold text-bg">
+        <span className="shrink-0 rounded-full bg-accent px-1.5 text-[0.7rem] leading-4 font-bold text-bg">
           {unread > 99 ? '99+' : unread}
         </span>
       )}

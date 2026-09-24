@@ -3,6 +3,7 @@ import {
   index,
   integer,
   primaryKey,
+  real,
   sqliteTable,
   text,
   uniqueIndex,
@@ -92,6 +93,14 @@ export const posts = sqliteTable(
     editedAt: integer('edited_at', { mode: 'timestamp' }),
     deletedAt: integer('deleted_at', { mode: 'timestamp' }),
     hiddenAt: integer('hidden_at', { mode: 'timestamp' }),
+    /**
+     * Jev（lib/moderation.ts）の判定。null は問題なし・未判定。
+     * sensitive は折りたたんで出し、blocked は hiddenAt も入れて非表示にする。管理者が非表示を解除すると null に戻る
+     */
+    moderation: text('moderation', { enum: ['sensitive', 'blocked'] }),
+    /** 判定で最も高かったカテゴリとその確率（管理画面で理由を見るため） */
+    moderationCategory: text('moderation_category'),
+    moderationScore: real('moderation_score'),
     createdAt: createdAt(),
   },
   (t) => [

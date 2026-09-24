@@ -5,6 +5,7 @@ import { archivedPosts, notifications, postTags, posts, tags } from '../db/schem
 import { forbidden, invalid, newId, notFound, now } from '../lib/http'
 import { embedLinkCards, hasBareLink } from '../lib/linkCards'
 import { mentionCandidates, renderPostBody } from '../lib/markdown'
+import { moderateText, type ModerationVerdict } from '../lib/moderation'
 import { consumeRateLimit } from '../lib/rateLimit'
 import { isPostVisible, type PostWithAuthor } from './mapper'
 import { findPostById } from './posts'
@@ -27,6 +28,8 @@ const IMAGE_KEY_PATTERN = /^u_([0-9A-HJKMNP-TV-Z]{26})_[0-9a-f-]{36}\.(?:webp|jp
 export type WriterContext = {
   db: Db
   siteHost: string
+  /** Jev の API キー。無ければ不適切さの判定をしない */
+  typesafeApiKey?: string
   /** レスポンス後の処理（リンクカードの取得）を積む */
   waitUntil: (promise: Promise<unknown>) => void
 }
@@ -81,8 +84,10 @@ export async function createPost(
   // 入力の検証を通ったものだけを数える（打ち間違いで枠を減らさない）
   await consumeRateLimit(db, 'post', author)
 
-  const rendered = await render(ctx, body)
+  // 判定が失敗しても（クレジット切れなど）投稿は通し、未判定のまま残す
+  const [rendered, verdict] = await Promise.all([render(ctx, body), moderateText(ctx.typesafeApiKey, body)])
   const createdAt = now()
+  const moderated = moderationFields(verdict, createdAt)
   const post: Post = {
     id: newId(),
     authorId: author.id,
@@ -96,7 +101,8 @@ export async function createPost(
     lastReplyAt: null,
     editedAt: null,
     deletedAt: null,
-    hiddenAt: null,
+    ...moderated,
+    hiddenAt: moderated.hiddenAt ?? null,
     createdAt,
   }
 
@@ -104,7 +110,10 @@ export async function createPost(
   if (tagIds.length > 0) {
     statements.push(db.insert(postTags).values(tagIds.map((tagId) => ({ postId: post.id, tagId }))))
   }
-  statements.push(...(await postNotifications(db, post, author, parent, rendered.mentionedHandles)))
+  // 自動で非表示にした投稿では、返信・メンションの通知を飛ばさない
+  if (post.moderation !== 'blocked') {
+    statements.push(...(await postNotifications(db, post, author, parent, rendered.mentionedHandles)))
+  }
   if (parent) {
     statements.push(
       db
@@ -139,13 +148,15 @@ export async function updatePost(
   const tagIds = await resolveTags(db, input.tagSlugs, input.newTags ?? [])
 
   // 編集ではメンション通知を飛ばし直さない（編集のたびに通知が飛ぶのを防ぐ）
-  const rendered = await render(ctx, body)
-  const post: Post = { ...row.post, bodyMarkdown: body, bodyHtml: rendered.html, editedAt: now() }
+  const [rendered, verdict] = await Promise.all([render(ctx, body), moderateText(ctx.typesafeApiKey, body)])
+  const editedAt = now()
+  const moderated = moderationFields(verdict, editedAt)
+  const post: Post = { ...row.post, ...moderated, bodyMarkdown: body, bodyHtml: rendered.html, editedAt }
 
   const statements: Batch = [
     db
       .update(posts)
-      .set({ bodyMarkdown: post.bodyMarkdown, bodyHtml: post.bodyHtml, editedAt: post.editedAt })
+      .set({ ...moderated, bodyMarkdown: post.bodyMarkdown, bodyHtml: post.bodyHtml, editedAt })
       .where(eq(posts.id, post.id)),
     db.delete(postTags).where(eq(postTags.postId, post.id)),
   ]
@@ -288,6 +299,19 @@ async function render(ctx: WriterContext, markdown: string) {
     known.map((u) => u.handle as string),
     ctx.siteHost,
   )
+}
+
+/**
+ * 判定結果を posts の列に直す。blocked なら非表示（hiddenAt）も入れる。
+ * 判定できなかったとき（null）は未判定（score が null）にしておき、管理画面の「未判定の投稿を判定」で拾う。
+ */
+export function moderationFields(verdict: ModerationVerdict | null, at: Date) {
+  return {
+    moderation: verdict && verdict.level !== 'ok' ? verdict.level : null,
+    moderationCategory: verdict?.category ?? null,
+    moderationScore: verdict?.score ?? null,
+    ...(verdict?.level === 'blocked' ? { hiddenAt: at } : {}),
+  }
 }
 
 /** 裸 URL のリンクカードを、レスポンスを返した後で埋める。 */

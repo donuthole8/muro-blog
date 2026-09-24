@@ -10,6 +10,7 @@ import { Button } from '../components/Button'
 import {
   deletePostAsAdmin,
   listModerationPosts,
+  moderateBacklog,
   setPostHidden,
 } from '../lib/admin'
 import { formatFullTime } from '../lib/format'
@@ -62,6 +63,8 @@ function ModerationPosts() {
 
   return (
     <div>
+      <BacklogModeration onDone={refresh} />
+
       <form
         className="mb-4 flex gap-2"
         onSubmit={(e) => {
@@ -117,6 +120,69 @@ function ModerationPosts() {
   )
 }
 
+const MODERATION_CATEGORIES: Record<string, string> = {
+  sexual: '性的',
+  violence: '暴力的',
+  harassment: '誹謗中傷',
+  legal: '法的リスク',
+}
+
+/**
+ * Jev 導入前の投稿や、判定に失敗した投稿を遡って判定する。
+ * API は1回に数十件しか処理しないので、残りが無くなるか Jev が失敗するまで繰り返し呼ぶ。
+ */
+function BacklogModeration({ onDone }: { onDone: () => void }) {
+  const [running, setRunning] = useState(false)
+  const [status, setStatus] = useState<string | null>(null)
+
+  const run = async () => {
+    setRunning(true)
+    let processed = 0
+    let blocked = 0
+    let sensitive = 0
+    try {
+      for (;;) {
+        const res = await moderateBacklog()
+        if (!res.ok) {
+          setStatus(res.message)
+          break
+        }
+        const r = res.result
+        processed += r.processed
+        blocked += r.blocked
+        sensitive += r.sensitive
+        const summary = `${processed} 件を判定（自動非表示 ${blocked} / 要注意 ${sensitive}）。残り ${r.remaining} 件`
+        if (r.stopped) {
+          setStatus(
+            `${summary}。Jev の呼び出しに失敗したため止めました（クレジット切れの可能性があります）`,
+          )
+          break
+        }
+        setStatus(summary)
+        if (r.remaining === 0 || r.processed === 0) break
+      }
+    } finally {
+      setRunning(false)
+      onDone()
+    }
+  }
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-text-muted">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        disabled={running}
+        onClick={() => void run()}
+      >
+        {running ? '判定中…' : '未判定の投稿を判定する'}
+      </Button>
+      {status && <span>{status}</span>}
+    </div>
+  )
+}
+
 function ModerationRow({
   post,
   busy,
@@ -149,6 +215,18 @@ function ModerationRow({
         {post.parentId && <span>返信</span>}
         {hidden && (
           <span className="rounded border border-border px-1">非表示</span>
+        )}
+        {post.moderation && (
+          <span
+            className="rounded border border-danger px-1 text-danger"
+            title="Jev による判定"
+          >
+            {post.moderation === 'blocked' ? '自動非表示' : '要注意'}
+            {post.moderationCategory &&
+              `: ${MODERATION_CATEGORIES[post.moderationCategory] ?? post.moderationCategory}`}
+            {post.moderationScore != null &&
+              ` ${Math.round(post.moderationScore * 100)}%`}
+          </span>
         )}
 
         <span className="ml-auto flex gap-3">

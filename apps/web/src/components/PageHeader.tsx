@@ -25,9 +25,5 @@ export function PageHeader({ title, description, children }: Props) {
 
 /** ページの中の区切り（ロビーの「新着」など）。h1 とは別の段。 */
 export function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-xs font-bold tracking-wider text-text-muted">
-      {children}
-    </h2>
-  )
+  return <h2 className="text-xs font-bold text-text-muted">{children}</h2>
 }

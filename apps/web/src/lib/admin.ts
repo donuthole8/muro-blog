@@ -47,6 +47,24 @@ export const setPostHidden = createServerFn({ method: 'POST' })
     return { ok: true as const, post }
   })
 
+/** 未判定の投稿を Jev で判定する（1回に最大 20 件。画面が remaining 0 まで繰り返す）。 */
+export const moderateBacklog = createServerFn({ method: 'POST' }).handler(
+  async () => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const {
+      data: result,
+      error,
+      response,
+    } = await api.fetch.POST('/api/admin/posts/moderate')
+    if (!result)
+      return toFailure(error, response.status, '判定に失敗しました。')
+
+    return { ok: true as const, result }
+  },
+)
+
 export const deletePostAsAdmin = createServerFn({ method: 'POST' })
   .validator((input: { id: string }) => input)
   .handler(async ({ data }) => {

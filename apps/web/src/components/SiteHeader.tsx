@@ -43,14 +43,15 @@ export function SiteHeader() {
             <span className="truncate">{site.title}</span>
           </Link>
 
-          <nav className="hidden flex-1 gap-4 text-sm whitespace-nowrap sm:flex">
+          {/* ハンバーガーと同じリンクが2か所に並ばないよう、ナビはハンバーガーが消える lg から出す */}
+          <nav className="hidden flex-1 gap-4 text-sm whitespace-nowrap lg:flex">
             <NavLink to="/">チャンネル</NavLink>
             <NavLink to="/tags">タグ</NavLink>
             <NavLink to="/search">検索</NavLink>
             {me?.handle && <NavLink to="/following">フォロー中</NavLink>}
           </nav>
 
-          <div className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0 sm:gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-3 lg:ml-0">
             {me?.handle && (
               <>
                 <Button
@@ -68,7 +69,7 @@ export function SiteHeader() {
                 >
                   <Icon name="bell" className="h-5 w-5" />
                   {me.unreadNotificationCount > 0 && (
-                    <span className="absolute top-0.5 right-0.5 min-w-4 rounded-full bg-danger px-1 text-center text-[0.6rem] leading-4 font-bold text-bg">
+                    <span className="absolute top-0.5 right-0.5 min-w-4 rounded-full bg-danger px-1 text-center text-[0.7rem] leading-4 font-bold text-bg">
                       {me.unreadNotificationCount > 99
                         ? '99+'
                         : me.unreadNotificationCount}
@@ -80,7 +81,7 @@ export function SiteHeader() {
 
             {me ? <AccountMenu /> : <LoginLink />}
             {/* 狭い画面ではメニューの中に置く */}
-            <div className="hidden sm:block">
+            <div className="hidden lg:block">
               <ThemeToggle />
             </div>
           </div>
@@ -107,7 +108,10 @@ function NavLink({
     <Link
       to={to}
       className="text-text-muted transition-colors hover:text-accent"
-      activeProps={{ className: 'text-accent' }}
+      // 色だけだと今いる場所が弱いので、下線も引く
+      activeProps={{
+        className: 'text-accent underline decoration-2 underline-offset-8',
+      }}
       activeOptions={{ exact: to === '/' }}
     >
       {children}
