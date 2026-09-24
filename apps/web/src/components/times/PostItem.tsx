@@ -8,6 +8,7 @@ import { ReactionBar } from './ReactionBar'
 import { Button } from '../Button'
 import { Icon } from '../Icon'
 import { TagChip } from '../TagChip'
+import { ArticleCard } from '../articles/ArticleCard'
 import { fetchPostSource } from '../../lib/account'
 import { formatFullTime, formatTimeOfDay } from '../../lib/format'
 import { imageUrl } from '../../lib/image'
@@ -124,16 +125,16 @@ export function PostItem({
       */}
       <TimeColumn post={post} handle={handle} />
 
-      {handle ? (
-        <Link to="/@{$handle}" params={{ handle }} className="shrink-0">
-          <Avatar user={post.author} size="xs" />
-        </Link>
-      ) : (
-        <Avatar user={null} size="xs" />
-      )}
+      {/* 狭い画面ではアバターを名前の行に入れ、本文を左端から全幅で使う */}
+      <div className="hidden shrink-0 sm:block">
+        <PostAvatar post={post} handle={handle} />
+      </div>
 
       <div className="min-w-0 flex-1">
-        <header className="flex flex-wrap items-baseline gap-x-2 text-sm">
+        <header className="flex flex-wrap items-center gap-x-2 text-sm sm:items-baseline">
+          <span className="sm:hidden">
+            <PostAvatar post={post} handle={handle} />
+          </span>
           {handle ? (
             <Link
               to="/@{$handle}"
@@ -186,6 +187,7 @@ export function PostItem({
                 />
               </a>
             )}
+            {post.article && <ArticleCard article={post.article} />}
           </>
         )}
 
@@ -212,6 +214,15 @@ export function PostItem({
  * ログ行の左端に置く時刻。投稿へのリンクも兼ねる。
  * 幅を固定して等幅で出すことで、行が変わっても数字の桁が縦に揃う。
  */
+function PostAvatar({ post, handle }: { post: TimesPost; handle?: string }) {
+  if (!handle) return <Avatar user={null} size="xs" />
+  return (
+    <Link to="/@{$handle}" params={{ handle }} className="block">
+      <Avatar user={post.author} size="xs" />
+    </Link>
+  )
+}
+
 function TimeColumn({
   post,
   handle,
@@ -389,6 +400,7 @@ function PostDetail({
               />
             </a>
           )}
+          {post.article && <ArticleCard article={post.article} />}
         </>
       )}
 
