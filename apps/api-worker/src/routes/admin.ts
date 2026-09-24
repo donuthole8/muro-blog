@@ -81,6 +81,42 @@ admin.post('/posts/:id/hide', (c) => toggleHidden(c, true))
 admin.post('/posts/:id/unhide', (c) => toggleHidden(c, false))
 
 /**
+ * 1件だけ今のしきい値・判定内容で判定し直す。
+ * 自動非表示だったものが blocked でなくなれば非表示も外す。管理者が手で非表示にしたものはそのまま。
+ */
+admin.post('/posts/:id/moderate', async (c) => {
+  const db = c.var.db
+  const row = await findPostById(db, idParam(c))
+  if (!row || row.post.deletedAt) throw notFound('投稿が見つかりません。')
+  if (!c.env.TYPESAFE_API_KEY) throw new ApiError(422, 'TYPESAFE_API_KEY が設定されていません。')
+  if (row.post.bodyMarkdown === '') throw new ApiError(422, '本文のない投稿は判定できません。')
+
+  const verdict = await moderateText(c.env.TYPESAFE_API_KEY, row.post.bodyMarkdown)
+  if (!verdict) throw new ApiError(502, 'Jev での判定に失敗しました（クレジット切れの可能性があります）。')
+
+  const fields = moderationFields(verdict, now())
+  const wasAutoHidden = row.post.moderation === 'blocked'
+  const hiddenAt =
+    verdict.level === 'blocked'
+      ? (row.post.hiddenAt ?? fields.hiddenAt ?? now())
+      : wasAutoHidden
+        ? null
+        : row.post.hiddenAt
+  const post = { ...row.post, ...fields, hiddenAt }
+  await db
+    .update(posts)
+    .set({
+      moderation: post.moderation,
+      moderationCategory: post.moderationCategory,
+      moderationScore: post.moderationScore,
+      hiddenAt,
+    })
+    .where(eq(posts.id, post.id))
+
+  return c.json(toAdminPost({ ...row, post }), 200, privateCache)
+})
+
+/**
  * 未判定の投稿（Jev 導入前のもの・判定に失敗したもの）をまとめて判定する。
  * Workers の1リクエストのサブリクエスト上限に収まるよう、1回に BACKFILL_BATCH 件ずつ。
  * 管理画面が remaining が 0 になるまで繰り返し呼ぶ。Jev が失敗したら（クレジット切れなど）そこで止める。

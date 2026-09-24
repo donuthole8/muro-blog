@@ -11,6 +11,7 @@ import {
   deletePostAsAdmin,
   listModerationPosts,
   moderateBacklog,
+  remoderatePost,
   setPostHidden,
 } from '../lib/admin'
 import { formatFullTime } from '../lib/format'
@@ -58,6 +59,13 @@ function ModerationPosts() {
     mutationFn: (id: string) => deletePostAsAdmin({ data: { id } }),
     onSuccess: refresh,
   })
+  const remoderate = useMutation({
+    mutationFn: (id: string) => remoderatePost({ data: { id } }),
+    onSuccess: (result) => {
+      if (!result.ok) alert(result.message)
+      return refresh()
+    },
+  })
 
   const items = posts.data?.pages.flatMap((page) => page.items) ?? []
 
@@ -92,7 +100,8 @@ function ModerationPosts() {
           <ModerationRow
             key={post.id}
             post={post}
-            busy={hide.isPending || remove.isPending}
+            busy={hide.isPending || remove.isPending || remoderate.isPending}
+            onRemoderate={() => remoderate.mutate(post.id)}
             onToggleHidden={() =>
               hide.mutate({ id: post.id, hidden: post.hiddenAt == null })
             }
@@ -186,11 +195,14 @@ function BacklogModeration({ onDone }: { onDone: () => void }) {
 function ModerationRow({
   post,
   busy,
+  onRemoderate,
   onToggleHidden,
   onDelete,
 }: {
   post: AdminPost
   busy: boolean
+  /** 今の設定で Jev に判定し直させる */
+  onRemoderate: () => void
   onToggleHidden: () => void
   onDelete: () => void
 }) {
@@ -228,8 +240,26 @@ function ModerationRow({
               ` ${Math.round(post.moderationScore * 100)}%`}
           </span>
         )}
+        {!post.moderation && post.moderationScore != null && (
+          <span
+            className="rounded border border-border px-1"
+            title="Jev による判定"
+          >
+            問題なし {Math.round(post.moderationScore * 100)}%
+          </span>
+        )}
 
         <span className="ml-auto flex gap-3">
+          {post.bodyMarkdown !== '' && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onRemoderate}
+              className="hover:text-accent disabled:opacity-40"
+            >
+              再判定
+            </button>
+          )}
           <button
             type="button"
             disabled={busy}

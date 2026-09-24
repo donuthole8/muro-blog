@@ -53,6 +53,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/posts/{id}/moderate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 1件だけ今の設定で Jev に判定し直させる。自動非表示だったものが blocked でなくなれば非表示も外す。キー未設定・本文なしは 422、Jev の失敗は 502 */
+        post: operations["post_api_admin_posts_remoderate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/posts/{id}/unhide": {
         parameters: {
             query?: never;
@@ -1470,6 +1487,28 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description 非表示にした */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPost"];
+                };
+            };
+        };
+    };
+    post_api_admin_posts_remoderate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 判定し直した */
             200: {
                 headers: {
                     [name: string]: unknown;

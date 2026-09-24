@@ -122,6 +122,43 @@
                 ]
             }
         },
+        "/api/admin/posts/{id}/moderate": {
+            "post": {
+                "tags": [
+                    "admin"
+                ],
+                "operationId": "post_api_admin_posts_remoderate",
+                "description": "1\u4ef6\u3060\u3051\u4eca\u306e\u8a2d\u5b9a\u3067 Jev \u306b\u5224\u5b9a\u3057\u76f4\u3055\u305b\u308b\u3002\u81ea\u52d5\u975e\u8868\u793a\u3060\u3063\u305f\u3082\u306e\u304c blocked \u3067\u306a\u304f\u306a\u308c\u3070\u975e\u8868\u793a\u3082\u5916\u3059\u3002\u30ad\u30fc\u672a\u8a2d\u5b9a\u30fb\u672c\u6587\u306a\u3057\u306f 422\u3001Jev \u306e\u5931\u6557\u306f 502",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "pattern": "[0-7][0-9A-HJKMNP-TV-Z]{25}"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u5224\u5b9a\u3057\u76f4\u3057\u305f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminPost"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionToken": []
+                    }
+                ]
+            }
+        },
         "/api/admin/posts/{id}/unhide": {
             "post": {
                 "tags": [

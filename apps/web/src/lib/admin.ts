@@ -65,6 +65,25 @@ export const moderateBacklog = createServerFn({ method: 'POST' }).handler(
   },
 )
 
+/** 1件だけ Jev で判定し直す。 */
+export const remoderatePost = createServerFn({ method: 'POST' })
+  .validator((input: { id: string }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const {
+      data: post,
+      error,
+      response,
+    } = await api.fetch.POST('/api/admin/posts/{id}/moderate', {
+      params: { path: { id: data.id } },
+    })
+    if (!post) return toFailure(error, response.status, '判定に失敗しました。')
+
+    return { ok: true as const, post }
+  })
+
 export const deletePostAsAdmin = createServerFn({ method: 'POST' })
   .validator((input: { id: string }) => input)
   .handler(async ({ data }) => {
