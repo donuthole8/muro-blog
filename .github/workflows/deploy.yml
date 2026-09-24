@@ -1,0 +1,65 @@
+# main に push されたら本番（Cloudflare Workers）へデプロイする。
+# 手順の中身は docs/DEPLOY.md の手動デプロイと同じ。
+#
+# 必要な GitHub の Secrets（Settings → Secrets and variables → Actions）:
+#   CLOUDFLARE_API_TOKEN   Workers・D1・KV を編集できる API トークン
+#   CLOUDFLARE_ACCOUNT_ID  Cloudflare のアカウント ID
+#
+# GOOGLE_CLIENT_SECRET などの Worker のシークレットは wrangler secret put で入れたものが
+# デプロイ後も残るので、ここでは扱わない。
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# デプロイが重なると、古いコミットが後から上書きすることがあるので1本ずつ流す
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # バージョンはルートの package.json の packageManager に従う
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # スキーマを先に進めてから API を差し替える。適用済みのマイグレーションは何もしない
+      - name: Apply D1 migrations
+        working-directory: apps/api-worker
+        run: pnpm db:migrate:remote
+
+      # web は Service Binding で API を呼ぶので、API を先にデプロイする
+      - name: Deploy API Worker
+        working-directory: apps/api-worker
+        run: pnpm run deploy
+
+      # ビルド中はプリレンダリングと OGP 画像の生成のために本番の API を読む（apps/web/.env の代わり）。
+      # プリレンダリングはローカルの Worker で動き、既定では .env しか読まないので、
+      # CLOUDFLARE_INCLUDE_PROCESS_ENV で下の値をその Worker にも渡す。デプロイ先の Worker には影響しない
+      - name: Build and deploy web Worker
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_INCLUDE_PROCESS_ENV: 'true'
+          API_BASE_URL: https://teatimes-api.muronaga.workers.dev
+          SITE_URL: https://teatimes.muronaga.workers.dev
+        run: pnpm run deploy
