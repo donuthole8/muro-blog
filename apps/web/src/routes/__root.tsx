@@ -75,6 +75,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       { rel: 'stylesheet', href: appCss },
       // 絵文字の字形を端末任せにせず Noto Color Emoji（Android 寄り）に揃える。
       // サブセット配信なので、実際に使う絵文字の分しか落ちてこない。
+      // 等幅（ロゴ・時刻・コード）は OS ごとに字面が変わらないよう JetBrains Mono に揃える。
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       {
         rel: 'preconnect',
@@ -83,7 +84,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
       {
         rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap',
+        href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Color+Emoji&display=swap',
       },
       {
         rel: 'alternate',

@@ -96,9 +96,14 @@
     'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'BIZ UDPGothic',
     'Yu Gothic UI', 'Yu Gothic', Meiryo, system-ui, -apple-system,
     'Noto Color Emoji', sans-serif;
+  /*
+   * 等幅には Noto Color Emoji を入れない。Android には手前のフォントが無く、
+   * Noto Color Emoji がキーキャップ絵文字用に持つ数字と # で時刻や日付が描かれてしまう
+   * （数字だけ全角のように間延びして色も変わる）。等幅の中の絵文字は端末の絵文字に任せる。
+   */
   --font-mono:
-    ui-monospace, SFMono-Regular, Menlo, Consolas, 'Noto Sans Mono CJK JP',
-    'Noto Color Emoji', monospace;
+    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+    'Noto Sans Mono CJK JP', monospace;
 }
 
 * {
