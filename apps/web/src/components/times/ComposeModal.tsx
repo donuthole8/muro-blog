@@ -94,7 +94,7 @@ export function BottomComposer({ parentId }: { parentId?: string }) {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg/95 backdrop-blur group-data-[sidebar]/layout:lg:left-60"
       >
         {/* pb-safe は iPhone のホームバーぶんを空ける（styles.css） */}
-        <div className="pb-safe mx-auto max-w-3xl px-5 pt-3">
+        <div className="pb-safe mx-auto max-w-3xl px-4 pt-3 sm:px-5">
           <Composer parentId={parentId} />
         </div>
       </div>

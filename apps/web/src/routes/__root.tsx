@@ -145,7 +145,7 @@ function Layout({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
-          <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-8">
+          <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-5 sm:py-8">
             {children}
           </main>
           <SiteFooter />

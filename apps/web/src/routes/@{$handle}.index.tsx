@@ -188,7 +188,7 @@ function Room() {
             スクロールしても誰の部屋にいるか分かるように、一覧の見出しを固定する。
             top はサイトヘッダーの高さぶん下げる。
           */}
-          <div className="sticky top-[3.25rem] z-30 -mx-5 border-b border-border bg-bg/95 px-5 py-2 backdrop-blur sm:top-[3.75rem]">
+          <div className="sticky top-14 z-30 -mx-4 border-b border-border bg-bg/95 px-4 py-2 backdrop-blur sm:-mx-5 sm:px-5">
             <h2 className="truncate text-xs font-bold tracking-wider text-text-muted">
               # {roomName(profile.handle)}
             </h2>
