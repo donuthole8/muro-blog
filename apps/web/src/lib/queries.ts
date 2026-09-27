@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-query'
 import type { PostPage, TagPostPage } from '@blog/api-client'
 import {
+  fetchActivity,
   fetchLobby,
   fetchOrg,
   fetchPopularRooms,
@@ -18,7 +19,9 @@ import {
 import { fetchMyArticles } from './articles'
 import {
   fetchBlocks,
+  fetchFeed,
   fetchFollowing,
+  fetchMutes,
   fetchNotifications,
   getMe,
   getViewerState,
@@ -59,6 +62,14 @@ export const lobbyQuery = infiniteQueryOptions({
   getNextPageParam: nextCursor,
 })
 
+/** ロビーの「フォロー中」タブ（ログイン中のみ） */
+export const feedQuery = infiniteQueryOptions({
+  queryKey: ['feed'],
+  queryFn: ({ pageParam }) => fetchFeed({ data: { cursor: pageParam } }),
+  initialPageParam: undefined as Cursor,
+  getNextPageParam: nextCursor,
+})
+
 export const popularRoomsQuery = queryOptions({
   queryKey: ['popular'],
   queryFn: () => fetchPopularRooms(),
@@ -80,6 +91,17 @@ export const roomPostsQuery = (handle: string) =>
     initialPageParam: undefined as Cursor,
     getNextPageParam: nextCursor,
   })
+
+export const activityQuery = (handle: string) =>
+  queryOptions({
+    queryKey: ['room', handle, 'activity'],
+    queryFn: () => fetchActivity({ data: { handle } }),
+    // API 側でも 5 分キャッシュしている集計
+    staleTime: 5 * 60_000,
+  })
+
+/** スレッドを開いている間だけ、返信を拾うために短い間隔で取り直す（タブが裏にある間は止まる） */
+export const THREAD_REFRESH_INTERVAL = 15_000
 
 export const threadQuery = (id: string) =>
   queryOptions({
@@ -121,6 +143,12 @@ export const orgQuery = (slug: string) =>
 export const followingQuery = queryOptions({
   queryKey: ['following'],
   queryFn: () => fetchFollowing(),
+  staleTime: 0,
+})
+
+export const mutesQuery = queryOptions({
+  queryKey: ['mutes'],
+  queryFn: () => fetchMutes(),
   staleTime: 0,
 })
 

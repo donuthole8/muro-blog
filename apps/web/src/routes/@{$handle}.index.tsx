@@ -7,15 +7,20 @@ import {
 } from '@tanstack/react-query'
 import { EmptyState } from '../components/EmptyState'
 import { RoomHeaderSkeleton } from '../components/Skeleton'
-import { ActivityStrip } from '../components/times/ActivityStrip'
+import { ActivityGraph } from '../components/times/ActivityGraph'
 import { Avatar } from '../components/times/Avatar'
 import { BottomComposer } from '../components/times/ComposeModal'
 import { FollowButton } from '../components/times/FollowButton'
+import { Popover } from '../components/times/Popover'
+import { StatusBadge } from '../components/times/StatusBadge'
+import { StatusEditor } from '../components/times/StatusEditor'
 import { PostList } from '../components/times/PostList'
 import { markRoomRead } from '../lib/account'
 import { absoluteUrl, jsonLd } from '../lib/seo'
 import { confirmBlock, useBlockToggle } from '../lib/useBlockToggle'
+import { useMuteToggle } from '../lib/useMuteToggle'
 import {
+  activityQuery,
   profileQuery,
   roomPostsQuery,
   useMe,
@@ -40,6 +45,7 @@ export const Route = createFileRoute('/@{$handle}/')({
       context.queryClient.ensureInfiniteQueryData(
         roomPostsQuery(params.handle),
       ),
+      context.queryClient.ensureQueryData(activityQuery(params.handle)),
     ])
 
     return profile
@@ -115,6 +121,7 @@ function Room() {
   const queryClient = useQueryClient()
   const profile = useQuery(profileQuery(handle)).data
   const room = useInfiniteQuery(roomPostsQuery(handle))
+  const activity = useQuery(activityQuery(handle)).data
   const posts = room.data?.pages.flatMap((page) => page.items) ?? []
   const isMine = me?.handle === handle
   const viewer = useViewerState(
@@ -149,6 +156,7 @@ function Room() {
             <span className="text-sm text-text-muted">
               {profile.displayName}
             </span>
+            <StatusBadge status={profile.status} withText />
             {me?.handle &&
               !isMine &&
               viewer?.isFollowing != null &&
@@ -158,8 +166,30 @@ function Room() {
                   isFollowing={viewer.isFollowing}
                 />
               )}
+            {me?.handle && !isMine && viewer?.isMuting != null && (
+              <MuteButton handle={handle} isMuting={viewer.isMuting} />
+            )}
             {me?.handle && !isMine && viewer?.isBlocking != null && (
               <BlockButton handle={handle} isBlocking={viewer.isBlocking} />
+            )}
+            {isMine && me.emailVerified && (
+              <Popover
+                trigger={({ toggle }) => (
+                  <button
+                    type="button"
+                    onClick={toggle}
+                    className="text-xs text-text-muted hover:text-accent"
+                  >
+                    状態を設定
+                  </button>
+                )}
+              >
+                {() => (
+                  <div className="w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border bg-surface p-3 shadow-lg">
+                    <StatusEditor me={me} />
+                  </div>
+                )}
+              </Popover>
             )}
             {isMine && (
               <Link
@@ -203,10 +233,15 @@ function Room() {
               RSS
             </a>
           </p>
-          <ActivityStrip posts={posts} />
+          {activity && <ActivityGraph activity={activity} />}
         </div>
       </header>
 
+      {viewer?.isMuting && !viewer.isBlocking && (
+        <p className="mt-4 rounded-md border border-border bg-surface px-3 py-2 text-xs text-text-muted">
+          この人をミュートしています。チャンネルなどの一覧には出ず、ここでは折りたたんで表示しています。
+        </p>
+      )}
       {viewer?.isBlocking && (
         <p className="mt-4 rounded-md border border-border bg-surface px-3 py-2 text-xs text-text-muted">
           この人をブロックしています。投稿は折りたたんで表示しています。
@@ -233,6 +268,7 @@ function Room() {
             isFetchingNextPage={room.isFetchingNextPage}
             onLoadMore={() => void room.fetchNextPage()}
             isLoading={room.isPending}
+            muted="collapse"
             empty={
               isMine ? (
                 <EmptyState
@@ -254,6 +290,28 @@ function Room() {
 
       {isMine && <BottomComposer />}
     </div>
+  )
+}
+
+function MuteButton({
+  handle,
+  isMuting,
+}: {
+  handle: string
+  isMuting: boolean
+}) {
+  const toggle = useMuteToggle(handle)
+
+  return (
+    <button
+      type="button"
+      disabled={toggle.isPending}
+      onClick={() => toggle.mutate(!isMuting)}
+      title="相手には知らされません。一覧から見えなくなり、この人からの通知が止まります"
+      className="text-xs text-text-muted transition-colors hover:text-accent disabled:opacity-40"
+    >
+      {isMuting ? 'ミュートを解除' : 'ミュート'}
+    </button>
   )
 }
 

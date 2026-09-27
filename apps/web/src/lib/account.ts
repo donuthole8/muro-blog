@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import type { components } from '@blog/api-client'
 import { getAuthApiClient, getSessionApiClient } from './api'
 import { toFailure, throwRead, unauthenticated } from './result'
+import type { Failure } from './result'
 import {
   clearSessionToken,
   readSessionToken,
@@ -13,6 +14,8 @@ type PostInput = components['schemas']['PostInput']
 type PostUpdateInput = components['schemas']['PostUpdateInput']
 type MeUpdateInput = components['schemas']['MeUpdateInput']
 type ReportInput = components['schemas']['ReportInput']
+type StatusInput = components['schemas']['StatusInput']
+type PushSubscriptionInput = components['schemas']['PushSubscriptionInput']
 
 /**
  * ログイン中の本人として行う操作。すべて Cookie のセッションを Bearer に載せ替えて API を叩く。
@@ -99,6 +102,71 @@ export const emailAuth = createServerFn({ method: 'POST' })
           ? '登録に失敗しました。'
           : 'ログインに失敗しました。',
       )
+
+    storeSessionToken(session.token, session.expiresAt)
+
+    return { ok: true as const, needsHandle: session.needsHandle }
+  })
+
+/* ------------------------------------------------------------------ */
+/* メールアドレスの確認・パスワードの再設定                                  */
+/* ------------------------------------------------------------------ */
+
+/** 確認メールのリンクから。ログインしていなくても通る。 */
+export const verifyEmail = createServerFn({ method: 'POST' })
+  .validator((input: { token: string }) => input)
+  .handler(async ({ data }) => {
+    const { error, response } = await getAuthApiClient().fetch.POST(
+      '/api/auth/email/verify',
+      { body: { token: data.token } },
+    )
+    if (response.status >= 400)
+      return toFailure(error, response.status, '確認に失敗しました。')
+
+    return { ok: true as const }
+  })
+
+export const resendVerification = createServerFn({ method: 'POST' }).handler(
+  async () => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const { error, response } = await api.fetch.POST(
+      '/api/me/email/verification',
+    )
+    if (response.status >= 400)
+      return toFailure(error, response.status, '送信に失敗しました。')
+
+    return { ok: true as const }
+  },
+)
+
+export const requestPasswordReset = createServerFn({ method: 'POST' })
+  .validator((input: { email: string }) => input)
+  .handler(async ({ data }) => {
+    const { error, response } = await getAuthApiClient().fetch.POST(
+      '/api/auth/password/forgot',
+      { body: { email: data.email } },
+    )
+    if (response.status >= 400)
+      return toFailure(error, response.status, '送信に失敗しました。')
+
+    return { ok: true as const }
+  })
+
+/** 新しいパスワードを決め、そのままログインする（他の端末はログアウトされる）。 */
+export const resetPassword = createServerFn({ method: 'POST' })
+  .validator((input: { token: string; password: string }) => input)
+  .handler(async ({ data }) => {
+    const {
+      data: session,
+      error,
+      response,
+    } = await getAuthApiClient().fetch.POST('/api/auth/password/reset', {
+      body: data,
+    })
+    if (!session)
+      return toFailure(error, response.status, '再設定に失敗しました。')
 
     storeSessionToken(session.token, session.expiresAt)
 
@@ -278,6 +346,25 @@ export const fetchFollowing = createServerFn({ method: 'GET' }).handler(
   },
 )
 
+/** ロビーの「フォロー中」タブ。人ごとに違うのでエッジキャッシュは通らない。 */
+export const fetchFeed = createServerFn({ method: 'GET' })
+  .validator((input: { cursor?: string }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return { items: [], nextCursor: null }
+
+    const {
+      data: page,
+      error,
+      response,
+    } = await api.fetch.GET('/api/me/feed', {
+      params: { query: { cursor: data.cursor } },
+    })
+    if (!page) throwRead(error, response.status, '投稿の取得に失敗しました。')
+
+    return page
+  })
+
 export const fetchNotifications = createServerFn({ method: 'GET' })
   .validator((input: { cursor?: string }) => input)
   .handler(async ({ data }) => {
@@ -341,6 +428,118 @@ export const setBlocking = createServerFn({ method: 'POST' })
     return { ok: true as const }
   })
 
+export const setMuting = createServerFn({ method: 'POST' })
+  .validator((input: { handle: string; on: boolean }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const options = { params: { path: { handle: data.handle } } }
+    const { error, response } = data.on
+      ? await api.fetch.PUT('/api/mutes/{handle}', options)
+      : await api.fetch.DELETE('/api/mutes/{handle}', options)
+
+    if (response.status >= 400)
+      return toFailure(error, response.status, 'ミュートの変更に失敗しました。')
+
+    return { ok: true as const }
+  })
+
+export const fetchMutes = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    const api = getSessionApiClient()
+    if (!api) return null
+
+    const { data, error, response } = await api.fetch.GET('/api/mutes')
+    if (!data)
+      throwRead(error, response.status, 'ミュート一覧の取得に失敗しました。')
+
+    return data
+  },
+)
+
+export const updateMutedWords = createServerFn({ method: 'POST' })
+  .validator((input: { words: Array<string> }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const {
+      data: me,
+      error,
+      response,
+    } = await api.fetch.PUT('/api/me/muted-words', { body: data })
+    if (!me) return toFailure(error, response.status, '保存に失敗しました。')
+
+    return { ok: true as const, me }
+  })
+
+/* ------------------------------------------------------------------ */
+/* 今の状態                                                             */
+/* ------------------------------------------------------------------ */
+
+/** status が null なら状態を消す。 */
+export const setStatus = createServerFn({ method: 'POST' })
+  .validator((input: { status: StatusInput | null }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const {
+      data: me,
+      error,
+      response,
+    } = data.status
+      ? await api.fetch.PUT('/api/me/status', { body: data.status })
+      : await api.fetch.DELETE('/api/me/status')
+    if (!me)
+      return toFailure(error, response.status, '状態の変更に失敗しました。')
+
+    return { ok: true as const, me }
+  })
+
+/* ------------------------------------------------------------------ */
+/* Web Push                                                             */
+/* ------------------------------------------------------------------ */
+
+/** 購読に使う公開鍵。サーバーに鍵が無ければ null（プッシュ通知は使えない）。 */
+export const fetchPushConfig = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    const api = getSessionApiClient()
+    if (!api) return { publicKey: null }
+
+    const { data } = await api.fetch.GET('/api/me/push-config')
+
+    return data ?? { publicKey: null }
+  },
+)
+
+export const savePushSubscription = createServerFn({ method: 'POST' })
+  .validator((input: PushSubscriptionInput) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const { error, response } = await api.fetch.POST(
+      '/api/me/push-subscriptions',
+      { body: data },
+    )
+    if (response.status >= 400)
+      return toFailure(error, response.status, '通知の登録に失敗しました。')
+
+    return { ok: true as const }
+  })
+
+export const deletePushSubscription = createServerFn({ method: 'POST' })
+  .validator((input: { endpoint: string }) => input)
+  .handler(async ({ data }) => {
+    await getSessionApiClient()?.fetch.DELETE('/api/me/push-subscriptions', {
+      body: data,
+    })
+
+    return { ok: true as const }
+  })
+
 export const fetchBlocks = createServerFn({ method: 'GET' }).handler(
   async () => {
     const api = getSessionApiClient()
@@ -370,6 +569,45 @@ const IMAGE_EXTENSIONS: Record<string, string> = {
 export type UploadImageResult =
   { ok: true; key: string } | { ok: false; message: string }
 
+/** 画像の形式を確かめ、API の回数制限を通ったら KV に置いてキーを返す。 */
+async function storeUpload(
+  api: NonNullable<ReturnType<typeof getSessionApiClient>>,
+  prefix: 'u' | 'a',
+  contentType: string,
+  bytes: Uint8Array,
+): Promise<UploadImageResult> {
+  const ext = IMAGE_EXTENSIONS[contentType]
+  if (!ext) {
+    return {
+      ok: false,
+      message: '対応していない画像形式です（PNG / JPEG / GIF / WebP のみ）。',
+    }
+  }
+  if (bytes.byteLength > MAX_IMAGE_BYTES) {
+    return { ok: false, message: '画像が大きすぎます（2MB まで）。' }
+  }
+
+  // API がレート制限を数え、通ったときだけ KV に置く（連続アップロードで無料枠を削らせない）
+  const {
+    data: ticket,
+    error,
+    response,
+  } = await api.fetch.POST('/api/me/uploads')
+  if (!ticket) {
+    const failure = toFailure(
+      error,
+      response.status,
+      '画像のアップロードに失敗しました。',
+    )
+    return { ok: false, message: failure.message }
+  }
+
+  const key = `${prefix}_${ticket.userId}_${crypto.randomUUID()}.${ext}`
+  await putImage(key, bytes, contentType)
+
+  return { ok: true, key }
+}
+
 /**
  * 投稿に添える画像を KV に保存し、キーを返す。
  *
@@ -382,34 +620,61 @@ export const uploadPostImage = createServerFn({ method: 'POST' })
     const api = getSessionApiClient()
     if (!api) return { ok: false, message: 'ログインが必要です。' }
 
-    const ext = IMAGE_EXTENSIONS[data.contentType]
-    if (!ext) {
-      return {
+    return storeUpload(api, 'u', data.contentType, data.bytes)
+  })
+
+/**
+ * アイコンを差し替える。縮小・正方形の切り抜きはブラウザ側（lib/image.ts の prepareAvatar）で済ませてある。
+ * 前のアイコンは KV から消す（API からは KV に触れないため）。
+ */
+export const uploadAvatar = createServerFn({ method: 'POST' })
+  .validator((input: { contentType: string; bytes: Uint8Array }) => input)
+  .handler(async ({ data }) => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const upload = await storeUpload(api, 'a', data.contentType, data.bytes)
+    if (!upload.ok) {
+      const failure: Failure = {
         ok: false,
-        message: '対応していない画像形式です（PNG / JPEG / GIF / WebP のみ）。',
+        message: upload.message,
+        errors: {},
+        status: 422,
       }
-    }
-    if (data.bytes.byteLength > MAX_IMAGE_BYTES) {
-      return { ok: false, message: '画像が大きすぎます（2MB まで）。' }
+      return failure
     }
 
-    // API がレート制限を数え、通ったときだけ KV に置く（連続アップロードで無料枠を削らせない）
     const {
-      data: ticket,
+      data: changed,
       error,
       response,
-    } = await api.fetch.POST('/api/me/uploads')
-    if (!ticket) {
-      const failure = toFailure(
-        error,
-        response.status,
-        '画像のアップロードに失敗しました。',
-      )
-      return { ok: false, message: failure.message }
+    } = await api.fetch.PUT('/api/me/avatar', {
+      body: { avatarKey: upload.key },
+    })
+    if (!changed) {
+      await deleteImages([upload.key])
+      return toFailure(error, response.status, 'アイコンの変更に失敗しました。')
     }
+    if (changed.removedKey) await deleteImages([changed.removedKey])
 
-    const key = `u_${ticket.userId}_${crypto.randomUUID()}.${ext}`
-    await putImage(key, data.bytes, data.contentType)
-
-    return { ok: true, key }
+    return { ok: true as const, me: changed.me }
   })
+
+/** アップロードしたアイコンをやめる（Google のアイコンか頭文字に戻る）。 */
+export const removeAvatar = createServerFn({ method: 'POST' }).handler(
+  async () => {
+    const api = getSessionApiClient()
+    if (!api) return unauthenticated
+
+    const {
+      data: changed,
+      error,
+      response,
+    } = await api.fetch.DELETE('/api/me/avatar')
+    if (!changed)
+      return toFailure(error, response.status, 'アイコンの変更に失敗しました。')
+    if (changed.removedKey) await deleteImages([changed.removedKey])
+
+    return { ok: true as const, me: changed.me }
+  },
+)

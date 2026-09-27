@@ -5,6 +5,7 @@ import type { TimesPost } from '@blog/api-client'
 import { Avatar } from './Avatar'
 import { PostMenu } from './PostMenu'
 import { ReactionBar } from './ReactionBar'
+import { StatusBadge } from './StatusBadge'
 import { Button } from '../Button'
 import { Icon } from '../Icon'
 import { MarkdownTextarea } from '../MarkdownTextarea'
@@ -18,6 +19,7 @@ import {
   htmlExcerpt,
 } from '../../lib/format'
 import { imageUrl } from '../../lib/image'
+import type { MuteReason } from '../../lib/mute'
 import { isPendingId, useMe } from '../../lib/queries'
 import { usePostActions } from '../../lib/usePostActions'
 
@@ -32,6 +34,8 @@ type Props = {
   variant?: 'list' | 'detail' | 'reply'
   /** 自分がブロックしている人の投稿（折りたたんで出す） */
   blocked?: boolean
+  /** ミュートの対象（折りたたんで出す）。一覧からは PostList が先に外している */
+  muted?: MuteReason | null
 }
 
 export function PostItem({
@@ -39,6 +43,7 @@ export function PostItem({
   myReactions = [],
   variant = 'list',
   blocked = false,
+  muted = null,
 }: Props) {
   const me = useMe()
   const navigate = useNavigate()
@@ -70,8 +75,8 @@ export function PostItem({
     )
   }
 
-  // ブロック中の人の投稿と、Jev が「不適切な可能性がある」とした投稿は、押すまで畳んでおく
-  if ((blocked || post.moderation === 'sensitive') && !revealed) {
+  // ブロック・ミュート中の人の投稿と、Jev が「不適切な可能性がある」とした投稿は、押すまで畳んでおく
+  if ((blocked || muted || post.moderation === 'sensitive') && !revealed) {
     return (
       <article
         id={variant === 'reply' ? `reply-${post.id}` : undefined}
@@ -81,7 +86,11 @@ export function PostItem({
         <span>
           {blocked
             ? 'ブロック中のユーザーの投稿です。'
-            : 'この投稿は不適切な可能性があります。'}{' '}
+            : muted === 'user'
+              ? 'ミュート中のユーザーの投稿です。'
+              : muted === 'word'
+                ? 'ミュートした語を含む投稿です。'
+                : 'この投稿は不適切な可能性があります。'}{' '}
           <button
             type="button"
             onClick={() => setRevealed(true)}
@@ -159,6 +168,7 @@ export function PostItem({
           ) : (
             <span className="font-bold text-text-muted">退会したユーザー</span>
           )}
+          <StatusBadge status={post.author?.status} />
           {handle && (
             <span className="font-mono text-xs text-text-muted">@{handle}</span>
           )}
@@ -376,7 +386,8 @@ function PostDetail({
               params={{ handle }}
               className="block truncate font-bold hover:text-accent"
             >
-              {post.author?.displayName}
+              {post.author?.displayName}{' '}
+              <StatusBadge status={post.author?.status} />
             </Link>
           ) : (
             <span className="font-bold text-text-muted">退会したユーザー</span>

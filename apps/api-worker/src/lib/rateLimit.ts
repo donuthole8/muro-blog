@@ -15,6 +15,12 @@ const LIMITS = {
   image_upload: { label: '画像のアップロード', window: 60 * 60, limit: 30, newLimit: 5 },
   reaction: { label: 'リアクション', window: 10 * 60, limit: 120, newLimit: 40 },
   report: { label: '通報', window: 24 * 60 * 60, limit: 20, newLimit: 5 },
+  /** 確認・再設定メールの送信。宛先（メールアドレス）単位。送信の無料枠と、他人への送りつけを抑える */
+  mail: { label: 'メールの送信', window: 60 * 60, limit: 5, newLimit: 5 },
+  /** Web Push の購読の登録 */
+  push_subscribe: { label: '通知の登録', window: 60 * 60, limit: 20, newLimit: 20 },
+  /** アイコン・状態の変更 */
+  profile: { label: 'プロフィールの変更', window: 60 * 60, limit: 30, newLimit: 10 },
   /** メールアドレス単位。パスワードの総当たり対策 */
   login: { label: 'ログインの試行', window: 15 * 60, limit: 10, newLimit: 10 },
 } as const

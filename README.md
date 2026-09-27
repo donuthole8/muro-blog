@@ -10,7 +10,6 @@
 | `apps/api-worker` | Hono + Drizzle ORM + Cloudflare D1（Workers で動く API） |
 | `packages/api-client` | OpenAPI spec（`openapi.json`）→ TypeScript 型 → 型付きクライアント |
 | `apps/web` | TanStack Start + TanStack Query（公開ページ + 管理画面） |
-| `apps/api` | 旧 API（Symfony 7.4 + PostgreSQL）。`apps/api-worker` に置き換え済み。移行が落ち着いたら削除する |
 
 すべて Cloudflare（Workers・D1・KV）の無料プランで動く。デプロイは [docs/DEPLOY.md](docs/DEPLOY.md)。
 
@@ -73,6 +72,29 @@ cd apps/api-worker && pnpm exec wrangler d1 execute blog --local \
 Google ログインをローカルで試すときは、Google Cloud Console で OAuth クライアント ID を作り、
 承認済みのリダイレクト URI に `http://localhost:3100/auth/callback` を登録して、
 `apps/api-worker/.dev.vars` の `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` を埋める。
+
+### メール（確認・パスワードの再設定）
+
+メールアドレスで登録すると確認メールが届き、リンクを開くまでは投稿・返信・リアクション・フォローができない
+（ログインと handle の決定はできる）。パスワードを忘れたら、ログイン画面の「パスワードを忘れた」から
+再設定のリンクを受け取る（1 時間有効。再設定すると全端末がログアウトする）。
+
+送信には [Brevo](https://www.brevo.com/) のトランザクションメール API を使う（`apps/api-worker/src/lib/mail.ts`）。
+サイトが workers.dev で独自ドメインを持たないため、ドメインの認証なしで送信者アドレス1つを確認すれば送れるものを選んだ
+（無料枠 300 通/日）。`.dev.vars` の `BREVO_API_KEY` / `MAIL_FROM` が空なら送らず、
+**リンクを wrangler のログに出す**（ローカルではそこから開けばよい）。
+本番で未設定のときは、メールアドレスでの新規登録を受け付けない（Google では登録できる）。
+メール確認を入れる前に登録していた人は、確認済みとして扱う（`migrations/0005`）。
+
+### プッシュ通知（Web Push）
+
+設定画面の「この端末で通知を受け取る」から、返信・メンション・リアクション・フォローをプッシュ通知で受け取れる。
+暗号化（RFC 8291）と VAPID の署名は WebCrypto だけで書いている（`apps/api-worker/src/lib/webPush.ts`。
+Node 向けの web-push は Workers で動かないため）。Service Worker は `apps/web/public/sw.js`。
+iPhone / iPad はホーム画面に追加したとき（iOS 16.4 以降）だけ使える。
+
+VAPID 鍵は `node apps/api-worker/scripts/generate-vapid-keys.mjs` で作り、`.dev.vars`（本番は `wrangler secret put`）に入れる。
+鍵が無ければ通知を送らない。鍵を作り直すと既存の購読はすべて無効になる。
 
 ### 不適切な投稿の判定（Jev）
 
@@ -151,7 +173,7 @@ Cloudflare のエッジでキャッシュする（`apps/web/src/lib/edgeCache.ts
 
 ## OpenAPI から型を再生成する
 
-`packages/api-client/openapi.json` が API の形の正（Symfony から書き出したものを引き継いだ）。
+`packages/api-client/openapi.json` が API の形の正（旧 Symfony 版から書き出したものを引き継いだ）。
 API のエンドポイントやレスポンスを変えるときは、先に `openapi.json` を直してから型を作り直す。
 `apps/api-worker` は生成された型（`schema.d.ts`）でレスポンスを縛っているので、形がずれると型検査で落ちる。
 
@@ -188,6 +210,14 @@ cd packages/api-client && pnpm exec tsx scripts/smoke.ts
 | GET | `/api/orgs/{slug}/users` | 5 分 |
 | GET | `/api/archive/posts`（全員のブログ記事）/ `/api/archive/posts/{slug}`（旧ブログの記事）/ `/api/archive/tags` | 60 秒 |
 | GET | `/api/users/{handle}/articles` / `/api/users/{handle}/articles/{slug}` | 15 秒 |
+| GET | `/api/users/{handle}/activity`（部屋の活動グラフ） | 5 分 |
+| GET | `/api/search?q=`（3 文字以上の語は FTS5 の trigram 索引で引く。※） | 15 秒 |
+| GET | `/api/mention-candidates?q=`（メンションの補完） | 60 秒 |
+
+※ 検索の索引 `posts_fts`（`migrations/0006`）は posts の rowid で本文と対応づけている。
+D1 にデータを流し込み直した（export → import など）後は、索引を作り直す:
+`wrangler d1 execute blog --remote --command "INSERT INTO posts_fts(posts_fts) VALUES('rebuild')"`。
+なお `wrangler d1 export` は仮想テーブルを含む DB を書き出せないので、書き出す前に `posts_fts` を DROP し、後で 0006 の SQL を流し直す。
 
 ### ログインが必要（`Authorization: Bearer <セッショントークン>`）
 
@@ -207,6 +237,14 @@ cd packages/api-client && pnpm exec tsx scripts/smoke.ts
 | POST | `/api/me/articles/preview` |
 | GET | `/api/notifications?cursor=` |
 | POST | `/api/notifications/read` |
+| GET | `/api/me/feed?cursor=`（フォロー中の部屋の投稿。キャッシュしない） |
+| POST | `/api/me/email/verification`（確認メールの再送） |
+| PUT / DELETE | `/api/me/avatar`（アイコン。画像は web の Worker が KV に置く） |
+| PUT / DELETE | `/api/me/status`（今の状態） |
+| PUT | `/api/me/muted-words` |
+| PUT / DELETE / GET | `/api/mutes/{handle}` / `/api/mutes` |
+| GET | `/api/me/push-config` |
+| POST / DELETE | `/api/me/push-subscriptions` |
 
 ### 管理（`role=admin` のみ）
 
@@ -228,5 +266,8 @@ cd packages/api-client && pnpm exec tsx scripts/smoke.ts
 |---|---|
 | GET | `/api/auth/google/authorize` |
 | POST | `/api/auth/google/callback` |
+| POST | `/api/auth/email/register` / `/api/auth/email/login` |
+| POST | `/api/auth/email/verify`（確認メールのリンク） |
+| POST | `/api/auth/password/forgot` / `/api/auth/password/reset` |
 | DELETE | `/api/auth/session` |
 | POST | `/api/auth/dev-login`（開発時のみ） |

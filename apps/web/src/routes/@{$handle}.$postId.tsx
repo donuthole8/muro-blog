@@ -5,7 +5,13 @@ import { PostListSkeleton } from '../components/Skeleton'
 import { BottomComposer } from '../components/times/ComposeModal'
 import { PostItem } from '../components/times/PostItem'
 import { htmlExcerpt } from '../lib/format'
-import { threadQuery, useViewerState } from '../lib/queries'
+import { muteReason } from '../lib/mute'
+import {
+  THREAD_REFRESH_INTERVAL,
+  threadQuery,
+  useMe,
+  useViewerState,
+} from '../lib/queries'
 import { roomAccentStyle } from '../lib/roomColor'
 import { roomName, site } from '../lib/site'
 
@@ -74,7 +80,12 @@ export const Route = createFileRoute('/@{$handle}/$postId')({
 
 function ThreadPage() {
   const { postId } = Route.useParams()
-  const thread = useQuery(threadQuery(postId)).data
+  const me = useMe()
+  // 開いている間だけ返信を拾いにいく（タブが裏にある間は TanStack Query が止める）
+  const thread = useQuery({
+    ...threadQuery(postId),
+    refetchInterval: THREAD_REFRESH_INTERVAL,
+  }).data
   const viewer = useViewerState(
     thread ? [thread.post.id, ...thread.replies.map((reply) => reply.id)] : [],
   )
@@ -82,6 +93,9 @@ function ThreadPage() {
   const blocked = new Set(viewer?.blockedHandles)
   const isBlocked = (post: TimesPost) =>
     post.author != null && blocked.has(post.author.handle)
+  const mutedHandles = new Set(viewer?.mutedHandles)
+  const reasonOf = (post: TimesPost) =>
+    muteReason(post, mutedHandles, me?.mutedWords ?? [], me?.handle)
 
   if (!thread) return <PostListSkeleton rows={3} />
 
@@ -128,6 +142,7 @@ function ThreadPage() {
           myReactions={mine.get(thread.post.id)}
           variant="detail"
           blocked={isBlocked(thread.post)}
+          muted={reasonOf(thread.post)}
         />
       </div>
 
@@ -144,6 +159,7 @@ function ThreadPage() {
             myReactions={mine.get(reply.id)}
             variant="reply"
             blocked={isBlocked(reply)}
+            muted={reasonOf(reply)}
           />
         ))}
       </div>

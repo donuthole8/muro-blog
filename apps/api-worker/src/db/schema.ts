@@ -31,13 +31,24 @@ export const users = sqliteTable(
     email: text('email').unique(),
     /** パスワードのハッシュ（lib/password.ts の形式）。email と組で使う */
     passwordHash: text('password_hash'),
+    /** メールアドレスの所有を確認した日時。確認するまでは投稿・リアクション・フォローができない */
+    emailVerifiedAt: integer('email_verified_at', { mode: 'timestamp' }),
     /** 部屋の URL（/@handle）。初回ログイン直後は未設定 */
     handle: text('handle').unique(),
     displayName: text('display_name').notNull(),
+    /** Google のアイコン（ログインのたびに更新する）。avatarKey があればそちらを優先して出す */
     avatarUrl: text('avatar_url'),
+    /** 自分でアップロードしたアイコン（KV のキー。web の lib/uploads.ts が置く） */
+    avatarKey: text('avatar_key'),
     bio: text('bio'),
     companyName: text('company_name'),
     companySlug: text('company_slug'),
+    /** 今の状態（作業中・集中など）。期限を過ぎたら出さない */
+    statusEmoji: text('status_emoji'),
+    statusText: text('status_text'),
+    statusExpiresAt: integer('status_expires_at', { mode: 'timestamp' }),
+    /** ミュートする語（JSON の文字列配列）。一覧から隠すのはブラウザ側で行う */
+    mutedWords: text('muted_words', { mode: 'json' }).$type<string[]>(),
     role: text('role', { enum: ['user', 'admin'] })
       .notNull()
       .default('user'),
@@ -109,6 +120,8 @@ export const posts = sqliteTable(
       .where(sql`${t.parentId} IS NULL`),
     index('idx_posts_lobby').on(t.id).where(sql`${t.parentId} IS NULL`),
     index('idx_posts_thread').on(t.parentId, t.id),
+    // 部屋の活動グラフ（返信も含めて日ごとに数える）
+    index('idx_posts_author_created').on(t.authorId, t.createdAt),
   ],
 )
 
@@ -187,6 +200,60 @@ export const blocks = sqliteTable(
     uniqueIndex('uniq_blocks_pair').on(t.blockerId, t.blockedId),
     index('idx_blocks_blocked').on(t.blockedId),
   ],
+)
+
+/**
+ * ミュート。ブロックと違って相手は何も制限されず、自分の一覧から見えなくなり、その人からの通知が止まるだけ。
+ * 一覧（公開 API はエッジで共有キャッシュする）から隠すのはブラウザ側で行う。
+ */
+export const mutes = sqliteTable(
+  'mutes',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    muterId: text('muter_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    mutedId: text('muted_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('uniq_mutes_pair').on(t.muterId, t.mutedId),
+    index('idx_mutes_muted').on(t.mutedId),
+  ],
+)
+
+/** メールアドレスの確認とパスワードの再設定に使う、1回きりのトークン（SHA-256 だけを持つ）。 */
+export const emailTokens = sqliteTable(
+  'email_tokens',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    tokenHash: text('token_hash').notNull().unique(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    purpose: text('purpose', { enum: ['verify', 'reset'] }).notNull(),
+    expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('idx_email_tokens_user').on(t.userId, t.purpose)],
+)
+
+/** Web Push の購読（ブラウザ・端末ごと）。送信先から 404/410 が返ったら消す。 */
+export const pushSubscriptions = sqliteTable(
+  'push_subscriptions',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    endpoint: text('endpoint').notNull().unique(),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('idx_push_subscriptions_user').on(t.userId)],
 )
 
 export const notifications = sqliteTable(

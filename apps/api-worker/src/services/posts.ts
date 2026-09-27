@@ -12,7 +12,7 @@ import {
   type SQL,
 } from 'drizzle-orm'
 import type { Db } from '../db/client'
-import { postTags, posts, reactions, tags, users } from '../db/schema'
+import { follows, postTags, posts, reactions, tags, users } from '../db/schema'
 import { likePattern, toPage } from '../lib/http'
 import { findArticleCards } from './articles'
 import {
@@ -110,13 +110,43 @@ export function findTagPage(db: Db, tagId: number, cursor: string | null, limit:
   )
 }
 
-/** 検索語をすべて含む親投稿。件数が少ないうちは LIKE の全件走査で足りる。 */
+/** フォロー中の部屋の親投稿（ロビーの「フォロー中」）。 */
+export function findFollowingPage(db: Db, followerId: string, cursor: string | null, limit: number) {
+  return page(
+    db,
+    and(
+      listedParents,
+      inArray(
+        posts.authorId,
+        db.select({ id: follows.followeeId }).from(follows).where(eq(follows.followerId, followerId)),
+      ),
+    ),
+    cursor,
+    limit,
+  )
+}
+
+/** trigram で索引できる最短の長さ。これより短い語は LIKE で絞る */
+const TRIGRAM_MIN = 3
+
+/**
+ * 検索語をすべて含む親投稿。3文字以上の語は全文検索の索引（posts_fts, migrations/0006）で引き、
+ * 2文字以下の語だけ LIKE で絞る（索引で候補を絞った後なので、全件走査にはならない）。
+ */
 export function findSearchPage(db: Db, terms: string[], cursor: string | null, limit: number) {
+  const indexed = terms.filter((t) => [...t].length >= TRIGRAM_MIN)
+  const short = terms.filter((t) => [...t].length < TRIGRAM_MIN)
+  // 語をそれぞれ "…" で囲んで AND にする（FTS5 の演算子や記号として解釈させない）
+  const match = indexed.map((t) => `"${t.replace(/"/g, '""')}"`).join(' ')
+
   return page(
     db,
     and(
       visibleParents,
-      ...terms.map((term) => sql`lower(${posts.bodyMarkdown}) LIKE ${likePattern(term)} ESCAPE '\\'`),
+      indexed.length > 0
+        ? sql`${posts}.rowid IN (SELECT rowid FROM posts_fts WHERE posts_fts MATCH ${match})`
+        : undefined,
+      ...short.map((term) => sql`lower(${posts.bodyMarkdown}) LIKE ${likePattern(term)} ESCAPE '\\'`),
     ),
     cursor,
     limit,

@@ -9,12 +9,14 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
+import { AccountBanner } from '../components/AccountBanner'
 import { buttonClass } from '../components/Button'
 import { NavigationProgress } from '../components/NavigationProgress'
 import { Sidebar } from '../components/Sidebar'
 import { SiteHeader } from '../components/SiteHeader'
 import { SiteFooter } from '../components/SiteFooter'
 import { ComposeProvider } from '../components/times/ComposeModal'
+import { useServiceWorkerMessages, useUnreadTitle } from '../lib/push'
 import { meQuery, useMe } from '../lib/queries'
 import { site } from '../lib/site'
 
@@ -59,7 +61,14 @@ const fontsScript = `
 `
 
 /** handle 未決定でも開けるページ（それ以外は handle 決定画面へ送る） */
-const OPEN_WITHOUT_HANDLE = ['/welcome', '/dev-login', '/about']
+const OPEN_WITHOUT_HANDLE = [
+  '/welcome',
+  '/dev-login',
+  '/about',
+  '/verify-email',
+  '/forgot-password',
+  '/reset-password',
+]
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   /**
@@ -114,6 +123,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         title: `${site.title} のブログ`,
       },
       { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+      // ホーム画面に追加したとき（iPhone でプッシュ通知を受け取るのに必要）
+      { rel: 'manifest', href: '/manifest.webmanifest' },
       { rel: 'icon', type: 'image/png', href: '/favicon-32x32.png' },
       { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
     ],
@@ -155,6 +166,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 function Layout({ children }: { children: React.ReactNode }) {
   const me = useMe()
+  useUnreadTitle(me?.unreadNotificationCount ?? 0)
+  useServiceWorkerMessages()
 
   return (
     // data-sidebar は画面下に固定する入力欄がサイドバーを避けるのに使う（ComposeModal.tsx）
@@ -165,6 +178,7 @@ function Layout({ children }: { children: React.ReactNode }) {
     >
       <NavigationProgress />
       <SiteHeader />
+      <AccountBanner />
       <div className="flex flex-1">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">

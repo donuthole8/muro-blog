@@ -37,6 +37,9 @@ export type ArticleSource = Schemas["ArticleSource"];
 export type ArticleInput = Schemas["ArticleInput"];
 export type AdminArticle = Schemas["AdminArticle"];
 export type ValidationError = Schemas["ValidationError"];
+export type UserStatus = Schemas["UserStatus"];
+export type MutedUser = Schemas["MutedUser"];
+export type Activity = Schemas["Activity"];
 
 export type ApiClientOptions = {
   baseUrl: string;

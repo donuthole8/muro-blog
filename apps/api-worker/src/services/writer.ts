@@ -7,9 +7,10 @@ import { embedLinkCards, hasBareLink } from '../lib/linkCards'
 import { mentionCandidates, renderPostBody } from '../lib/markdown'
 import { moderateText, type ModerationVerdict } from '../lib/moderation'
 import { consumeRateLimit } from '../lib/rateLimit'
-import { isPostVisible, type PostWithAuthor } from './mapper'
+import { excerpt, isPostVisible, type PostWithAuthor } from './mapper'
 import { findPostById } from './posts'
-import { findActiveByHandles, findBlockersAmong, isBlocking } from './users'
+import type { PushMessage, PushSender } from './push'
+import { findActiveByHandles, findSilencersAmong, isBlocking, isSilencing } from './users'
 
 /**
  * times の投稿の作成・編集・削除（Symfony 時代の TimesPostWriter と Notifier）。
@@ -32,6 +33,8 @@ export type WriterContext = {
   typesafeApiKey?: string
   /** レスポンス後の処理（リンクカードの取得）を積む */
   waitUntil: (promise: Promise<unknown>) => void
+  /** 通知と同時に送る Web Push */
+  push: PushSender
 }
 
 type Batch = BatchItem<'sqlite'>[]
@@ -111,9 +114,11 @@ export async function createPost(
     statements.push(db.insert(postTags).values(tagIds.map((tagId) => ({ postId: post.id, tagId }))))
   }
   // 自動で非表示にした投稿では、返信・メンションの通知を飛ばさない
-  if (post.moderation !== 'blocked') {
-    statements.push(...(await postNotifications(db, post, author, parent, rendered.mentionedHandles)))
-  }
+  const notified =
+    post.moderation === 'blocked'
+      ? { statements: [], pushes: [] }
+      : await postNotifications(db, post, author, parent, rendered.mentionedHandles)
+  statements.push(...notified.statements)
   if (parent) {
     statements.push(
       db
@@ -124,6 +129,7 @@ export async function createPost(
   }
   await db.batch(statements as [Batch[number], ...Batch])
 
+  ctx.push(notified.pushes)
   scheduleLinkCards(ctx, post)
   return { post, author }
 }
@@ -354,28 +360,47 @@ async function postNotifications(
   actor: User,
   parent: PostWithAuthor | undefined,
   mentionedHandles: string[],
-): Promise<Batch> {
+): Promise<{ statements: Batch; pushes: PushMessage[] }> {
   const replyTo = parent && isPostVisible(parent) ? parent.author : null
   const mentioned = await findActiveByHandles(db, mentionedHandles)
   const candidates = replyTo ? [replyTo, ...mentioned] : mentioned
 
-  const notified = new Set([actor.id, ...(await findBlockersAmong(db, candidates.map((u) => u.id), actor.id))])
+  const notified = new Set([actor.id, ...(await findSilencersAmong(db, candidates.map((u) => u.id), actor.id))])
   const rows: ReturnType<typeof notification>[] = []
-  const push = (to: User, type: NotificationType) => {
+  const pushes: PushMessage[] = []
+  // スレッドの URL。web は handle が持ち主と違っても正規の URL に寄せるので、親投稿の持ち主でよい
+  const threadUrl = parent ? `/@${parent.author.handle}/${parent.post.id}` : `/@${actor.handle}/${post.id}`
+  const body = excerpt(post.bodyHtml) || '（画像）'
+  const add = (to: User, type: 'reply' | 'mention') => {
     if (notified.has(to.id) || !isActive(to)) return
     notified.add(to.id)
     rows.push(notification(to.id, type, actor.id, post.id))
+    pushes.push({
+      userId: to.id,
+      title:
+        type === 'reply'
+          ? `${actor.displayName} さんが返信しました`
+          : `${actor.displayName} さんがあなたをメンションしました`,
+      body,
+      url: threadUrl,
+    })
   }
 
-  if (replyTo) push(replyTo, 'reply')
-  for (const user of mentioned) push(user, 'mention')
+  if (replyTo) add(replyTo, 'reply')
+  for (const user of mentioned) add(user, 'mention')
 
-  return rows.length > 0 ? [db.insert(notifications).values(rows)] : []
+  return { statements: rows.length > 0 ? [db.insert(notifications).values(rows)] : [], pushes }
 }
 
 /** リアクションが付いたとき。同じ人・同じ投稿の未読の通知があれば重ねない。 */
-export async function notifyReaction(db: Db, { post, author: owner }: PostWithAuthor, actor: User) {
-  if (owner.id === actor.id || (await isBlocking(db, owner.id, actor.id))) return
+export async function notifyReaction(
+  db: Db,
+  push: PushSender,
+  { post, author: owner }: PostWithAuthor,
+  actor: User,
+  emoji: string,
+) {
+  if (owner.id === actor.id || (await isSilencing(db, owner.id, actor.id))) return
 
   const duplicate = await db
     .select({ id: notifications.id })
@@ -393,11 +418,19 @@ export async function notifyReaction(db: Db, { post, author: owner }: PostWithAu
   if (duplicate) return
 
   await db.insert(notifications).values(notification(owner.id, 'reaction', actor.id, post.id))
+  push([
+    {
+      userId: owner.id,
+      title: `${actor.displayName} さんが ${emoji} でリアクションしました`,
+      body: excerpt(post.bodyHtml) || '（画像）',
+      url: `/@${owner.handle}/${post.parentId ?? post.id}`,
+    },
+  ])
 }
 
 /** 部屋がフォローされたとき。付け外しを繰り返しても通知は1回だけ。 */
 export async function followNotification(db: Db, followee: User, follower: User): Promise<Batch> {
-  if (!isActive(followee)) return []
+  if (!isActive(followee) || (await isSilencing(db, followee.id, follower.id))) return []
   const existing = await db
     .select({ n: count() })
     .from(notifications)

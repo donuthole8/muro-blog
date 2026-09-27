@@ -2,13 +2,14 @@ import { and, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
 import type { BatchItem } from 'drizzle-orm/batch'
 import { alias } from 'drizzle-orm/sqlite-core'
 import { Hono, type Context } from 'hono'
-import { blocks, follows, notifications, posts, users } from '../db/schema'
+import { blocks, follows, mutes, notifications, posts, users } from '../db/schema'
 import type { AppEnv } from '../env'
 import { activeUser, currentUser } from '../lib/auth'
 import { PAGE_SIZE, forbidden, iso, notFound, now, parseCursor, privateCache, toPage } from '../lib/http'
 import { HANDLE_PARAM } from '../lib/policy'
 import { excerpt, isPostVisible, toRoom, toUserSummary, type PostWithAuthor, type Schemas } from '../services/mapper'
-import { inChunks } from '../services/posts'
+import { findFollowingPage, inChunks, toPostPage } from '../services/posts'
+import { pushSender } from '../services/push'
 import { findFollow, findRoomOwner, findUserByHandle, findUsersByIds, isBlocking } from '../services/users'
 import { followNotification } from '../services/writer'
 import { countUnread } from './me'
@@ -35,13 +36,19 @@ social.put('/follows/:handle', async (c) => {
 
   if (!(await findFollow(db, me.id, owner.id))) {
     const at = now()
+    const notification = await followNotification(db, owner, me)
     await db.batch([
       db
         .insert(follows)
         .values({ followerId: me.id, followeeId: owner.id, lastReadAt: at, createdAt: at })
         .onConflictDoNothing(),
-      ...(await followNotification(db, owner, me)),
+      ...notification,
     ] as [BatchItem<'sqlite'>, ...BatchItem<'sqlite'>[]])
+    if (notification.length > 0) {
+      pushSender(c)([
+        { userId: owner.id, title: `${me.displayName} さんがあなたの部屋をフォローしました`, body: `@${me.handle}`, url: `/@${me.handle}` },
+      ])
+    }
   }
   return c.body(null, 204)
 })
@@ -99,6 +106,60 @@ social.get('/following', async (c) => {
     }
   }
   return c.json(rooms, 200, privateCache)
+})
+
+/**
+ * フォロー中の部屋の親投稿だけを新しい順に（ロビーの「フォロー中」タブ）。
+ * 人ごとに中身が違うのでエッジではキャッシュしない。ログインしている人がタブを選んだときだけ呼ばれる。
+ */
+social.get('/me/feed', async (c) => {
+  const db = c.var.db
+  const me = currentUser(c)
+  const page = await findFollowingPage(db, me.id, parseCursor(c.req.query('cursor')), PAGE_SIZE)
+  return c.json(await toPostPage(db, page), 200, privateCache)
+})
+
+// ---------- ミュート ----------
+//
+// 相手には何も制限をかけず、自分の一覧から隠し、その人からの通知を止めるだけ。
+// 一覧から隠すのはブラウザ側（公開 API はエッジで共有キャッシュするため）。
+
+social.put('/mutes/:handle', async (c) => {
+  const db = c.var.db
+  const me = activeUser(c)
+  const target = await findUserByHandle(db, handleParam(c))
+  if (!target || target.id === me.id) throw notFound('ユーザーが見つかりません。')
+  await db.insert(mutes).values({ muterId: me.id, mutedId: target.id, createdAt: now() }).onConflictDoNothing()
+  return c.body(null, 204)
+})
+
+social.delete('/mutes/:handle', async (c) => {
+  const db = c.var.db
+  const me = currentUser(c)
+  const target = await findUserByHandle(db, handleParam(c))
+  if (target) {
+    await db.delete(mutes).where(and(eq(mutes.muterId, me.id), eq(mutes.mutedId, target.id)))
+  }
+  return c.body(null, 204)
+})
+
+/** ミュート中のユーザー（新しい順）。 */
+social.get('/mutes', async (c) => {
+  const db = c.var.db
+  const me = currentUser(c)
+  const rows = await db
+    .select({ user: users, createdAt: mutes.createdAt })
+    .from(mutes)
+    .innerJoin(users, eq(users.id, mutes.mutedId))
+    .where(and(eq(mutes.muterId, me.id), isNull(users.deletedAt)))
+    .orderBy(desc(mutes.id))
+
+  const items: Schemas['MutedUser'][] = []
+  for (const row of rows) {
+    const user = toUserSummary(row.user)
+    if (user) items.push({ user, mutedAt: iso(row.createdAt) })
+  }
+  return c.json(items, 200, privateCache)
 })
 
 // ---------- ブロック ----------

@@ -9,7 +9,8 @@ import {
   formatGap,
   minutesBetween,
 } from '../../lib/format'
-import { isPendingId, useViewerState } from '../../lib/queries'
+import { muteReason } from '../../lib/mute'
+import { isPendingId, useMe, useViewerState } from '../../lib/queries'
 
 /** これ以上間が空いたら、ログの途切れとして印を出す（分） */
 const GAP_MINUTES = 120
@@ -30,6 +31,11 @@ type Props = {
    * feed: 新しい順（検索結果など）
    */
   order?: 'chat' | 'feed'
+  /**
+   * ミュートの対象（ミュートした人・語）をどう扱うか。
+   * hide: 一覧から外す（チャンネル・タグ・検索。既定） / collapse: 折りたたんで残す（その人の部屋）
+   */
+  muted?: 'hide' | 'collapse'
   /**
    * chat 表示で、初回に最新（一番下）までスクロールするか。
    * 上に案内を置いている画面（未ログインのロビー）では、案内が見えるように切る。
@@ -55,9 +61,25 @@ export function PostList({
   handle,
   order = 'chat',
   scrollToLatest = true,
+  muted = 'hide',
 }: Props) {
+  const me = useMe()
+  const viewer = useViewerState(
+    posts.map((post) => post.id),
+    handle,
+  )
+  const mine = new Map(viewer?.reactions.map((r) => [r.postId, r.emojis]))
+  const blocked = new Set(viewer?.blockedHandles)
+  const mutedHandles = new Set(viewer?.mutedHandles)
+  const reasonOf = (post: TimesPost) =>
+    muteReason(post, mutedHandles, me?.mutedWords ?? [], me?.handle)
+
+  const shown =
+    muted === 'hide' ? posts.filter((post) => reasonOf(post) === null) : posts
+  const hiddenCount = posts.length - shown.length
+
   const chat = order === 'chat'
-  const items = chat ? [...posts].reverse() : posts
+  const items = chat ? [...shown].reverse() : shown
   const oldestId = chat ? items[0]?.id : undefined
   const newestId = chat ? items.at(-1)?.id : undefined
   const newestPending = chat && items.at(-1) && isPendingId(items.at(-1)!.id)
@@ -117,16 +139,15 @@ export function PostList({
     </div>
   )
 
-  const viewer = useViewerState(
-    posts.map((post) => post.id),
-    handle,
-  )
-  const mine = new Map(viewer?.reactions.map((r) => [r.postId, r.emojis]))
-  const blocked = new Set(viewer?.blockedHandles)
-
   if (posts.length === 0) {
     return isLoading ? <PostListSkeleton /> : <>{empty}</>
   }
+
+  const hiddenNote = hiddenCount > 0 && (
+    <p className="px-1 py-3 text-center text-xs text-text-muted sm:px-2">
+      ミュートにより {hiddenCount} 件を表示していません
+    </p>
+  )
 
   return (
     <div>
@@ -155,11 +176,13 @@ export function PostList({
               post={post}
               myReactions={mine.get(post.id)}
               blocked={post.author != null && blocked.has(post.author.handle)}
+              muted={reasonOf(post)}
             />
           </Fragment>
         )
       })}
 
+      {hiddenNote}
       {!chat && loadMoreButton}
     </div>
   )

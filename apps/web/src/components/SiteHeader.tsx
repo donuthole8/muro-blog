@@ -9,6 +9,7 @@ import { Avatar } from './times/Avatar'
 import { useOpenCompose } from './times/ComposeModal'
 import { Popover } from './times/Popover'
 import { logout } from '../lib/account'
+import { disablePush } from '../lib/push'
 import { meQuery, useMe } from '../lib/queries'
 import { loginUrl, roomName, site } from '../lib/site'
 
@@ -138,11 +139,15 @@ function AccountMenu() {
   if (!me) return null
 
   const signOut = async () => {
+    // この端末に届くプッシュ通知を止めてからログアウトする（止めるにはログイン中である必要がある）
+    await disablePush().catch(() => undefined)
     await logout()
     queryClient.setQueryData(meQuery.queryKey, null)
     queryClient.removeQueries({ queryKey: ['viewer'] })
     queryClient.removeQueries({ queryKey: ['following'] })
     queryClient.removeQueries({ queryKey: ['notifications'] })
+    queryClient.removeQueries({ queryKey: ['feed'] })
+    queryClient.removeQueries({ queryKey: ['mutes'] })
     await router.navigate({ to: '/' })
   }
 

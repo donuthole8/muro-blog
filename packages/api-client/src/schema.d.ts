@@ -880,6 +880,234 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/email/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 確認メールのリンクのトークンで、メールアドレスを確認済みにする。 */
+        post: operations["post_api_auth_email_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password/forgot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** パスワードの再設定メールを送る。登録の有無にかかわらず 204。 */
+        post: operations["post_api_auth_password_forgot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 再設定のリンクのトークンで新しいパスワードを決める。全端末をログアウトさせ、新しいセッションを返す。 */
+        post: operations["post_api_auth_password_reset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/email/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 確認メールを送り直す。 */
+        post: operations["post_api_me_email_verification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["put_api_me_avatar"];
+        post?: never;
+        delete: operations["delete_api_me_avatar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["put_api_me_status"];
+        post?: never;
+        delete: operations["delete_api_me_status"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/muted-words": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["put_api_me_muted_words"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/push-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_me_push_config"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/push-subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["post_api_me_push_subscriptions"];
+        delete: operations["delete_api_me_push_subscriptions"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_me_feed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mutes/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["put_api_mutes_put"];
+        post?: never;
+        delete: operations["delete_api_mutes_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mutes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_mutes_index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{handle}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_users_activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mention-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_mention_candidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1144,6 +1372,8 @@ export interface components {
             /** @example Alice */
             displayName: string;
             avatarUrl?: string | null;
+            /** @description 今の状態（作業中・集中など）。未設定・期限切れなら null */
+            status?: components["schemas"]["UserStatus"] | null;
         };
         BlockedUser: {
             user: components["schemas"]["UserSummary"];
@@ -1224,6 +1454,15 @@ export interface components {
             /** @enum {string} */
             role: "user" | "admin";
             unreadNotificationCount: number;
+            /** @description 自分でアップロードしたアイコンを使っているか */
+            hasCustomAvatar: boolean;
+            /** @description メールアドレスで登録した人のアドレス。Google だけの人は null */
+            email: string | null;
+            /** @description メールアドレスの確認が済んでいるか（Google だけの人は常に true）。false の間は投稿などができない */
+            emailVerified: boolean;
+            status: components["schemas"]["UserStatus"] | null;
+            /** @description ミュートする語（小文字）。一覧から隠すのはブラウザ側 */
+            mutedWords: string[];
         };
         AccountDeleted: {
             /** @description Worker が R2 から消すべき画像のキー */
@@ -1252,6 +1491,10 @@ export interface components {
              * @default null
              */
             isBlocking: boolean | null;
+            /** @description 自分がミュートしている handle（一覧から隠す） */
+            mutedHandles: string[];
+            /** @description handle を指定したときだけ。その人をミュートしているか */
+            isMuting: boolean | null;
         };
         NotificationItem: {
             id: string;
@@ -1318,6 +1561,7 @@ export interface components {
             suspended: boolean;
             /** Format: date-time */
             createdAt: string;
+            status: components["schemas"]["UserStatus"] | null;
         };
         /** @description 投稿に添付されたブログ記事（公開中のものだけ） */
         ArticleCard: {
@@ -1460,6 +1704,72 @@ export interface components {
             articleLists: components["schemas"]["SitemapEntry"][];
             /** @description 公開の投稿があるタグ（/tags/:slug） */
             tags: components["schemas"]["SitemapEntry"][];
+        };
+        UserStatus: {
+            /** @example 💻 */
+            emoji: string;
+            /** @example 作業中 */
+            text: string;
+            /**
+             * Format: date-time
+             * @description この日時を過ぎたら消える。無期限なら null
+             */
+            expiresAt?: string | null;
+        };
+        MutedUser: {
+            user: components["schemas"]["UserSummary"];
+            mutedAt: string;
+        };
+        AvatarChanged: {
+            me: components["schemas"]["Me"];
+            /** @description 差し替え前のアイコンのキー（web の Worker が KV から消す） */
+            removedKey: string | null;
+        };
+        PushConfig: {
+            /** @description VAPID の公開鍵（base64url）。サーバーに鍵が無ければ null */
+            publicKey: string | null;
+        };
+        ActivityDay: {
+            /** @example 2026-09-27 */
+            date: string;
+            count: number;
+        };
+        Activity: {
+            /** @description 日本時間の今日（YYYY-MM-DD） */
+            today: string;
+            /** @description 投稿のあった日だけ（日本時間） */
+            days: components["schemas"]["ActivityDay"][];
+            total: number;
+        };
+        TokenInput: {
+            token: string;
+        };
+        EmailInput: {
+            email: string;
+        };
+        PasswordResetInput: {
+            token: string;
+            password: string;
+        };
+        AvatarInput: {
+            avatarKey: string;
+        };
+        StatusInput: {
+            emoji: string;
+            text?: string | null;
+            /** @description 何分後に消すか。null なら無期限 */
+            expiresInMinutes?: number | null;
+        };
+        MutedWordsInput: {
+            words: string[];
+        };
+        PushSubscriptionInput: {
+            endpoint: string;
+            p256dh: string;
+            auth: string;
+        };
+        PushUnsubscribeInput: {
+            endpoint: string;
         };
     };
     responses: never;
@@ -1966,6 +2276,24 @@ export interface operations {
             };
             /** @description 入力が不正、またはアドレスが登録済み */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 送信の回数制限 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description メール送信が設定されておらず、登録を受け付けていない */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3350,6 +3678,566 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Sitemap"];
+                };
+            };
+        };
+    };
+    post_api_auth_email_verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenInput"];
+            };
+        };
+        responses: {
+            /** @description 確認した */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description トークンが無効（期限切れ・使用済み） */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 入力が不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    post_api_auth_password_forgot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailInput"];
+            };
+        };
+        responses: {
+            /** @description 受け付けた */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 入力が不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 送信の回数制限 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    post_api_auth_password_reset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetInput"];
+            };
+        };
+        responses: {
+            /** @description 再設定してログインした */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionIssued"];
+                };
+            };
+            /** @description トークンが無効（期限切れ・使用済み） */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description アカウントが停止・退会済み */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 入力が不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    post_api_me_email_verification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 送った */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 確認の必要がない */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 送信の回数制限 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 送信できなかった */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    put_api_me_avatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvatarInput"];
+            };
+        };
+        responses: {
+            /** @description 差し替えた */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvatarChanged"];
+                };
+            };
+            /** @description handle 未決定・メール未確認 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description キーが不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_me_avatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description アップロードしたアイコンをやめた */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvatarChanged"];
+                };
+            };
+        };
+    };
+    put_api_me_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusInput"];
+            };
+        };
+        responses: {
+            /** @description 更新後の本人の情報 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description 入力が不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 回数制限 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_me_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 状態を消した */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    put_api_me_muted_words: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MutedWordsInput"];
+            };
+        };
+        responses: {
+            /** @description 更新後の本人の情報 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description 入力が不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_me_push_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 購読に使う公開鍵 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushConfig"];
+                };
+            };
+        };
+    };
+    post_api_me_push_subscriptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushSubscriptionInput"];
+            };
+        };
+        responses: {
+            /** @description 登録した（同じ endpoint なら付け替える） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 入力が不正 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description 回数制限 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_me_push_subscriptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushUnsubscribeInput"];
+            };
+        };
+        responses: {
+            /** @description 解除した */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_api_me_feed: {
+        parameters: {
+            query?: {
+                /** @description 前のページの nextCursor */
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description フォロー中の部屋の親投稿を新しい順に */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostPage"];
+                };
+            };
+        };
+    };
+    put_api_mutes_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ミュートした */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ユーザーが存在しない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_mutes_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ミュートを解除した */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_api_mutes_index: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ミュート中のユーザー（新しい順） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutedUser"][];
+                };
+            };
+        };
+    };
+    get_api_users_activity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 日本時間の日ごとの投稿数（直近 53 週） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Activity"];
+                };
+            };
+            /** @description 部屋が存在しない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_mention_candidates: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description handle か表示名が q で始まる人 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSummary"][];
                 };
             };
         };

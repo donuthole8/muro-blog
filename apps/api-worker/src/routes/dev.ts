@@ -6,6 +6,7 @@ import type { AppEnv } from '../env'
 import { newId, notFound, now } from '../lib/http'
 import { companySlug } from '../lib/policy'
 import { findUserByHandle } from '../services/users'
+import { noPush } from '../services/push'
 import { createPost, notifyReaction, type WriterContext } from '../services/writer'
 
 /**
@@ -65,6 +66,7 @@ dev.post('/seed', async (c) => {
     db,
     siteHost: c.env.SITE_HOST,
     waitUntil: (p) => c.executionCtx.waitUntil(p),
+    push: noPush,
   }
   const post = (author: User & { handle: string }, body: string, tagSlugs: string[], parentId: string | null = null) =>
     createPost(ctx, author, { bodyMarkdown: body, tagSlugs, parentId, imageKey: null })
@@ -88,7 +90,7 @@ dev.post('/seed', async (c) => {
   await react(p1, carol, '👍')
   await react(p1, carol, '🎉')
   await react(p2, alice, '👀')
-  await notifyReaction(db, p1, bob)
+  await notifyReaction(db, noPush, p1, bob, '👍')
 
   const at = now()
   await db.insert(follows).values([

@@ -1,8 +1,8 @@
 import { and, asc, count, eq, isNull, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
-import { postTags, posts, tags } from '../db/schema'
+import { postTags, posts, tags, users } from '../db/schema'
 import type { AppEnv } from '../env'
-import { CacheFor, PAGE_SIZE, notFound, parseCursor, publicCache } from '../lib/http'
+import { CacheFor, PAGE_SIZE, likePattern, notFound, parseCursor, publicCache } from '../lib/http'
 import { HANDLE_PARAM } from '../lib/policy'
 import { toProfile, toRoom, toUserSummary, type Schemas } from '../services/mapper'
 import {
@@ -107,6 +107,80 @@ discover.get('/users/:handle/posts', async (c) => {
     : await findRoomPage(db, user.id, parseCursor(c.req.query('cursor')), PAGE_SIZE)
 
   return c.json(await toPostPage(db, page), 200, publicCache(CacheFor.FRESH))
+})
+
+/** 活動グラフの日数（53 週。今日を含む週の土曜までを右端の列にする） */
+const ACTIVITY_DAYS = 371
+/** 日の区切りは日本時間 */
+const JST_OFFSET_SECONDS = 9 * 60 * 60
+
+const jstDate = (unixSeconds: number) => new Date((unixSeconds + JST_OFFSET_SECONDS) * 1000).toISOString().slice(0, 10)
+
+/**
+ * 部屋の活動グラフ（草）。日本時間の日ごとに、その人が書いた投稿（返信を含む）の数。
+ * 0 件の日は返さない（画面側で埋める）。「今日」は SSR とブラウザでずれないよう API が決める。
+ */
+discover.get('/users/:handle/activity', async (c) => {
+  const db = c.var.db
+  const handle = c.req.param('handle')
+  const user = HANDLE_PARAM.test(handle) ? await findRoomOwner(db, handle) : undefined
+  if (!user) throw notFound('部屋が見つかりません。')
+
+  const nowSec = Math.floor(Date.now() / 1000)
+  const since = nowSec - ACTIVITY_DAYS * 24 * 60 * 60
+  const rows = user.suspendedAt
+    ? []
+    : await db.all<{ day: string; n: number }>(sql`
+        SELECT date(created_at + ${JST_OFFSET_SECONDS}, 'unixepoch') AS day, count(*) AS n
+        FROM posts
+        WHERE author_id = ${user.id} AND created_at >= ${since}
+          AND deleted_at IS NULL AND hidden_at IS NULL
+        GROUP BY day
+      `)
+
+  return c.json(
+    {
+      today: jstDate(nowSec),
+      days: rows.map((r) => ({ date: r.day, count: r.n })),
+      total: rows.reduce((sum, r) => sum + r.n, 0),
+    } satisfies Schemas['Activity'],
+    200,
+    publicCache(CacheFor.AGGREGATE),
+  )
+})
+
+const MENTION_LIMIT = 8
+
+/**
+ * メンションの補完候補。handle か表示名が入力で始まる人（handle の一致を先に）。
+ * 打つたびに呼ばれるので、エッジで短くキャッシュする。
+ */
+discover.get('/mention-candidates', async (c) => {
+  const db = c.var.db
+  const q = (c.req.query('q') ?? '').trim().replace(/^@+/, '').slice(0, 20).toLowerCase()
+  if (q === '') return c.json([], 200, publicCache(CacheFor.AGGREGATE))
+
+  // likePattern は前後に % を付けるので、先頭の % を落として前方一致にする
+  const prefix = likePattern(q).slice(1)
+  const rows = await db
+    .select()
+    .from(users)
+    .where(
+      and(
+        sql`${users.handle} IS NOT NULL`,
+        isNull(users.suspendedAt),
+        isNull(users.deletedAt),
+        sql`(lower(${users.handle}) LIKE ${prefix} ESCAPE '\\' OR lower(${users.displayName}) LIKE ${prefix} ESCAPE '\\')`,
+      ),
+    )
+    .orderBy(sql`lower(${users.handle}) LIKE ${prefix} ESCAPE '\\' DESC`, asc(users.handle))
+    .limit(MENTION_LIMIT)
+
+  return c.json(
+    rows.map(toUserSummary).filter((u) => u !== null) satisfies Schemas['UserSummary'][],
+    200,
+    publicCache(60),
+  )
 })
 
 // ---------- 会社 ----------

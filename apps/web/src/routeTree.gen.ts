@@ -14,13 +14,16 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as DevLoginRouteImport } from './routes/dev-login'
 import { Route as FollowingRouteImport } from './routes/following'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as RssDotxmlRouteImport } from './routes/rss[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as AtChar123handleChar125IndexRouteImport } from './routes/@{$handle}.index'
 import { Route as AtChar123handleChar125PostIdRouteImport } from './routes/@{$handle}.$postId'
@@ -69,6 +72,11 @@ const FollowingRoute = FollowingRouteImport.update({
   path: '/following',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -77,6 +85,11 @@ const LoginRoute = LoginRouteImport.update({
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
@@ -102,6 +115,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WelcomeRoute = WelcomeRouteImport.update({
@@ -226,13 +244,16 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/dev-login': typeof DevLoginRoute
   '/following': typeof FollowingRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/welcome': typeof WelcomeRoute
   '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
   '/@{$handle}/rss.xml': typeof AtChar123handleChar125RssDotxmlRoute
@@ -261,13 +282,16 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/dev-login': typeof DevLoginRoute
   '/following': typeof FollowingRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/welcome': typeof WelcomeRoute
   '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
   '/@{$handle}/rss.xml': typeof AtChar123handleChar125RssDotxmlRoute
@@ -298,13 +322,16 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/dev-login': typeof DevLoginRoute
   '/following': typeof FollowingRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/welcome': typeof WelcomeRoute
   '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
   '/@{$handle}/rss.xml': typeof AtChar123handleChar125RssDotxmlRoute
@@ -336,13 +363,16 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dev-login'
     | '/following'
+    | '/forgot-password'
     | '/login'
     | '/notifications'
+    | '/reset-password'
     | '/robots.txt'
     | '/rss.xml'
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/verify-email'
     | '/welcome'
     | '/@{$handle}/$postId'
     | '/@{$handle}/rss.xml'
@@ -371,13 +401,16 @@ export interface FileRouteTypes {
     | '/about'
     | '/dev-login'
     | '/following'
+    | '/forgot-password'
     | '/login'
     | '/notifications'
+    | '/reset-password'
     | '/robots.txt'
     | '/rss.xml'
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/verify-email'
     | '/welcome'
     | '/@{$handle}/$postId'
     | '/@{$handle}/rss.xml'
@@ -407,13 +440,16 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dev-login'
     | '/following'
+    | '/forgot-password'
     | '/login'
     | '/notifications'
+    | '/reset-password'
     | '/robots.txt'
     | '/rss.xml'
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/verify-email'
     | '/welcome'
     | '/@{$handle}/$postId'
     | '/@{$handle}/rss.xml'
@@ -444,13 +480,16 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   DevLoginRoute: typeof DevLoginRoute
   FollowingRoute: typeof FollowingRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   RssDotxmlRoute: typeof RssDotxmlRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   WelcomeRoute: typeof WelcomeRoute
   AtChar123handleChar125PostIdRoute: typeof AtChar123handleChar125PostIdRoute
   AtChar123handleChar125RssDotxmlRoute: typeof AtChar123handleChar125RssDotxmlRoute
@@ -507,6 +546,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FollowingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -519,6 +565,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/robots.txt': {
@@ -554,6 +607,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/welcome': {
@@ -737,13 +797,16 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   DevLoginRoute: DevLoginRoute,
   FollowingRoute: FollowingRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   RssDotxmlRoute: RssDotxmlRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   WelcomeRoute: WelcomeRoute,
   AtChar123handleChar125PostIdRoute: AtChar123handleChar125PostIdRoute,
   AtChar123handleChar125RssDotxmlRoute: AtChar123handleChar125RssDotxmlRoute,
@@ -767,7 +830,6 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
 
 import type { getRouter } from './router.tsx'
 import type { createStart } from '@tanstack/react-start'

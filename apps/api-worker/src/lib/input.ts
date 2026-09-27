@@ -59,6 +59,17 @@ export class Input {
     return value
   }
 
+  /** 省略可（null 可）の整数。範囲外は違反にする。 */
+  optionalInteger(field: string, { min, max }: { min: number; max: number }): number | null {
+    const value = this.body[field]
+    if (value === undefined || value === null) return null
+    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < min || value > max) {
+      this.fail(field, `${min}〜${max} の整数で指定してください。`)
+      return null
+    }
+    return value
+  }
+
   /** 文字列の配列。 */
   stringList(
     field: string,

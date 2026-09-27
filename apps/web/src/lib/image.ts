@@ -87,6 +87,47 @@ function toBlob(
   })
 }
 
+/** アイコンの一辺（表示は最大 64px。高密度の画面でも粗く見えないよう倍以上にしておく） */
+const AVATAR_EDGE = 256
+
+/**
+ * アイコン用に、中央を正方形に切り抜いて縮める。GIF もアニメーションは捨てて静止画にする
+ * （一覧に何十個も並ぶため）。
+ */
+export async function prepareAvatar(
+  file: File,
+): Promise<{ blob: Blob; contentType: string }> {
+  const bitmap = await createImageBitmap(file)
+  try {
+    const side = Math.min(bitmap.width, bitmap.height)
+    const edge = Math.min(AVATAR_EDGE, side)
+    const canvas = document.createElement('canvas')
+    canvas.width = edge
+    canvas.height = edge
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('画像を処理できませんでした。')
+    context.drawImage(
+      bitmap,
+      (bitmap.width - side) / 2,
+      (bitmap.height - side) / 2,
+      side,
+      side,
+      0,
+      0,
+      edge,
+      edge,
+    )
+    const webp = await toBlob(canvas, 'image/webp', 0.85)
+    const blob =
+      webp.type === 'image/webp'
+        ? webp
+        : await toBlob(canvas, 'image/jpeg', 0.85)
+    return { blob, contentType: blob.type }
+  } finally {
+    bitmap.close()
+  }
+}
+
 export function imageUrl(key: string): string {
   return `/uploads/${key}`
 }

@@ -3,12 +3,14 @@ import { Hono } from 'hono'
 import type { User } from '../db/client'
 import { users } from '../db/schema'
 import type { AppEnv, Bindings } from '../env'
-import { accountStatusError, bearerToken, issueSession, revokeSession } from '../lib/auth'
+import { accountStatusError, bearerToken, issueSession, revokeAllSessions, revokeSession } from '../lib/auth'
 import { ApiError, newId, notFound, now, privateCache } from '../lib/http'
 import { Input } from '../lib/input'
+import { isMailConfigured } from '../lib/mail'
 import { burnPasswordCheck, hashPassword, verifyPassword } from '../lib/password'
 import { normalizeHandle } from '../lib/policy'
 import { consumeRateLimit } from '../lib/rateLimit'
+import { consumeEmailToken, sendPasswordResetMail, sendVerificationMail } from '../services/emailTokens'
 import type { Schemas } from '../services/mapper'
 
 /**
@@ -127,8 +129,8 @@ auth.post('/google/callback', async (c) => {
 
 // ---------- メールアドレス + パスワード ----------
 //
-// 確認メールや 2 段階認証は持たない（メール送信の仕組みがないため）。
-// そのためアドレスの所有確認はしておらず、パスワードを忘れたら管理者に頼むしかない。
+// 登録すると確認メールを送る。確認が済むまではログインできるが、投稿などはできない（lib/auth.ts の activeUser）。
+// パスワードを忘れたら、再設定のリンクをメールで受け取る。2 段階認証はない。
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PASSWORD_MIN = 8
@@ -153,6 +155,12 @@ auth.post('/email/register', async (c) => {
   }
   input.assertValid()
 
+  // 本番で送信の設定が無いと確認できないアカウントばかりになるので、登録そのものを止める
+  if (!isMailConfigured(c.env) && c.env.APP_ENV !== 'dev') {
+    throw new ApiError(503, '現在、メールアドレスでの登録を受け付けていません。Google で登録してください。')
+  }
+  await consumeRateLimit(db, 'mail', email)
+
   if (await db.select({ id: users.id }).from(users).where(eq(users.email, email)).get()) {
     throw new ApiError(422, '入力内容に誤りがあります。', {
       email: 'このメールアドレスは既に登録されています。',
@@ -169,6 +177,76 @@ auth.post('/email/register', async (c) => {
       displayName: [...email.split('@')[0]].slice(0, 50).join(''),
       createdAt: now(),
     })
+    .returning()
+    .get()
+
+  // 送れなくても登録は済ませる（確認メールは設定画面・バナーから送り直せる）
+  await sendVerificationMail(c.env, db, { ...user, email })
+
+  return c.json(await issue(db, user), 200, privateCache)
+})
+
+/** 確認メールのリンクから。ログインしていなくても（別の端末で開いても）通す。 */
+auth.post('/email/verify', async (c) => {
+  const db = c.var.db
+  const input = await Input.from(c)
+  const token = input.string('token', { required: true, max: 256 })
+  input.assertValid()
+
+  const userId = await consumeEmailToken(db, token, 'verify')
+  if (!userId) {
+    throw new ApiError(400, 'リンクの有効期限が切れているか、すでに使われています。確認メールを送り直してください。')
+  }
+  await db.update(users).set({ emailVerifiedAt: now() }).where(eq(users.id, userId))
+  return c.body(null, 204)
+})
+
+/**
+ * パスワードの再設定メールを送る。登録済みのアドレスかどうかは応答から分からないようにする
+ * （常に 204。送信の回数制限もアドレスごとに同じように数える）。
+ */
+auth.post('/password/forgot', async (c) => {
+  const db = c.var.db
+  const input = await Input.from(c)
+  const rawEmail = input.string('email', { required: true, max: 254, requiredMessage: 'メールアドレスを入力してください。' })
+  input.assertValid()
+  const email = rawEmail.trim().toLowerCase()
+
+  await consumeRateLimit(db, 'mail', email)
+  const user = await db.select().from(users).where(eq(users.email, email)).get()
+  if (user?.email && user.passwordHash && !accountStatusError(user)) {
+    c.executionCtx.waitUntil(sendPasswordResetMail(c.env, db, { ...user, email: user.email }))
+  }
+  return c.body(null, 204)
+})
+
+/** 再設定のリンクから新しいパスワードを決める。全端末をログアウトさせ、この端末でログインし直す。 */
+auth.post('/password/reset', async (c) => {
+  const db = c.var.db
+  const input = await Input.from(c)
+  const token = input.string('token', { required: true, max: 256 })
+  const password = input.string('password', { required: true, max: PASSWORD_MAX, requiredMessage: 'パスワードを入力してください。' })
+  if (password !== '' && [...password].length < PASSWORD_MIN) {
+    input.fail('password', `パスワードは ${PASSWORD_MIN} 文字以上にしてください。`)
+  }
+  input.assertValid()
+
+  const userId = await consumeEmailToken(db, token, 'reset')
+  if (!userId) {
+    throw new ApiError(400, 'リンクの有効期限が切れているか、すでに使われています。もう一度お試しください。')
+  }
+  const current = await db.select().from(users).where(eq(users.id, userId)).get()
+  if (!current) throw new ApiError(400, 'アカウントが見つかりません。')
+
+  await revokeAllSessions(db, userId)
+  const user = await db
+    .update(users)
+    .set({
+      passwordHash: await hashPassword(password),
+      // リンクを開けた = アドレスを持っている
+      emailVerifiedAt: current.emailVerifiedAt ?? now(),
+    })
+    .where(eq(users.id, userId))
     .returning()
     .get()
 

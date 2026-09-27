@@ -1,6 +1,6 @@
 import { and, asc, count, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import type { Db, User } from '../db/client'
-import { blocks, follows, users } from '../db/schema'
+import { blocks, follows, mutes, users } from '../db/schema'
 import { likePattern } from '../lib/http'
 import { inChunks } from './posts'
 
@@ -138,4 +138,47 @@ export async function findBlockersAmong(
       .where(and(eq(blocks.blockedId, blockedId), inArray(blocks.blockerId, chunk))),
   )
   return new Set(rows.map((r) => r.id))
+}
+
+/** candidates のうち、actorId をブロックかミュートしている人の ID（通知を送らない相手）。 */
+export async function findSilencersAmong(
+  db: Db,
+  candidateIds: string[],
+  actorId: string,
+): Promise<Set<string>> {
+  const [blockers, muters] = await Promise.all([
+    findBlockersAmong(db, candidateIds, actorId),
+    inChunks(candidateIds, (chunk) =>
+      db
+        .select({ id: mutes.muterId })
+        .from(mutes)
+        .where(and(eq(mutes.mutedId, actorId), inArray(mutes.muterId, chunk))),
+    ),
+  ])
+  return new Set([...blockers, ...muters.map((r) => r.id)])
+}
+
+// ---------- ミュート ----------
+
+export async function isMuting(db: Db, muterId: string, mutedId: string): Promise<boolean> {
+  const row = await db
+    .select({ id: mutes.id })
+    .from(mutes)
+    .where(and(eq(mutes.muterId, muterId), eq(mutes.mutedId, mutedId)))
+    .get()
+  return row !== undefined
+}
+
+/** userId が actorId からの通知を受け取らない（ブロックかミュートしている）か。 */
+export async function isSilencing(db: Db, userId: string, actorId: string): Promise<boolean> {
+  return (await isBlocking(db, userId, actorId)) || (await isMuting(db, userId, actorId))
+}
+
+export async function findMutedHandles(db: Db, muterId: string): Promise<string[]> {
+  const rows = await db
+    .select({ handle: users.handle })
+    .from(mutes)
+    .innerJoin(users, eq(users.id, mutes.mutedId))
+    .where(and(eq(mutes.muterId, muterId), isNotNull(users.handle)))
+  return rows.map((r) => r.handle as string)
 }

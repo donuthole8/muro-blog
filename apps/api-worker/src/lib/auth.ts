@@ -13,12 +13,12 @@ import { ApiError, forbidden, iso, now } from './http'
  */
 const SESSION_LIFETIME_SECONDS = 30 * 24 * 60 * 60
 
-async function sha256(token: string): Promise<string> {
+export async function sha256(token: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-function randomToken(): string {
+export function randomToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32))
   return btoa(String.fromCharCode(...bytes))
     .replace(/\+/g, '-')
@@ -98,10 +98,16 @@ export function currentUser(c: Context<AppEnv>): User {
   return user
 }
 
-/** ログイン済みで、handle を決め終えている（投稿・リアクションなどができる）。 */
+/**
+ * ログイン済みで、handle を決め終え、メールアドレスで登録した人は確認も済ませている
+ * （投稿・リアクション・フォローなど、他の人に届く操作ができる）。
+ */
 export function activeUser(c: Context<AppEnv>): User & { handle: string } {
   const user = currentUser(c)
   if (user.handle === null) throw forbidden('先に handle を決めてください。')
+  if (user.email !== null && user.emailVerifiedAt === null) {
+    throw forbidden('メールアドレスの確認が済んでいません。届いたメールのリンクを開いてください。')
+  }
   return user as User & { handle: string }
 }
 

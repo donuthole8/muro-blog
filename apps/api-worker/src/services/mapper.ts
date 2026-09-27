@@ -22,9 +22,21 @@ export function postState(row: PostWithAuthor): PostState {
   return isPostVisible(row) ? 'visible' : 'hidden'
 }
 
+/** 表示するアイコン。自分でアップロードしたものを Google のものより優先する（/uploads は web の Worker が配信する）。 */
+export function avatarOf(user: User): string | null {
+  return user.avatarKey ? `/uploads/${user.avatarKey}` : user.avatarUrl
+}
+
+/** 今の状態。期限切れ・停止中なら null。 */
+export function statusOf(user: User): Schemas['UserStatus'] | null {
+  if (!user.statusEmoji || user.suspendedAt) return null
+  if (user.statusExpiresAt && user.statusExpiresAt.getTime() <= Date.now()) return null
+  return { emoji: user.statusEmoji, text: user.statusText ?? '', expiresAt: iso(user.statusExpiresAt) }
+}
+
 export function toUserSummary(user: User): Schemas['UserSummary'] | null {
   if (user.handle === null || user.deletedAt) return null
-  return { handle: user.handle, displayName: user.displayName, avatarUrl: user.avatarUrl }
+  return { handle: user.handle, displayName: user.displayName, avatarUrl: avatarOf(user), status: statusOf(user) }
 }
 
 export type PostExtras = {
@@ -72,12 +84,13 @@ export function toProfile(user: User, followerCount: number): Schemas['UserProfi
   return {
     handle: user.handle ?? '',
     displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
+    avatarUrl: avatarOf(user),
     bio: suspended ? null : user.bio,
     companyName: suspended ? null : user.companyName,
     companySlug: suspended ? null : user.companySlug,
     followerCount,
     suspended,
+    status: statusOf(user),
     createdAt: iso(user.createdAt),
   }
 }
@@ -103,12 +116,18 @@ export function toMe(user: User, unreadNotificationCount: number): Schemas['Me']
     id: user.id,
     handle: user.handle,
     displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
+    avatarUrl: avatarOf(user),
+    hasCustomAvatar: user.avatarKey !== null,
     bio: user.bio,
     companyName: user.companyName,
     companySlug: user.companySlug,
     role: user.role,
     unreadNotificationCount,
+    email: user.email,
+    // メールアドレスで登録した人だけが確認の対象。Google の人は常に true
+    emailVerified: user.email === null || user.emailVerifiedAt !== null,
+    status: statusOf(user),
+    mutedWords: user.mutedWords ?? [],
   }
 }
 
@@ -117,7 +136,7 @@ export function toAdminUser(user: User): Schemas['AdminUser'] {
     id: user.id,
     handle: user.handle,
     displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
+    avatarUrl: avatarOf(user),
     role: user.role,
     suspendedAt: iso(user.suspendedAt),
     createdAt: iso(user.createdAt),

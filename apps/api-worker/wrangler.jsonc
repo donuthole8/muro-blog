@@ -10,13 +10,16 @@
   // 公開 API とログイン必須の API しかなく、Symfony 時代の Cloud Run と同じく公開して問題ない。
   "workers_dev": true,
 
-  // 公開しても問題ない値だけを書く。秘密情報（GOOGLE_CLIENT_SECRET）は `wrangler secret put` で入れる。
+  // 公開しても問題ない値だけを書く。秘密情報（GOOGLE_CLIENT_SECRET・BREVO_API_KEY・VAPID_PRIVATE_KEY など）は
+  // `wrangler secret put` で入れる（docs/DEPLOY.md）。
   // ローカルは .dev.vars（.dev.vars.example を参照）。
   "vars": {
     "APP_ENV": "prod",
     "SITE_HOST": "teatimes.muronaga.workers.dev",
     "GOOGLE_CLIENT_ID": "494080186555-s3i7hj71uq572q8j2svorgd5c6h83ec9.apps.googleusercontent.com",
     "GOOGLE_REDIRECT_URI": "https://teatimes.muronaga.workers.dev/auth/callback",
+    // 確認・再設定メールに載せるリンクの先
+    "SITE_URL": "https://teatimes.muronaga.workers.dev",
   },
 
   // 本番の DB（`wrangler d1 create blog --location apac` で作成済み）。

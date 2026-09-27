@@ -141,3 +141,33 @@ export const fetchSearch = createServerFn({ method: 'GET' })
 
     return result
   })
+
+/** 部屋の活動グラフ（日本時間の日ごとの投稿数、直近 53 週）。 */
+export const fetchActivity = createServerFn({ method: 'GET' })
+  .validator((input: { handle: string }) => input)
+  .handler(async ({ data }) => {
+    const {
+      data: activity,
+      error,
+      response,
+    } = await getApiClient().fetch.GET('/api/users/{handle}/activity', {
+      params: { path: { handle: data.handle } },
+    })
+    if (response.status === 404) throw notFound()
+    if (!activity)
+      throwRead(error, response.status, '活動の取得に失敗しました。')
+
+    return activity
+  })
+
+/** メンションの補完候補。 */
+export const fetchMentionCandidates = createServerFn({ method: 'GET' })
+  .validator((input: { q: string }) => input)
+  .handler(async ({ data }) => {
+    const { data: users } = await getApiClient().fetch.GET(
+      '/api/mention-candidates',
+      { params: { query: { q: data.q } } },
+    )
+
+    return users ?? []
+  })

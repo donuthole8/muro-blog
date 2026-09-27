@@ -5,6 +5,7 @@ import { Popover } from './Popover'
 import { Button } from '../Button'
 import { reportPost } from '../../lib/account'
 import { confirmBlock, useBlockToggle } from '../../lib/useBlockToggle'
+import { useMuteToggle } from '../../lib/useMuteToggle'
 
 type Reason = NonNullable<ReportInput['reason']>
 
@@ -16,11 +17,12 @@ const REASONS: Array<{ value: Reason; label: string }> = [
   { value: 'other', label: 'その他' },
 ]
 
-/** 他人の投稿のメニュー（通報・ブロック）。ログイン中で部屋を持っている人にだけ出す。 */
+/** 他人の投稿のメニュー（通報・ミュート・ブロック）。ログイン中で部屋を持っている人にだけ出す。 */
 export function PostMenu({ post }: { post: TimesPost }) {
   const [reporting, setReporting] = useState(false)
   const handle = post.author?.handle
   const block = useBlockToggle(handle ?? '')
+  const mute = useMuteToggle(handle ?? '')
 
   return (
     <span className="ml-auto">
@@ -55,6 +57,19 @@ export function PostMenu({ post }: { post: TimesPost }) {
               >
                 この投稿を通報する
               </button>
+              {handle && (
+                <button
+                  type="button"
+                  disabled={mute.isPending}
+                  onClick={() => {
+                    close()
+                    mute.mutate(true)
+                  }}
+                  className="block w-full px-4 py-2 text-left transition-colors hover:bg-accent-soft"
+                >
+                  @{handle} をミュート
+                </button>
+              )}
               {handle && (
                 <button
                   type="button"

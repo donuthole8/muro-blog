@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import {
+  Link,
+  createFileRoute,
+  redirect,
+  useNavigate,
+} from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button, buttonClass } from '../components/Button'
 import { emailAuth } from '../lib/account'
@@ -10,7 +15,8 @@ type Mode = 'login' | 'register'
 
 /**
  * ログイン・新規登録。メールアドレス + パスワードか、Google を選ぶ。
- * メールの確認や 2 段階認証はない（API 側の routes/auth.ts 参照）。
+ * メールアドレスで登録すると確認メールが届き、確認が済むまでは投稿などができない
+ * （API 側の routes/auth.ts 参照）。2 段階認証はない。
  */
 export const Route = createFileRoute('/login')({
   validateSearch: (
@@ -111,8 +117,17 @@ function Login() {
           <span
             className={`mt-1 block text-xs ${failure?.errors.password ? 'text-danger' : 'text-text-muted'}`}
           >
-            {failure?.errors.password ?? (isRegister ? '8 文字以上' : '')}
+            {failure?.errors.password ??
+              (isRegister ? '8 文字以上。登録後に確認メールが届きます' : '')}
           </span>
+          {!isRegister && (
+            <Link
+              to="/forgot-password"
+              className="mt-1 inline-block text-xs text-accent hover:underline"
+            >
+              パスワードを忘れた
+            </Link>
+          )}
         </label>
 
         {failure && Object.keys(failure.errors).length === 0 && (

@@ -72,6 +72,8 @@ pnpm db:migrate:remote
 ### 旧ブログの記事を移す
 
 Symfony 時代の Postgres（ローカルの Docker）から、タグと記事を SQL に書き出して流し込む。
+旧 API（`apps/api`）は削除済みなので、Postgres を立て直すときは git の履歴から `apps/api/compose.yaml` を取り出す
+（移行は済んでいるので、通常は不要）。
 
 ```sh
 DATABASE_URL="postgresql://blog:blog@127.0.0.1:5433/blog" ./scripts/export-archive.sh > archive.sql
@@ -87,14 +89,24 @@ pnpm exec wrangler d1 execute blog --remote --file archive.sql
 | `SITE_HOST` | サイトのホスト名（本文のリンクのうち、別タブで開かないもの） |
 | `GOOGLE_CLIENT_ID` | OAuth クライアント ID |
 | `GOOGLE_REDIRECT_URI` | `https://teatimes.muronaga.workers.dev/auth/callback` |
+| `SITE_URL` | `https://teatimes.muronaga.workers.dev`（確認・再設定メールのリンクに使う） |
 
 秘密情報はシークレットに入れる（`wrangler.jsonc` には書かない）。
 
 ```sh
 pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET
 pnpm exec wrangler secret put TYPESAFE_API_KEY   # 任意。投稿の不適切さの判定（Jev）に使う
+pnpm exec wrangler secret put BREVO_API_KEY      # 確認・再設定メールの送信（Brevo）
+pnpm exec wrangler secret put MAIL_FROM          # Brevo で確認済みの送信者アドレス
+pnpm exec wrangler secret put VAPID_PUBLIC_KEY   # プッシュ通知。node scripts/generate-vapid-keys.mjs で作る
+pnpm exec wrangler secret put VAPID_PRIVATE_KEY
+pnpm exec wrangler secret put VAPID_SUBJECT      # mailto:運営の連絡先
 pnpm run deploy
 ```
+
+- `BREVO_API_KEY` / `MAIL_FROM` が無いと、**メールアドレスでの新規登録を受け付けない**（確認メールを送れないため。Google での登録はできる）。
+  Brevo は無料プランのまま使える（300 通/日）。アカウントを作り、Senders で送信者アドレスを1つ確認して、SMTP & API で API キーを発行する。
+- VAPID 鍵が無いと、プッシュ通知は送らない（設定画面に「サーバーでプッシュ通知が設定されていません」と出る）。
 
 `APP_ENV` は `prod` のままにする（`dev` にすると開発用ログインとサンプルデータ投入の口が開く）。
 

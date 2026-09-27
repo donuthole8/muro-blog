@@ -20,6 +20,7 @@ import { isValidEmoji } from '../lib/policy'
 import { consumeRateLimit } from '../lib/rateLimit'
 import { isPostVisible, type Schemas } from '../services/mapper'
 import { findPostById, findReplies, toPosts } from '../services/posts'
+import { pushSender } from '../services/push'
 import { isBlocking } from '../services/users'
 import {
   MAX_BODY_LENGTH,
@@ -40,6 +41,7 @@ function writerContext(c: Context<AppEnv>): WriterContext {
     siteHost: c.env.SITE_HOST,
     typesafeApiKey: c.env.TYPESAFE_API_KEY,
     waitUntil: (p) => c.executionCtx.waitUntil(p),
+    push: pushSender(c),
   }
 }
 
@@ -180,7 +182,7 @@ postRoutes.put('/:id/reactions/:emoji', async (c) => {
       .returning({ id: reactions.id }),
     db.update(posts).set({ reactionCount: reactionCountOf(row.post.id) }).where(eq(posts.id, row.post.id)),
   ])
-  if (inserted.length > 0) await notifyReaction(db, row, user)
+  if (inserted.length > 0) await notifyReaction(db, pushSender(c), row, user, emoji)
 
   return c.body(null, 204)
 })

@@ -36,6 +36,20 @@
       "when": 1790250640644,
       "tag": "0004_post_moderation",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790497746618,
+      "tag": "0005_account_features",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1790497747379,
+      "tag": "0006_posts_fts",
+      "breakpoints": true
     }
   ]
 }

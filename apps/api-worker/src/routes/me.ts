@@ -2,16 +2,38 @@ import { and, asc, count, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import type { BatchItem } from 'drizzle-orm/batch'
 import { Hono } from 'hono'
 import type { Db, User } from '../db/client'
-import { archivedPosts, blocks, follows, notifications, posts, reactions, sessions, users } from '../db/schema'
+import {
+  archivedPosts,
+  blocks,
+  emailTokens,
+  follows,
+  mutes,
+  notifications,
+  posts,
+  pushSubscriptions,
+  reactions,
+  sessions,
+  users,
+} from '../db/schema'
 import type { AppEnv } from '../env'
 import { activeUser, currentUser } from '../lib/auth'
 import { ApiError, invalid, isUlid, now, privateCache } from '../lib/http'
 import { Input } from '../lib/input'
-import { companySlug, handleViolation, normalizeHandle } from '../lib/policy'
+import { companySlug, handleViolation, isValidEmoji, normalizeHandle } from '../lib/policy'
 import { consumeRateLimit } from '../lib/rateLimit'
+import { sendVerificationMail } from '../services/emailTokens'
 import { toMe, type Schemas } from '../services/mapper'
+import { vapidKeys } from '../services/push'
 import { inChunks } from '../services/posts'
-import { findBlockedHandles, findFollow, findRoomOwner, findUserByHandle, isBlocking } from '../services/users'
+import {
+  findBlockedHandles,
+  findFollow,
+  findMutedHandles,
+  findRoomOwner,
+  findUserByHandle,
+  isBlocking,
+  isMuting,
+} from '../services/users'
 import { deletePostStatements } from '../services/writer'
 
 export const me = new Hono<AppEnv>()
@@ -105,6 +127,7 @@ me.delete('/', async (c) => {
     .from(archivedPosts)
     .where(eq(archivedPosts.authorId, user.id))
   const imageKeys = [
+    ...(user.avatarKey ? [user.avatarKey] : []),
     ...own.flatMap((p) => (p.imageKey ? [p.imageKey] : [])),
     ...ownArticles.flatMap((a) => (a.ogImageKey ? [a.ogImageKey] : [])),
   ]
@@ -123,6 +146,9 @@ me.delete('/', async (c) => {
     db.delete(notifications).where(or(eq(notifications.userId, user.id), eq(notifications.actorId, user.id))),
     db.delete(follows).where(or(eq(follows.followerId, user.id), eq(follows.followeeId, user.id))),
     db.delete(blocks).where(or(eq(blocks.blockerId, user.id), eq(blocks.blockedId, user.id))),
+    db.delete(mutes).where(or(eq(mutes.muterId, user.id), eq(mutes.mutedId, user.id))),
+    db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, user.id)),
+    db.delete(emailTokens).where(eq(emailTokens.userId, user.id)),
     db.delete(sessions).where(eq(sessions.userId, user.id)),
     db
       .update(users)
@@ -130,9 +156,15 @@ me.delete('/', async (c) => {
         googleSub: null,
         email: null,
         passwordHash: null,
+        emailVerifiedAt: null,
         handle: null,
         displayName: '退会したユーザー',
         avatarUrl: null,
+        avatarKey: null,
+        statusEmoji: null,
+        statusText: null,
+        statusExpiresAt: null,
+        mutedWords: null,
         bio: null,
         companyName: null,
         companySlug: null,
@@ -187,11 +219,13 @@ me.get('/viewer-state', async (c) => {
 
   let isFollowing: boolean | null = null
   let blocking: boolean | null = null
+  let muting: boolean | null = null
   const handle = c.req.query('handle')
   if (handle) {
     const owner = await findRoomOwner(db, handle)
     isFollowing = owner !== undefined && (await findFollow(db, user.id, owner.id)) !== undefined
     blocking = owner !== undefined && (await isBlocking(db, user.id, owner.id))
+    muting = owner !== undefined && (await isMuting(db, user.id, owner.id))
   }
 
   return c.json(
@@ -200,8 +234,176 @@ me.get('/viewer-state', async (c) => {
       isFollowing,
       blockedHandles: await findBlockedHandles(db, user.id),
       isBlocking: blocking,
+      mutedHandles: await findMutedHandles(db, user.id),
+      isMuting: muting,
     } satisfies Schemas['ViewerState'],
     200,
     privateCache,
   )
+})
+
+// ---------- メールアドレスの確認 ----------
+
+/** 確認メールを送り直す。 */
+me.post('/email/verification', async (c) => {
+  const db = c.var.db
+  const user = currentUser(c)
+  if (user.email === null || user.emailVerifiedAt !== null) {
+    throw new ApiError(422, 'このアカウントは確認の必要がありません。')
+  }
+  await consumeRateLimit(db, 'mail', user.email)
+  if (!(await sendVerificationMail(c.env, db, { ...user, email: user.email }))) {
+    throw new ApiError(503, 'メールを送信できませんでした。時間をおいてお試しください。')
+  }
+  return c.body(null, 204)
+})
+
+// ---------- アイコン ----------
+
+/** web のアイコンのアップロード（lib/account.ts の uploadAvatar）が作るキーの形。先頭は本人の ID。 */
+const AVATAR_KEY_PATTERN = /^a_([0-9A-HJKMNP-TV-Z]{26})_[0-9a-f-]{36}\.(?:webp|jpg|png)$/
+
+/**
+ * アイコンを差し替える。画像は web の Worker が先に KV へ置いておく。
+ * 返り値の removedKey（前のアイコン）は web の Worker が KV から消す。
+ */
+me.put('/avatar', async (c) => {
+  const db = c.var.db
+  const user = activeUser(c)
+  const input = await Input.from(c)
+  const key = input.string('avatarKey', { required: true, max: 128 })
+  input.assertValid()
+
+  // 他人のアップロードを自分のアイコンにできないよう、キーに埋めた ID を照合する
+  const m = AVATAR_KEY_PATTERN.exec(key)
+  if (!m || m[1] !== user.id) throw invalid('avatarKey', '画像の指定が不正です。アップロードし直してください。')
+
+  const updated = await db.update(users).set({ avatarKey: key }).where(eq(users.id, user.id)).returning().get()
+  return c.json(
+    { me: await meResponse(db, updated), removedKey: user.avatarKey } satisfies Schemas['AvatarChanged'],
+    200,
+    privateCache,
+  )
+})
+
+/** 自分でアップロードしたアイコンをやめる（Google のアイコンか頭文字に戻る）。 */
+me.delete('/avatar', async (c) => {
+  const db = c.var.db
+  const user = currentUser(c)
+  const updated = await db.update(users).set({ avatarKey: null }).where(eq(users.id, user.id)).returning().get()
+  return c.json(
+    { me: await meResponse(db, updated), removedKey: user.avatarKey } satisfies Schemas['AvatarChanged'],
+    200,
+    privateCache,
+  )
+})
+
+// ---------- 今の状態 ----------
+
+const STATUS_TEXT_MAX = 40
+/** 期限の上限は1週間。無期限は null */
+const STATUS_EXPIRES_MAX_MINUTES = 7 * 24 * 60
+
+me.put('/status', async (c) => {
+  const db = c.var.db
+  const user = activeUser(c)
+  const input = await Input.from(c)
+  const emoji = input.string('emoji', { required: true, max: 16, requiredMessage: '絵文字を選んでください。' })
+  const text = input.optionalString('text', { max: STATUS_TEXT_MAX, maxMessage: `${STATUS_TEXT_MAX} 文字までです。` })
+  const minutes = input.optionalInteger('expiresInMinutes', { min: 1, max: STATUS_EXPIRES_MAX_MINUTES })
+  if (emoji !== '' && !isValidEmoji(emoji)) input.fail('emoji', '絵文字を1つだけ指定してください。')
+  input.assertValid()
+
+  await consumeRateLimit(db, 'profile', user)
+  const updated = await db
+    .update(users)
+    .set({
+      statusEmoji: emoji,
+      statusText: text?.trim() || null,
+      statusExpiresAt: minutes === null ? null : new Date(now().getTime() + minutes * 60 * 1000),
+    })
+    .where(eq(users.id, user.id))
+    .returning()
+    .get()
+  return c.json(await meResponse(db, updated), 200, privateCache)
+})
+
+me.delete('/status', async (c) => {
+  const db = c.var.db
+  const user = currentUser(c)
+  const updated = await db
+    .update(users)
+    .set({ statusEmoji: null, statusText: null, statusExpiresAt: null })
+    .where(eq(users.id, user.id))
+    .returning()
+    .get()
+  return c.json(await meResponse(db, updated), 200, privateCache)
+})
+
+// ---------- ミュートする語 ----------
+
+const MUTED_WORDS_MAX = 50
+const MUTED_WORD_LENGTH = 30
+
+me.put('/muted-words', async (c) => {
+  const db = c.var.db
+  const user = currentUser(c)
+  const input = await Input.from(c)
+  const raw = input.stringList('words', {
+    maxCount: MUTED_WORDS_MAX,
+    maxCountMessage: `ミュートする語は ${MUTED_WORDS_MAX} 個までです。`,
+  })
+  input.assertValid()
+
+  const words = [...new Set(raw.map((w) => w.trim().toLowerCase()).filter((w) => w !== ''))]
+  if (words.some((w) => [...w].length > MUTED_WORD_LENGTH)) {
+    throw invalid('words', `1つの語は ${MUTED_WORD_LENGTH} 文字までです。`)
+  }
+  const updated = await db.update(users).set({ mutedWords: words }).where(eq(users.id, user.id)).returning().get()
+  return c.json(await meResponse(db, updated), 200, privateCache)
+})
+
+// ---------- Web Push ----------
+
+/** ブラウザが購読するときに使う公開鍵。サーバーに鍵が無ければ null（プッシュ通知は使えない）。 */
+me.get('/push-config', (c) => {
+  currentUser(c)
+  return c.json(
+    { publicKey: vapidKeys(c.env)?.publicKey ?? null } satisfies Schemas['PushConfig'],
+    200,
+    privateCache,
+  )
+})
+
+const BASE64URL = /^[A-Za-z0-9_-]+$/
+
+me.post('/push-subscriptions', async (c) => {
+  const db = c.var.db
+  const user = currentUser(c)
+  const input = await Input.from(c)
+  const endpoint = input.string('endpoint', { required: true, max: 1024 })
+  const p256dh = input.string('p256dh', { required: true, max: 128 })
+  const auth = input.string('auth', { required: true, max: 64 })
+  if (endpoint !== '' && !/^https:\/\//.test(endpoint)) input.fail('endpoint', '購読の URL が不正です。')
+  if (!BASE64URL.test(p256dh) || !BASE64URL.test(auth)) input.fail('p256dh', '購読の鍵が不正です。')
+  input.assertValid()
+
+  await consumeRateLimit(db, 'push_subscribe', user)
+  // 同じブラウザで別の人がログインし直したときは、購読をその人に付け替える
+  await db
+    .insert(pushSubscriptions)
+    .values({ userId: user.id, endpoint, p256dh, auth, createdAt: now() })
+    .onConflictDoUpdate({ target: pushSubscriptions.endpoint, set: { userId: user.id, p256dh, auth } })
+  return c.body(null, 204)
+})
+
+me.delete('/push-subscriptions', async (c) => {
+  const user = currentUser(c)
+  const input = await Input.from(c)
+  const endpoint = input.string('endpoint', { required: true, max: 1024 })
+  input.assertValid()
+  await c.var.db
+    .delete(pushSubscriptions)
+    .where(and(eq(pushSubscriptions.userId, user.id), eq(pushSubscriptions.endpoint, endpoint)))
+  return c.body(null, 204)
 })

@@ -1,18 +1,32 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { buttonClass } from '../components/Button'
 import { EmptyState } from '../components/EmptyState'
 import { SectionHeading } from '../components/PageHeader'
 import { PostList } from '../components/times/PostList'
 import { RoomCard } from '../components/times/RoomCard'
-import { lobbyQuery, popularRoomsQuery, useMe } from '../lib/queries'
+import {
+  feedQuery,
+  lobbyQuery,
+  meQuery,
+  popularRoomsQuery,
+  useMe,
+} from '../lib/queries'
 import { loginUrl, site } from '../lib/site'
 import { absoluteUrl, canonical, jsonLd } from '../lib/seo'
 
+type View = 'all' | 'following'
+
 export const Route = createFileRoute('/')({
-  loader: async ({ context }) => {
+  validateSearch: (search: Record<string, unknown>): { view?: View } =>
+    search.view === 'following' ? { view: 'following' } : {},
+  loaderDeps: ({ search }) => ({ view: search.view }),
+  loader: async ({ context, deps }) => {
+    const me = context.queryClient.getQueryData(meQuery.queryKey)
     await Promise.all([
-      context.queryClient.ensureInfiniteQueryData(lobbyQuery),
+      deps.view === 'following' && me?.handle
+        ? context.queryClient.ensureInfiniteQueryData(feedQuery)
+        : context.queryClient.ensureInfiniteQueryData(lobbyQuery),
       context.queryClient.ensureQueryData(popularRoomsQuery),
     ])
   },
@@ -39,9 +53,18 @@ export const Route = createFileRoute('/')({
 
 function Lobby() {
   const me = useMe()
-  const lobby = useInfiniteQuery(lobbyQuery)
+  const { view: requested } = Route.useSearch()
+  // フォロー中は人ごとの一覧なので、部屋を持っている人だけが選べる
+  const view: View =
+    requested === 'following' && me?.handle ? 'following' : 'all'
+  const lobby = useInfiniteQuery({
+    ...lobbyQuery,
+    enabled: view === 'all',
+  })
+  const feed = useInfiniteQuery({ ...feedQuery, enabled: view === 'following' })
+  const current = view === 'all' ? lobby : feed
   const popular = useQuery(popularRoomsQuery)
-  const posts = lobby.data?.pages.flatMap((page) => page.items) ?? []
+  const posts = current.data?.pages.flatMap((page) => page.items) ?? []
 
   return (
     <div className="space-y-8">
@@ -70,36 +93,82 @@ function Lobby() {
       )}
 
       <section>
-        <SectionHeading>新着</SectionHeading>
+        <div className="flex items-center gap-4">
+          <SectionHeading>新着</SectionHeading>
+          {me?.handle && (
+            <nav
+              aria-label="表示する投稿"
+              className="ml-auto flex gap-1 rounded-full border border-border p-0.5 text-xs"
+            >
+              <ViewTab view="all" current={view}>
+                すべて
+              </ViewTab>
+              <ViewTab view="following" current={view}>
+                フォロー中
+              </ViewTab>
+            </nav>
+          )}
+        </div>
         {/* 見出しと最初の日付区切りがくっつかないよう、人気の部屋と同じだけ空ける */}
         <div className="mt-3">
           <PostList
+            key={view}
             posts={posts}
-            hasNextPage={lobby.hasNextPage}
-            isFetchingNextPage={lobby.isFetchingNextPage}
-            onLoadMore={() => void lobby.fetchNextPage()}
-            isLoading={lobby.isPending}
+            hasNextPage={current.hasNextPage}
+            isFetchingNextPage={current.isFetchingNextPage}
+            onLoadMore={() => void current.fetchNextPage()}
+            isLoading={current.isPending}
             scrollToLatest={me != null}
             empty={
-              <EmptyState
-                icon="🌱"
-                title="まだ投稿がありません"
-                description="いちばん最初のひとことを書くと、ここに流れます。"
-                action={
-                  me?.handle ? undefined : (
-                    <a
-                      href={loginUrl()}
-                      className={buttonClass({ size: 'sm' })}
-                    >
-                      Google で始める
-                    </a>
-                  )
-                }
-              />
+              view === 'following' ? (
+                <EmptyState
+                  icon="👀"
+                  title="フォロー中の部屋にまだ投稿がありません"
+                  description="気になる部屋をフォローすると、その人の投稿だけがここに並びます。"
+                />
+              ) : (
+                <EmptyState
+                  icon="🌱"
+                  title="まだ投稿がありません"
+                  description="いちばん最初のひとことを書くと、ここに流れます。"
+                  action={
+                    me?.handle ? undefined : (
+                      <a
+                        href={loginUrl()}
+                        className={buttonClass({ size: 'sm' })}
+                      >
+                        Google で始める
+                      </a>
+                    )
+                  }
+                />
+              )
             }
           />
         </div>
       </section>
     </div>
+  )
+}
+
+function ViewTab({
+  view,
+  current,
+  children,
+}: {
+  view: View
+  current: View
+  children: React.ReactNode
+}) {
+  const active = view === current
+  return (
+    <Link
+      to="/"
+      search={view === 'all' ? {} : { view }}
+      aria-current={active ? 'page' : undefined}
+      className={`inline-flex min-h-8 items-center rounded-full px-3 transition-colors ${active ? 'bg-accent text-bg' : 'text-text-muted hover:text-accent'}`}
+    >
+      {children}
+    </Link>
   )
 }
