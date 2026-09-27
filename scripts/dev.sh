@@ -13,7 +13,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 API_PORT=8000
 WEB_PORT=3100
 
-# nodebrew の古い pnpm を避けて nvm 側の corepack を使う（README 参照）
+# nodebrew の古い pnpm を避けて nvm 側の corepack を使う
 COREPACK="${COREPACK_BIN:-$HOME/.nvm/versions/node/v22.23.2/bin/corepack}"
 if [ ! -x "$COREPACK" ]; then
   COREPACK="$(command -v corepack)"
