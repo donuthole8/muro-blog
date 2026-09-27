@@ -1,21 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { fetchArchivedPosts } from '../lib/archive'
 import { articlePath, site } from '../lib/site'
+import { escapeXml } from '../lib/xml'
 
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;')
-}
-
+/**
+ * ブログ記事の RSS（/rss.xml）。旧ブログの記事とユーザーの記事を合わせて新しい順に並べる。
+ *
+ * ビルド時に作るとデプロイ後に公開された記事が載らないので SSR にする。
+ * API の応答はエッジでキャッシュされ（lib/edgeCache.ts）、この XML もリーダー側で1時間持たせる。
+ */
 export const Route = createFileRoute('/rss.xml')({
   server: {
     handlers: {
       GET: async () => {
-        // RSS は最新50件まで
+        // 最新の1ページ分
         const posts = await fetchArchivedPosts({ data: { page: 1 } })
 
         const items = posts.items
@@ -36,7 +34,7 @@ ${post.tags.map((tag) => `      <category>${escapeXml(tag.name)}</category>`).jo
         const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${escapeXml(`${site.title}（ブログ）`)}</title>
+    <title>${escapeXml(`${site.title} のブログ`)}</title>
     <link>${escapeXml(site.url)}</link>
     <description>${escapeXml(site.description)}</description>
     <language>ja</language>

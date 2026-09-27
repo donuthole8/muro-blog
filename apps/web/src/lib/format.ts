@@ -114,3 +114,19 @@ export function htmlExcerpt(html: string, length = 120): string {
 
   return text.length > length ? `${text.slice(0, length)}…` : text
 }
+
+/**
+ * 投稿本文の見出しを1段下げる（# → h2、## → h3 …）。
+ * 投稿はページの中の1項目なので、本文の `#` がそのまま h1 になるとページの主題がぼやける。
+ * 元の記法は data-md に残し、見た目（記号と大きさ）はそこから描く（styles.css の .prose-times）。
+ */
+export function demoteHeadings(html: string): string {
+  return html.replace(
+    /<(\/?)h([1-6])(?=[\s>])/g,
+    (_match, slash: string, level: string) => {
+      const n = Number(level)
+      const tag = `h${Math.min(n + 1, 6)}`
+      return slash ? `</${tag}` : `<${tag} data-md="${'#'.repeat(n)}"`
+    },
+  )
+}

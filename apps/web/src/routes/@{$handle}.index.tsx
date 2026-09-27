@@ -13,6 +13,7 @@ import { BottomComposer } from '../components/times/ComposeModal'
 import { FollowButton } from '../components/times/FollowButton'
 import { PostList } from '../components/times/PostList'
 import { markRoomRead } from '../lib/account'
+import { absoluteUrl, jsonLd } from '../lib/seo'
 import { confirmBlock, useBlockToggle } from '../lib/useBlockToggle'
 import {
   profileQuery,
@@ -46,7 +47,8 @@ export const Route = createFileRoute('/@{$handle}/')({
   head: ({ loaderData: profile }) => {
     if (!profile) return { meta: [] }
 
-    const title = `#${roomName(profile.handle)}（${profile.displayName}） | ${site.title}`
+    const shareTitle = `#${roomName(profile.handle)}（${profile.displayName}）`
+    const title = `${shareTitle} | ${site.title}`
     const description =
       profile.bio ?? `${profile.displayName} さんの times（分報）です。`
     const url = `${site.url}/@${profile.handle}`
@@ -55,8 +57,9 @@ export const Route = createFileRoute('/@{$handle}/')({
       meta: [
         { title },
         { name: 'description', content: description },
-        { property: 'og:title', content: title },
+        { property: 'og:title', content: shareTitle },
         { property: 'og:type', content: 'profile' },
+        { property: 'profile:username', content: profile.handle },
         { property: 'og:description', content: description },
         { property: 'og:url', content: url },
         // 部屋ごとの共有カードは描かない（Worker の無料枠では日本語フォント込みの画像生成が収まらない）
@@ -67,7 +70,30 @@ export const Route = createFileRoute('/@{$handle}/')({
           name: 'twitter:card',
           content: profile.suspended ? 'summary' : 'summary_large_image',
         },
-        ...(profile.suspended ? [{ name: 'robots', content: 'noindex' }] : []),
+        ...(profile.suspended
+          ? [{ name: 'robots', content: 'noindex' }]
+          : [
+              jsonLd({
+                '@type': 'ProfilePage',
+                url,
+                dateCreated: profile.createdAt,
+                mainEntity: {
+                  '@type': 'Person',
+                  name: profile.displayName,
+                  alternateName: `@${profile.handle}`,
+                  identifier: profile.handle,
+                  url,
+                  ...(profile.bio ? { description: profile.bio } : {}),
+                  ...(profile.avatarUrl
+                    ? {
+                        image: profile.avatarUrl.startsWith('/')
+                          ? absoluteUrl(profile.avatarUrl)
+                          : profile.avatarUrl,
+                      }
+                    : {}),
+                },
+              }),
+            ]),
       ],
       links: [
         { rel: 'canonical', href: url },

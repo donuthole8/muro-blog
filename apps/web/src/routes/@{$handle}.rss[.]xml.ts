@@ -3,6 +3,7 @@ import { getApiClient } from '../lib/api'
 import { htmlExcerpt } from '../lib/format'
 import { imageUrl } from '../lib/image'
 import { site } from '../lib/site'
+import { escapeXml } from '../lib/xml'
 
 /**
  * 部屋ごとの RSS（/@:handle/rss.xml）。最新の親投稿（1ページ分）を並べる。
@@ -89,13 +90,4 @@ function absolutizeLinks(html: string) {
     /\b(href|src)="\/(?!\/)/g,
     (_match, attr: string) => `${attr}="${site.url}/`,
   )
-}
-
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;')
 }

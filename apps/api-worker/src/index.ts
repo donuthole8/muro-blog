@@ -12,6 +12,7 @@ import { dev } from './routes/dev'
 import { discover } from './routes/discover'
 import { me } from './routes/me'
 import { postRoutes } from './routes/posts'
+import { sitemap } from './routes/sitemap'
 import { social } from './routes/social'
 
 /**
@@ -32,6 +33,7 @@ app.use(authenticate)
 app.route('/', discover)
 app.route('/', social)
 app.route('/', articles)
+app.route('/', sitemap)
 app.route('/posts', postRoutes)
 app.route('/me', me)
 app.route('/auth', auth)

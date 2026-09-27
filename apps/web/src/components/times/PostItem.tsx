@@ -11,7 +11,12 @@ import { MarkdownTextarea } from '../MarkdownTextarea'
 import { TagChip } from '../TagChip'
 import { ArticleCard } from '../articles/ArticleCard'
 import { fetchPostSource } from '../../lib/account'
-import { formatFullTime, formatTimeOfDay } from '../../lib/format'
+import {
+  demoteHeadings,
+  formatFullTime,
+  formatTimeOfDay,
+  htmlExcerpt,
+} from '../../lib/format'
 import { imageUrl } from '../../lib/image'
 import { isPendingId, useMe } from '../../lib/queries'
 import { usePostActions } from '../../lib/usePostActions'
@@ -181,14 +186,16 @@ export function PostItem({
               // bodyHtml は API 側で生 HTML をエスケープして変換済み（api-worker の lib/markdown.ts）
               <div
                 className="prose prose-blog prose-times mt-1 max-w-none text-[0.95rem]"
-                dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
+                dangerouslySetInnerHTML={{
+                  __html: demoteHeadings(post.bodyHtml),
+                }}
               />
             )}
             {post.imageKey && (
               <a href={imageUrl(post.imageKey)} target="_blank" rel="noopener">
                 <img
                   src={imageUrl(post.imageKey)}
-                  alt=""
+                  alt={imageAlt(post)}
                   loading="lazy"
                   className="mt-2 max-h-96 rounded-lg border border-border"
                 />
@@ -396,14 +403,16 @@ function PostDetail({
             // bodyHtml は API 側で生 HTML をエスケープして変換済み（api-worker の lib/markdown.ts）
             <div
               className="prose prose-blog prose-times mt-4 max-w-none text-base"
-              dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
+              dangerouslySetInnerHTML={{
+                __html: demoteHeadings(post.bodyHtml),
+              }}
             />
           )}
           {post.imageKey && (
             <a href={imageUrl(post.imageKey)} target="_blank" rel="noopener">
               <img
                 src={imageUrl(post.imageKey)}
-                alt=""
+                alt={imageAlt(post)}
                 className="mt-4 max-h-[36rem] w-full rounded-lg border border-border object-contain"
               />
             </a>
@@ -548,4 +557,16 @@ function EditFields({
       </div>
     </form>
   )
+}
+
+/**
+ * 投稿画像の代替テキスト。画像の説明は入力してもらっていないので、添えられた本文の冒頭で代える
+ * （本文がなければ誰の画像かだけ）。画像検索と読み上げの両方で、空よりは手がかりになる。
+ */
+function imageAlt(post: TimesPost): string {
+  const text = htmlExcerpt(post.bodyHtml, 100)
+  if (text) return text
+  return post.author
+    ? `${post.author.displayName} さんの投稿の画像`
+    : '投稿の画像'
 }

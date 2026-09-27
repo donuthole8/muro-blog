@@ -6,6 +6,7 @@ import { Pagination } from '../components/Pagination'
 import { fetchUserArticles } from '../lib/articles'
 import { useMe } from '../lib/queries'
 import { roomName, site } from '../lib/site'
+import { breadcrumbJsonLd, canonical, pageSuffix } from '../lib/seo'
 
 type ArticlesSearch = { page?: number }
 
@@ -17,18 +18,28 @@ export const Route = createFileRoute('/@{$handle}/articles/')({
   loaderDeps: ({ search }) => ({ page: search.page ?? 1 }),
   loader: ({ params, deps }) =>
     fetchUserArticles({ data: { handle: params.handle, page: deps.page } }),
-  head: ({ params }) => ({
-    meta: [
-      { title: `@${params.handle} の記事 | ${site.title}` },
-      {
-        name: 'description',
-        content: `${roomName(params.handle)} の書き手のブログ記事です。`,
-      },
-    ],
-    links: [
-      { rel: 'canonical', href: `${site.url}/@${params.handle}/articles` },
-    ],
-  }),
+  head: ({ params, match }) => {
+    const page = match.search.page ?? 1
+    const path = `/@${params.handle}/articles`
+    const title = `@${params.handle} の記事${pageSuffix(page)} | ${site.title}`
+    const description = `${roomName(params.handle)} の書き手のブログ記事です。`
+
+    return {
+      meta: [
+        { title },
+        { name: 'description', content: description },
+        { property: 'og:title', content: title },
+        { property: 'og:description', content: description },
+        { property: 'og:url', content: canonical(path, page).href },
+        breadcrumbJsonLd([
+          { name: site.title, path: '/' },
+          { name: `#${roomName(params.handle)}`, path: `/@${params.handle}` },
+          { name: '記事', path },
+        ]),
+      ],
+      links: [canonical(path, page)],
+    }
+  },
   component: UserArticles,
 })
 

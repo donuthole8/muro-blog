@@ -7,6 +7,7 @@ import { PostList } from '../components/times/PostList'
 import { RoomCard } from '../components/times/RoomCard'
 import { lobbyQuery, popularRoomsQuery, useMe } from '../lib/queries'
 import { loginUrl, site } from '../lib/site'
+import { absoluteUrl, canonical, jsonLd } from '../lib/seo'
 
 export const Route = createFileRoute('/')({
   loader: async ({ context }) => {
@@ -15,6 +16,24 @@ export const Route = createFileRoute('/')({
       context.queryClient.ensureQueryData(popularRoomsQuery),
     ])
   },
+  head: () => ({
+    meta: [
+      { property: 'og:url', content: canonical('/').href },
+      jsonLd({
+        '@type': 'WebSite',
+        name: site.title,
+        url: absoluteUrl('/'),
+        description: site.description,
+        inLanguage: 'ja',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: `${absoluteUrl('/search')}?q={search_term_string}`,
+          'query-input': 'required name=search_term_string',
+        },
+      }),
+    ],
+    links: [canonical('/')],
+  }),
   component: Lobby,
 })
 

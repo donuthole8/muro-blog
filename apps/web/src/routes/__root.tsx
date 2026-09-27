@@ -42,6 +42,22 @@ const themeScript = `
 })();
 `
 
+const FONTS_CSS =
+  'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Color+Emoji&display=swap'
+
+/**
+ * Web フォントの CSS を、描画を止めずに読み込む。
+ * <link rel="stylesheet"> を head に直接置くと、別オリジンの CSS が届くまで最初の描画が待たされる。
+ */
+const fontsScript = `
+(function () {
+  var link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = ${JSON.stringify(FONTS_CSS)};
+  document.head.appendChild(link);
+})();
+`
+
 /** handle 未決定でも開けるページ（それ以外は handle 決定画面へ送る） */
 const OPEN_WITHOUT_HANDLE = ['/welcome', '/dev-login', '/about']
 
@@ -68,7 +84,12 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { title: site.title },
       { name: 'description', content: site.description },
+      // 以下は既定値。各ページの head が同じ name / property で上書きする
       { property: 'og:site_name', content: site.title },
+      { property: 'og:locale', content: 'ja_JP' },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:title', content: site.title },
+      { property: 'og:description', content: site.description },
       { property: 'og:image', content: `${site.url}${site.ogImage}` },
       { name: 'twitter:card', content: 'summary_large_image' },
     ],
@@ -83,21 +104,20 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         href: 'https://fonts.gstatic.com',
         crossOrigin: 'anonymous',
       },
-      {
-        rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Color+Emoji&display=swap',
-      },
+      // 描画を止めないよう、先読みだけしておき、読み込みは fontsScript に任せる。
+      // 届くまでは端末のフォントで出る（display=swap なので、届いたら差し替わる）
+      { rel: 'preload', as: 'style', href: FONTS_CSS },
       {
         rel: 'alternate',
         type: 'application/rss+xml',
         href: '/rss.xml',
-        title: `${site.title}（旧ブログ）`,
+        title: `${site.title} のブログ`,
       },
       { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
       { rel: 'icon', type: 'image/png', href: '/favicon-32x32.png' },
       { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
     ],
-    scripts: [{ children: themeScript }],
+    scripts: [{ children: themeScript }, { children: fontsScript }],
   }),
   shellComponent: RootDocument,
   notFoundComponent: NotFound,

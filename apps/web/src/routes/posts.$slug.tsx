@@ -1,45 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { fetchArchivedPost } from '../lib/archive'
 import { ArticleView } from '../components/articles/ArticleView'
-import { site } from '../lib/site'
+import { articleHead } from '../lib/seo'
 
 export const Route = createFileRoute('/posts/$slug')({
   loader: ({ params }) => fetchArchivedPost({ data: { slug: params.slug } }),
-  head: ({ loaderData, params }) => {
-    if (!loaderData) return { meta: [] }
-
-    const description = loaderData.excerpt ?? site.description
-    const url = `${site.url}/posts/${params.slug}`
-    // 公開時のビルドで生成される記事ごとの画像。生成前（開発中など）は
-    // 存在しなくても404になるだけなので、常にこのパスを指してよい
-    const ogImage = `${site.url}/og/${params.slug}.png`
-
-    return {
-      meta: [
-        { title: `${loaderData.title} | ${site.title}` },
-        { name: 'description', content: description },
-        { property: 'og:title', content: loaderData.title },
-        { property: 'og:type', content: 'article' },
-        { property: 'og:description', content: description },
-        { property: 'og:url', content: url },
-        { property: 'og:image', content: ogImage },
-        { property: 'og:image:width', content: '1200' },
-        { property: 'og:image:height', content: '630' },
-        { name: 'twitter:image', content: ogImage },
-        ...(loaderData.publishedAt
-          ? [
-              {
-                property: 'article:published_time',
-                content: loaderData.publishedAt,
-              },
-            ]
-          : []),
-        { name: 'twitter:title', content: loaderData.title },
-        { name: 'twitter:description', content: description },
-      ],
-      links: [{ rel: 'canonical', href: url }],
-    }
-  },
+  head: ({ loaderData }) =>
+    loaderData ? articleHead(loaderData) : { meta: [] },
   component: PostDetailPage,
 })
 

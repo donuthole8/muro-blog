@@ -2650,6 +2650,26 @@
                     }
                 ]
             }
+        },
+        "/api/sitemap": {
+            "get": {
+                "tags": [
+                    "discover"
+                ],
+                "operationId": "get_api_sitemap",
+                "responses": {
+                    "200": {
+                        "description": "\u30b5\u30a4\u30c8\u30de\u30c3\u30d7\u306b\u8f09\u305b\u308b\u516c\u958b\u30da\u30fc\u30b8\u3068\u6700\u7d42\u66f4\u65b0\u65e5\u6642",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Sitemap"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -4253,6 +4273,65 @@
                     "stopped": {
                         "description": "Jev \u306e\u547c\u3073\u51fa\u3057\u306b\u5931\u6557\u3057\u3066\u9014\u4e2d\u3067\u6b62\u3081\u305f\uff08\u30af\u30ec\u30b8\u30c3\u30c8\u5207\u308c\u306a\u3069\uff09",
                         "type": "boolean"
+                    }
+                },
+                "type": "object"
+            },
+            "SitemapEntry": {
+                "required": [
+                    "path",
+                    "lastModified"
+                ],
+                "properties": {
+                    "path": {
+                        "description": "\u30b5\u30a4\u30c8\u5185\u306e\u30d1\u30b9\uff08\u5148\u982d\u306f /\uff09",
+                        "type": "string",
+                        "example": "/@alice/articles/hello"
+                    },
+                    "lastModified": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-09-24T10:00:00+00:00",
+                        "description": "\u6700\u5f8c\u306b\u4e2d\u8eab\u304c\u5909\u308f\u3063\u305f\u65e5\u6642"
+                    }
+                },
+                "type": "object"
+            },
+            "Sitemap": {
+                "required": [
+                    "articles",
+                    "rooms",
+                    "articleLists",
+                    "tags"
+                ],
+                "properties": {
+                    "articles": {
+                        "description": "\u516c\u958b\u4e2d\u306e\u8a18\u4e8b\uff08\u65e7\u30d6\u30ed\u30b0\u306e\u8a18\u4e8b\u3068\u30e6\u30fc\u30b6\u30fc\u306e\u8a18\u4e8b\uff09",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SitemapEntry"
+                        }
+                    },
+                    "rooms": {
+                        "description": "\u516c\u958b\u306e\u6295\u7a3f\u304c\u3042\u308b\u90e8\u5c4b\uff08/@handle\uff09",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SitemapEntry"
+                        }
+                    },
+                    "articleLists": {
+                        "description": "\u516c\u958b\u4e2d\u306e\u8a18\u4e8b\u304c\u3042\u308b\u4eba\u306e\u8a18\u4e8b\u4e00\u89a7\uff08/@handle/articles\uff09",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SitemapEntry"
+                        }
+                    },
+                    "tags": {
+                        "description": "\u516c\u958b\u306e\u6295\u7a3f\u304c\u3042\u308b\u30bf\u30b0\uff08/tags/:slug\uff09",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SitemapEntry"
+                        }
                     }
                 },
                 "type": "object"

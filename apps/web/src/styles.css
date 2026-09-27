@@ -396,9 +396,10 @@ body {
  * 投稿が縦に間延びする。ここで分報向けに詰め直す。
  * prose-blog より後に置いて、同じ詳細度で勝たせている。
  */
-.prose-times :is(h1, h2, h3, h4) {
+.prose-times [data-md] {
   margin-top: 0.8em;
   margin-bottom: 0.4em;
+  font-weight: 700;
   line-height: 1.5;
 }
 
@@ -408,16 +409,33 @@ body {
   border-bottom: none;
 }
 
-.prose-times h1 {
+/*
+ * 投稿の見出しはタグを1段下げてある（lib/format.ts の demoteHeadings）。
+ * 大きさと記号は、タグではなく元の記法（data-md）から決める。
+ */
+.prose-times [data-md='#'] {
   font-size: 1.25em;
 }
 
-.prose-times h2 {
+.prose-times [data-md='##'] {
   font-size: 1.15em;
 }
 
-.prose-times :is(h3, h4) {
+.prose-times :is([data-md='###'], [data-md='####'], [data-md='#####']) {
   font-size: 1.05em;
+}
+
+.prose-times [data-md]::before {
+  margin-right: 0.4em;
+  color: var(--text-muted);
+  font-weight: 700;
+  content: attr(data-md);
+}
+
+@supports (content: '' / '') {
+  .prose-times [data-md]::before {
+    content: attr(data-md) / '';
+  }
 }
 
 .prose-times > :first-child {

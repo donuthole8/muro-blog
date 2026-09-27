@@ -35,9 +35,8 @@ export const Route = createFileRoute('/@{$handle}/$postId')({
     const shareable =
       post.state === 'visible' && post.moderation !== 'sensitive'
     const excerpt = shareable ? htmlExcerpt(post.bodyHtml, 120) : ''
-    const title = author
-      ? `${author.displayName}: ${excerpt.slice(0, 40) || 'スレッド'} | ${site.title}`
-      : `スレッド | ${site.title}`
+    const shareTitle = threadTitle(thread.post, excerpt)
+    const title = `${shareTitle} | ${site.title}`
     const url = `${site.url}/@${params.handle}/${post.id}`
     // 画像付きの投稿はその画像を、なければサイト共通の画像を出す
     // （スレッドごとの共有カードは、Worker の無料枠では日本語フォント込みの画像生成が収まらないので描かない）
@@ -52,7 +51,7 @@ export const Route = createFileRoute('/@{$handle}/$postId')({
       meta: [
         { title },
         { name: 'description', content: excerpt },
-        { property: 'og:title', content: title },
+        { property: 'og:title', content: shareTitle },
         { property: 'og:type', content: 'article' },
         { property: 'og:description', content: excerpt },
         { property: 'og:url', content: url },
@@ -62,6 +61,10 @@ export const Route = createFileRoute('/@{$handle}/$postId')({
           content: image ? 'summary_large_image' : 'summary',
         },
         { property: 'article:published_time', content: post.createdAt },
+        // 削除・非表示・畳んで出す投稿、持ち主が退会したスレッドは検索に載せない
+        ...(shareable && author
+          ? []
+          : [{ name: 'robots', content: 'noindex' }]),
       ],
       links: [{ rel: 'canonical', href: url }],
     }
@@ -108,6 +111,17 @@ function ThreadPage() {
         </Link>
       )}
 
+      {/* 見出しの並びを正しく保つための、画面には出さないページ名 */}
+      <h1 className="sr-only">
+        {threadTitle(
+          thread.post,
+          thread.post.state === 'visible' &&
+            thread.post.moderation !== 'sensitive'
+            ? htmlExcerpt(thread.post.bodyHtml, 120)
+            : '',
+        )}
+      </h1>
+
       <div className="mt-2 mb-2">
         <PostItem
           post={thread.post}
@@ -137,4 +151,10 @@ function ThreadPage() {
       {canReply && <BottomComposer parentId={thread.post.id} />}
     </div>
   )
+}
+
+/** スレッドの呼び名（「書き手: 本文の冒頭」）。本文を出せない投稿は「スレッド」とだけ呼ぶ。 */
+function threadTitle(post: TimesPost, excerpt: string): string {
+  const head = excerpt.slice(0, 40) || 'スレッド'
+  return post.author ? `${post.author.displayName}: ${head}` : head
 }

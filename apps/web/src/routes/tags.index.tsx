@@ -5,6 +5,7 @@ import { PageHeader } from '../components/PageHeader'
 import { TagChip } from '../components/TagChip'
 import { tagsQuery } from '../lib/queries'
 import { site } from '../lib/site'
+import { canonical } from '../lib/seo'
 
 export const Route = createFileRoute('/tags/')({
   loader: ({ context }) => context.queryClient.ensureQueryData(tagsQuery),
@@ -15,7 +16,10 @@ export const Route = createFileRoute('/tags/')({
         name: 'description',
         content: `${site.title}のトピックタグの一覧です。`,
       },
+      { property: 'og:title', content: `タグ | ${site.title}` },
+      { property: 'og:url', content: canonical('/tags').href },
     ],
+    links: [canonical('/tags')],
   }),
   component: TagsIndex,
 })

@@ -864,6 +864,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sitemap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_api_sitemap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1421,6 +1437,29 @@ export interface components {
             remaining: number;
             /** @description Jev の呼び出しに失敗して途中で止めた（クレジット切れなど） */
             stopped: boolean;
+        };
+        SitemapEntry: {
+            /**
+             * @description サイト内のパス（先頭は /）
+             * @example /@alice/articles/hello
+             */
+            path: string;
+            /**
+             * Format: date-time
+             * @description 最後に中身が変わった日時
+             * @example 2026-09-24T10:00:00+00:00
+             */
+            lastModified: string;
+        };
+        Sitemap: {
+            /** @description 公開中の記事（旧ブログの記事とユーザーの記事） */
+            articles: components["schemas"]["SitemapEntry"][];
+            /** @description 公開の投稿がある部屋（/@handle） */
+            rooms: components["schemas"]["SitemapEntry"][];
+            /** @description 公開中の記事がある人の記事一覧（/@handle/articles） */
+            articleLists: components["schemas"]["SitemapEntry"][];
+            /** @description 公開の投稿があるタグ（/tags/:slug） */
+            tags: components["schemas"]["SitemapEntry"][];
         };
     };
     responses: never;
@@ -3291,6 +3330,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    get_api_sitemap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description サイトマップに載せる公開ページと最終更新日時 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sitemap"];
                 };
             };
         };

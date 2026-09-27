@@ -1,12 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { site } from '../lib/site'
+import { canonical } from '../lib/seo'
 
 export const Route = createFileRoute('/about')({
   head: () => ({
     meta: [
       { title: `${site.title} について` },
       { name: 'description', content: site.description },
+      { property: 'og:title', content: `${site.title} について` },
+      { property: 'og:url', content: canonical('/about').href },
     ],
+    links: [canonical('/about')],
   }),
   component: About,
 })

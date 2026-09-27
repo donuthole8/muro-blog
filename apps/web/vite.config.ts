@@ -7,77 +7,19 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { cloudflare } from '@cloudflare/vite-plugin'
 
-/** 本番の公開 URL。サイトマップの絶対 URL に使う。 */
-const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000'
-const apiBaseUrl = process.env.API_BASE_URL ?? 'http://127.0.0.1:8000'
-
 /**
- * ブログ記事（旧ブログの /posts/:slug と、ユーザーの /@handle/articles/:slug）をサイトマップに
- * 載せるため、ビルド時に API から記事の一覧を取ってページを列挙する（ビルド中は API が起動している必要がある）。
- *
- * ページそのものは静的化せず SSR にする。D1 の本文を書き換えれば再デプロイなしで反映され、
- * 公開 API の応答はエッジでキャッシュされる（lib/edgeCache.ts 参照）。
+ * 静的化するのは robots.txt だけ。記事・times の画面・RSS・サイトマップは SSR にして、
+ * 公開 API の応答をエッジでキャッシュする（lib/edgeCache.ts 参照）。
+ * 記事の公開や D1 の書き換えが再デプロイなしで反映される。
  */
-async function archivePages() {
-  const paths: Array<string> = []
-  let page = 1
-  let totalPages = 1
-
-  do {
-    const res = await fetch(
-      `${apiBaseUrl}/api/archive/posts?page=${page}&perPage=50`,
-    )
-    if (!res.ok) {
-      throw new Error(
-        `アーカイブ記事の一覧を取得できませんでした（${res.status}）。API は起動していますか？`,
-      )
-    }
-    /*
-     * res.json() は any を返すので、この as を外すと body が unknown になり
-     * tsc が TS18046 で落ちる。lint は「型が変わらない不要な as」と判定するが、
-     * 実際には外せないので、ここだけルールを無効にする。
-     * （これを消すと pnpm format のたびにビルドが壊れる）
-     */
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- 外すと TS18046 になる
-    const body = (await res.json()) as {
-      items: Array<{ slug: string; author?: { handle: string } | null }>
-      totalPages: number
-    }
-    // apps/web/src/lib/site.ts の articlePath と同じ規則
-    paths.push(
-      ...body.items.map((item) =>
-        item.author
-          ? `/@${item.author.handle}/articles/${item.slug}`
-          : `/posts/${item.slug}`,
-      ),
-    )
-    totalPages = body.totalPages
-    page += 1
-  } while (page <= totalPages)
-
-  return paths.map((path) => ({
-    path,
-    prerender: { enabled: false },
-  }))
-}
-
-/**
- * 静的化するのはフィードと robots.txt だけ。サイトマップにページとしては載せない。
- */
-const feedPages = [
-  {
-    path: '/rss.xml',
-    sitemap: { exclude: true },
-    prerender: { enabled: true },
-  },
+const staticPages = [
   {
     path: '/robots.txt',
-    sitemap: { exclude: true },
     prerender: { enabled: true },
   },
 ]
 
-export default defineConfig(async ({ command }) => ({
+export default defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
     devtools(),
@@ -90,18 +32,12 @@ export default defineConfig(async ({ command }) => ({
         crawlLinks: false,
         autoStaticPathsDiscovery: false,
         concurrency: 4,
-        // 記事の取得に失敗したまま空の HTML を公開しないよう、失敗はビルドを止める
         failOnError: true,
-        filter: (page) => feedPages.some((feed) => feed.path === page.path),
       },
-      sitemap: {
-        enabled: true,
-        host: siteUrl,
-      },
-      // 開発サーバーの起動時には API を叩かない（ビルド時だけ列挙する）
-      pages:
-        command === 'build' ? [...(await archivePages()), ...feedPages] : [],
+      // サイトマップは routes/sitemap[.]xml.ts がリクエストのたびに作る
+      sitemap: { enabled: false },
+      pages: staticPages,
     }),
     viteReact(),
   ],
-}))
+})

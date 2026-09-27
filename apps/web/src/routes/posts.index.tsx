@@ -5,6 +5,7 @@ import { EmptyState } from '../components/EmptyState'
 import { PageHeader } from '../components/PageHeader'
 import { Pagination } from '../components/Pagination'
 import { site } from '../lib/site'
+import { canonical, pageSuffix } from '../lib/seo'
 
 type PostsSearch = {
   /**
@@ -23,17 +24,24 @@ export const Route = createFileRoute('/posts/')({
   },
   loaderDeps: ({ search }) => ({ page: search.page ?? 1 }),
   loader: ({ deps }) => fetchArchivedPosts({ data: { page: deps.page } }),
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: `ブログ | ${site.title}` },
-      {
-        name: 'description',
-        content: loaderData
-          ? `${site.title} のみんなが書いたブログ記事です。全${loaderData.total}件。`
-          : `${site.title} のみんなが書いたブログ記事です。`,
-      },
-    ],
-  }),
+  head: ({ loaderData, match }) => {
+    const page = match.search.page ?? 1
+    const title = `ブログ${pageSuffix(page)} | ${site.title}`
+    const description = loaderData
+      ? `${site.title} のみんなが書いたブログ記事です。全${loaderData.total}件。`
+      : `${site.title} のみんなが書いたブログ記事です。`
+
+    return {
+      meta: [
+        { title },
+        { name: 'description', content: description },
+        { property: 'og:title', content: title },
+        { property: 'og:description', content: description },
+        { property: 'og:url', content: canonical('/posts', page).href },
+      ],
+      links: [canonical('/posts', page)],
+    }
+  },
   component: PostsIndex,
 })
 

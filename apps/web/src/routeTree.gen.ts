@@ -20,6 +20,7 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as RssDotxmlRouteImport } from './routes/rss[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as AtChar123handleChar125IndexRouteImport } from './routes/@{$handle}.index'
 import { Route as AtChar123handleChar125PostIdRouteImport } from './routes/@{$handle}.$postId'
@@ -96,6 +97,11 @@ const SearchRoute = SearchRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WelcomeRoute = WelcomeRouteImport.update({
@@ -226,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/welcome': typeof WelcomeRoute
   '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
   '/@{$handle}/rss.xml': typeof AtChar123handleChar125RssDotxmlRoute
@@ -260,6 +267,7 @@ export interface FileRoutesByTo {
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/welcome': typeof WelcomeRoute
   '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
   '/@{$handle}/rss.xml': typeof AtChar123handleChar125RssDotxmlRoute
@@ -296,6 +304,7 @@ export interface FileRoutesById {
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/welcome': typeof WelcomeRoute
   '/@{$handle}/$postId': typeof AtChar123handleChar125PostIdRoute
   '/@{$handle}/rss.xml': typeof AtChar123handleChar125RssDotxmlRoute
@@ -333,6 +342,7 @@ export interface FileRouteTypes {
     | '/rss.xml'
     | '/search'
     | '/settings'
+    | '/sitemap.xml'
     | '/welcome'
     | '/@{$handle}/$postId'
     | '/@{$handle}/rss.xml'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
     | '/rss.xml'
     | '/search'
     | '/settings'
+    | '/sitemap.xml'
     | '/welcome'
     | '/@{$handle}/$postId'
     | '/@{$handle}/rss.xml'
@@ -402,6 +413,7 @@ export interface FileRouteTypes {
     | '/rss.xml'
     | '/search'
     | '/settings'
+    | '/sitemap.xml'
     | '/welcome'
     | '/@{$handle}/$postId'
     | '/@{$handle}/rss.xml'
@@ -438,6 +450,7 @@ export interface RootRouteChildren {
   RssDotxmlRoute: typeof RssDotxmlRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WelcomeRoute: typeof WelcomeRoute
   AtChar123handleChar125PostIdRoute: typeof AtChar123handleChar125PostIdRoute
   AtChar123handleChar125RssDotxmlRoute: typeof AtChar123handleChar125RssDotxmlRoute
@@ -534,6 +547,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/welcome': {
@@ -723,6 +743,7 @@ const rootRouteChildren: RootRouteChildren = {
   RssDotxmlRoute: RssDotxmlRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   WelcomeRoute: WelcomeRoute,
   AtChar123handleChar125PostIdRoute: AtChar123handleChar125PostIdRoute,
   AtChar123handleChar125RssDotxmlRoute: AtChar123handleChar125RssDotxmlRoute,
@@ -746,6 +767,7 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
 
 import type { getRouter } from './router.tsx'
 import type { createStart } from '@tanstack/react-start'

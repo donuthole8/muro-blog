@@ -5,6 +5,7 @@ import { PageHeader } from '../components/PageHeader'
 import { PostList } from '../components/times/PostList'
 import { tagPostsQuery } from '../lib/queries'
 import { site } from '../lib/site'
+import { breadcrumbJsonLd, canonical } from '../lib/seo'
 
 export const Route = createFileRoute('/tags/$slug')({
   loader: async ({ context, params }) => {
@@ -26,7 +27,14 @@ export const Route = createFileRoute('/tags/$slug')({
         { name: 'description', content: description },
         { property: 'og:title', content: title },
         { property: 'og:description', content: description },
+        { property: 'og:url', content: canonical(`/tags/${tag.slug}`).href },
+        breadcrumbJsonLd([
+          { name: site.title, path: '/' },
+          { name: 'タグ', path: '/tags' },
+          { name: `#${tag.name}`, path: `/tags/${tag.slug}` },
+        ]),
       ],
+      links: [canonical(`/tags/${tag.slug}`)],
     }
   },
   component: TagPosts,
