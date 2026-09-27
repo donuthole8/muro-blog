@@ -15,22 +15,10 @@
 
 ## 前提ツール
 
-- Node 22（nvm 側）
+- Node 22
+- pnpm 10（`corepack enable` で `package.json` の `packageManager` に合わせて入る）
 
 PHP・Docker は不要（D1 はローカルでは SQLite ファイルとして動く）。
-
-### pnpm について
-
-このマシンには **nodebrew と nvm が両方入っており、PATH 上で nodebrew が先**にあるため、
-`pnpm` と打つと古い pnpm 6.11.0 が起動する（`node` は nvm の v22 が使われる）。
-
-当面は nvm 側の corepack を明示的に使う:
-
-```sh
-alias pnpm='/Users/murohisashimasakado/.nvm/versions/node/v22.23.2/bin/corepack pnpm'
-```
-
-恒久対応は `~/.zshrc` から nodebrew の PATH を外すこと（要判断）。
 
 ## 開発の始め方
 
