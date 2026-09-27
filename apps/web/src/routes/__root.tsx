@@ -10,6 +10,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import { buttonClass } from '../components/Button'
+import { NavigationProgress } from '../components/NavigationProgress'
 import { Sidebar } from '../components/Sidebar'
 import { SiteHeader } from '../components/SiteHeader'
 import { SiteFooter } from '../components/SiteFooter'
@@ -142,6 +143,7 @@ function Layout({ children }: { children: React.ReactNode }) {
       className="group/layout flex min-h-screen flex-col pb-[var(--bottom-bar-h,0px)]"
       data-sidebar={me?.handle ? '' : undefined}
     >
+      <NavigationProgress />
       <SiteHeader />
       <div className="flex flex-1">
         <Sidebar />
