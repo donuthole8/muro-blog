@@ -1,5 +1,5 @@
 /**
- * 独立行に貼っただけの裸 URL（`<p><a href="X">X</a></p>`）を、OGP 情報つきのリンクカードに差し替える。
+ * 1行に貼っただけの裸 URL（`<p><a href="X">X</a></p>`、または段落内で <br> に挟まれた行）を、OGP 情報つきのリンクカードに差し替える。
  *
  * 他人のサーバーへの通信（最大数秒）を投稿の待ち時間に含めないため、投稿の保存後に
  * ctx.waitUntil で埋める。取得に失敗したものは .bare-link を振った裸リンクのまま残し、
@@ -16,14 +16,30 @@ type LinkCard = {
 }
 
 const TIMEOUT_MS = 4000
-const MAX_BODY_BYTES = 512 * 1024
+// YouTube などは <head> だけで 700KB を超え、og:* がその奥にある
+const MAX_BODY_BYTES = 2 * 1024 * 1024
 const CACHE_TTL_SECONDS = 60 * 60 * 24 * 7
 
-const BARE_LINK = /<p><a ([^>]*?)href="([^"]+)"([^>]*)>([^<]*)<\/a><\/p>/g
+const PARAGRAPH = /<p>([\s\S]*?)<\/p>/g
+const LINE_BREAK = /<br>\n?/
+const LINK_LINE = /^<a ([^>]*?)href="([^"]+)"([^>]*)>([^<]*)<\/a>$/
+
+type BareLink = { before: string; href: string; after: string; text: string }
+
+/**
+ * 段落を行（breaks: true の改行 = <br>）に分け、URL だけの行を拾う。
+ * 「一言 + 改行 + URL」のように文の直後の行に貼った URL もカードにするため、段落単位ではなく行単位で見る。
+ */
+function splitLines(inner: string): (string | BareLink)[] {
+  return inner.split(LINE_BREAK).map((line) => {
+    const m = LINK_LINE.exec(line.trim())
+    return m && isSelfLabeled(m[2], m[4]) ? { before: m[1], href: m[2], after: m[3], text: m[4] } : line
+  })
+}
 
 export function hasBareLink(html: string): boolean {
-  for (const m of html.matchAll(BARE_LINK)) {
-    if (isSelfLabeled(m[2], m[4])) return true
+  for (const m of html.matchAll(PARAGRAPH)) {
+    if (splitLines(m[1]).some((line) => typeof line !== 'string')) return true
   }
   return false
 }
@@ -35,23 +51,40 @@ function isSelfLabeled(href: string, text: string): boolean {
 }
 
 export async function embedLinkCards(html: string): Promise<string> {
-  const matches = [...html.matchAll(BARE_LINK)].filter((m) => isSelfLabeled(m[2], m[4]))
-  if (matches.length === 0) return html
+  const paragraphs = [...html.matchAll(PARAGRAPH)].map((m) => ({ m, lines: splitLines(m[1]) }))
+  const links = paragraphs.flatMap(({ lines }) => lines.filter((l): l is BareLink => typeof l !== 'string'))
+  if (links.length === 0) return html
 
-  const cards = await Promise.all(matches.map((m) => fetchLinkCard(decodeAttr(m[2]))))
+  const cards = await Promise.all(links.map((l) => fetchLinkCard(decodeAttr(l.href))))
 
   let result = ''
   let last = 0
-  matches.forEach((m, i) => {
-    const [whole, before, href, after, text] = m
-    const start = m.index
-    result += html.slice(last, start)
-    const card = cards[i]
-    result += card
-      ? renderCard(card)
-      : `<p><a ${addClass(before)}href="${href}"${after}>${text}</a></p>`
-    last = start + whole.length
-  })
+  let i = 0
+  for (const { m, lines } of paragraphs) {
+    if (lines.every((l) => typeof l === 'string')) continue
+    result += html.slice(last, m.index)
+    // URL の行をカードにし、前後の文はそれぞれ段落として残す
+    let text: string[] = []
+    const flush = () => {
+      if (text.length > 0) result += `<p>${text.join('<br>\n')}</p>\n`
+      text = []
+    }
+    for (const line of lines) {
+      if (typeof line === 'string') {
+        text.push(line)
+        continue
+      }
+      flush()
+      const card = cards[i++]
+      result += card
+        ? renderCard(card)
+        : `<p><a ${addClass(line.before)}href="${line.href}"${line.after}>${line.text}</a></p>`
+      result += '\n'
+    }
+    flush()
+    result = result.replace(/\n$/, '')
+    last = m.index + m[0].length
+  }
   return result + html.slice(last)
 }
 
